@@ -25,22 +25,32 @@ import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import logo from './logo_2.png';
 import nevatimLogo from './nevatim.jpeg';
 import Tooltip from '@mui/material/Tooltip';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import ListAltIcon from '@mui/icons-material/ListAlt';
+import HistoryIcon from '@mui/icons-material/History';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 // --- Theme Setup ---
-const getTheme = (darkMode: boolean) => createTheme({
+const getTheme = () => createTheme({
   palette: {
-    mode: darkMode ? 'dark' : 'light',
-    primary: { main: '#1e3a5c' }, // Air Force blue
-    secondary: { main: '#ff9800' }, // Orange
+    mode: 'dark',
+    primary: { main: '#1e3a5c' }, // Restore previous blue for text
+    secondary: { main: '#ff9800' },
     background: {
-      default: darkMode ? '#181c23' : '#f4f6fa',
-      paper: darkMode ? '#232a36' : '#fff',
+      default: '#181c23',
+      paper: 'rgba(35, 39, 43, 0.85)', // dark gray for boxes
+    },
+    text: {
+      primary: '#e0e6ed',
+      secondary: '#b0bec5',
     },
   },
   components: {
     MuiAppBar: {
       styleOverrides: {
-        root: { background: 'linear-gradient(90deg, #1e3a5c 60%, #ff9800 100%)' },
+        root: { background: 'linear-gradient(90deg, #2d3136 60%, #3a3f44 100%)' },
       },
     },
   },
@@ -72,6 +82,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { loggedIn } = useAuth();
   const location = useLocation();
   if (!loggedIn) return <Navigate to="/login" state={{ from: location }} replace />;
+  // Do NOT redirect to /dashboard if logged in; just render children
   return <>{children}</>;
 }
 
@@ -83,8 +94,18 @@ function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   React.useEffect(() => {
+    window.scrollTo(0, 0);
+    // Safari/Chrome autofill workaround: scroll to top again after a short delay
+    const t1 = setTimeout(() => window.scrollTo(0, 0), 100);
+    const t2 = setTimeout(() => window.scrollTo(0, 0), 300);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, []);
+  React.useEffect(() => {
     if (loggedIn && !loading) {
-      navigate('/x-tasks', { replace: true });
+      navigate('/dashboard', { replace: true });
     }
   }, [loggedIn, loading, navigate]);
   const handleSubmit = async (e: React.FormEvent) => {
@@ -93,42 +114,150 @@ function LoginPage() {
     await login(username, password);
     setSubmitting(false);
   };
+
+  // Parallax/fade background logic
+  const bgImages = [
+    process.env.PUBLIC_URL + '/backgrounds/image_1.png',
+    process.env.PUBLIC_URL + '/backgrounds/image_2.png',
+    process.env.PUBLIC_URL + '/backgrounds/image_3.jpeg',
+  ];
+  // We'll use 3 sections: welcome, description, login
+  // As user scrolls, fade between images
+  const [scrollY, setScrollY] = useState(0);
+  React.useEffect(() => {
+    const onScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  // Calculate which image to show and fade amount
+  const sectionHeight = 400; // px per section
+  let fade = (scrollY % sectionHeight) / sectionHeight;
+  let bgIndex1 = Math.floor(scrollY / sectionHeight) % bgImages.length;
+  let bgIndex2 = (bgIndex1 + 1) % bgImages.length;
+  // Clamp for top and bottom
+  if (scrollY <= 0) {
+    fade = 0;
+    bgIndex1 = 0;
+    bgIndex2 = 1;
+  } else if (scrollY >= (bgImages.length - 1) * sectionHeight) {
+    fade = 0;
+    bgIndex1 = bgImages.length - 1;
+    bgIndex2 = bgImages.length - 1;
+  }
+
+  // Style for the parallax/fade background
+  const backgroundStyle = {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100vw',
+    height: '100vh',
+    zIndex: -1,
+    pointerEvents: 'none',
+    overflow: 'hidden',
+  } as React.CSSProperties;
+
+  // Style for each image (fade in/out)
+  const imageStyle = (opacity: number) => ({
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    width: '100vw',
+    height: '100vh',
+    objectFit: 'cover' as const,
+    transition: 'opacity 0.7s',
+    opacity,
+    willChange: 'opacity',
+  });
+
+  // Helper for blurred box
+  const blurredBox = (children: React.ReactNode, sx: any = {}) => (
+    <Box
+      sx={{
+        width: { xs: '95%', sm: '80%', md: '60%' },
+        bgcolor: 'rgba(30, 42, 60, 0.55)',
+        borderRadius: 3,
+        boxShadow: 4,
+        p: 4,
+        mb: 3,
+        textAlign: 'center',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        ...sx,
+      }}
+    >
+      {children}
+    </Box>
+  );
+
   return (
-    <Box sx={{ p: 4, maxWidth: 400, mx: 'auto' }}>
-      <Typography variant="h4" gutterBottom>Login</Typography>
-      <form onSubmit={handleSubmit}>
-        <Box sx={{ mb: 2 }}>
-          <input
-            type="text"
-            placeholder="Username"
-            value={username}
-            onChange={e => setUsername(e.target.value)}
-            style={{ width: '100%', padding: 8, fontSize: 16 }}
-            autoFocus
-            required
-          />
+    <Box sx={{ minHeight: '100vh', width: '100vw', overflowX: 'hidden', bgcolor: 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', position: 'relative' }}>
+      {/* Parallax/Fade Background */}
+      <Box style={backgroundStyle}>
+        <img src={bgImages[bgIndex1]} alt="bg1" style={imageStyle(1 - fade)} />
+        <img src={bgImages[bgIndex2]} alt="bg2" style={imageStyle(fade)} />
+      </Box>
+      {/* Welcome Section */}
+      <Box sx={{ minHeight: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', pt: { xs: 6, sm: 8, md: 10 }, position: 'relative' }}>
+        <Box sx={{ width: '100%', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', position: 'relative', zIndex: 2 }}>
+          <Box sx={{ bgcolor: 'rgba(35, 39, 43, 0.24)', borderRadius: 6, px: 6, py: 3, boxShadow: 4 }}>
+            <Typography variant="h2" sx={{ fontWeight: 900, color: '#e0e6ed', letterSpacing: 1, textShadow: '0 4px 32px #000a' }}>Welcome</Typography>
+          </Box>
         </Box>
-        <Box sx={{ mb: 2 }}>
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            style={{ width: '100%', padding: 8, fontSize: 16 }}
-            required
-          />
+      </Box>
+      {/* Description Section */}
+      <Box sx={{ minHeight: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <Box sx={{ width: { xs: '95%', sm: '80%', md: '60%' }, bgcolor: 'rgba(35,39,43,0.65)', borderRadius: 3, boxShadow: 4, p: 4, mb: 3, textAlign: 'center', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+          <Typography variant="h5" sx={{ mb: 2, fontWeight: 600, color: '#e0e6ed' }}>Description</Typography>
+          <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+            This is the Worker Scheduling Manager. Easily create, edit, and view X and Y task schedules for your team. Enjoy a modern, responsive interface with beautiful backgrounds and secure login. (This is placeholder text. Replace with your real description!)
+          </Typography>
         </Box>
-        <Button
-          variant="contained"
-          color="primary"
-          type="submit"
-          disabled={submitting || loading}
-          fullWidth
-        >
-          {submitting || loading ? 'Logging in...' : 'Login'}
-        </Button>
-        {error && <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>}
-      </form>
+      </Box>
+      {/* Login Section */}
+      <Box sx={{ minHeight: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <Box sx={{ width: 360, maxWidth: '95vw', bgcolor: 'rgba(35,39,43,0.65)', borderRadius: 3, boxShadow: 4, p: 4, mb: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+          <Typography variant="h5" sx={{ mb: 2, fontWeight: 700, color: '#e0e6ed' }}>Log In</Typography>
+          <form onSubmit={handleSubmit} style={{ width: '100%' }}>
+            <TextField
+              label="Username"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              fullWidth
+              sx={{ mb: 2 }}
+              autoFocus
+              required
+            />
+            <TextField
+              label="Password"
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              fullWidth
+              sx={{ mb: 1 }}
+              required
+            />
+            <Box sx={{ width: '100%', display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+              <Button variant="text" size="small" sx={{ textTransform: 'none' }} disabled>Forgot password?</Button>
+            </Box>
+            <Button
+              variant="contained"
+              color="primary"
+              type="submit"
+              disabled={submitting || loading}
+              fullWidth
+              sx={{ fontWeight: 700, fontSize: 18 }}
+            >
+              {submitting || loading ? 'Logging in...' : 'Log In'}
+            </Button>
+            {error && <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>}
+          </form>
+        </Box>
+      </Box>
+      {/* Footer */}
+      <Box sx={{ width: '100%', textAlign: 'center', py: 2, mt: 2, color: 'text.secondary', fontSize: 16, borderTop: '1px solid #ccc', opacity: 0.8 }}>
+        © All Rights Reserved | Davel
+      </Box>
     </Box>
   );
 }
@@ -1337,72 +1466,144 @@ function ResetHistoryPage() {
 }
 
 // --- Navigation ---
-function NavBar({ darkMode, setDarkMode }: { darkMode: boolean, setDarkMode: (v: boolean) => void }) {
+function NavBar() {
   const { loggedIn, logout } = useAuth();
   const isSmall = useMediaQuery('(max-width:900px)');
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
-  const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
+  const location = useLocation();
+  const isLoginPage = location.pathname === '/login';
   return (
     <AppBar position="static" elevation={2}>
       <Toolbar>
         <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
-          <img src={process.env.PUBLIC_URL + '/logos/nevatim.jpeg'} alt="Logo" style={{ height: 44, width: 44, marginRight: 16, borderRadius: '50%', objectFit: 'cover', background: 'none', boxShadow: '0 2px 8px #0002' }} />
+          <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center' }}>
+            <img src={process.env.PUBLIC_URL + '/logos/nevatim.jpeg'} alt="Logo" style={{ height: 44, width: 44, marginRight: 16, borderRadius: '50%', objectFit: 'cover', background: 'none', boxShadow: '0 2px 8px #0002' }} />
+          </Link>
         </Box>
-        <IconButton edge="start" color="inherit" sx={{ mr: 2 }}>
-          <MenuIcon />
-        </IconButton>
         <Typography variant="h6" sx={{ flexGrow: 1 }}>Worker Scheduling Manager</Typography>
-        <Switch checked={darkMode} onChange={e => setDarkMode(e.target.checked)} color="default" />
-        {loggedIn && (
-          isSmall ? (
-            <>
-              <IconButton color="inherit" onClick={handleMenu}>
-                <MoreVertIcon />
-              </IconButton>
-              <Menu
-                anchorEl={anchorEl}
-                open={open}
-                onClose={handleClose}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-              >
-                <MenuItem component={Link} to="/x-tasks" onClick={handleClose}>X Tasks</MenuItem>
-                <MenuItem component={Link} to="/y-tasks" onClick={handleClose}>Y Tasks</MenuItem>
-                <MenuItem component={Link} to="/combined" onClick={handleClose}>Combined</MenuItem>
-                <MenuItem component={Link} to="/warnings" onClick={handleClose}>Warnings</MenuItem>
-                <MenuItem component={Link} to="/reset-history" onClick={handleClose}>Reset/History</MenuItem>
-                <MenuItem onClick={() => { handleClose(); logout(); }}>Logout</MenuItem>
-              </Menu>
-            </>
-          ) : (
-            <>
-              <Button color="inherit" component={Link} to="/x-tasks">X Tasks</Button>
-              <Button color="inherit" component={Link} to="/y-tasks">Y Tasks</Button>
-              <Button color="inherit" component={Link} to="/combined">Combined</Button>
-              <Button color="inherit" component={Link} to="/warnings">Warnings</Button>
-              <Button color="inherit" component={Link} to="/reset-history">Reset/History</Button>
-              <Button color="inherit" onClick={logout}>Logout</Button>
-            </>
-          )
+        {loggedIn && !isLoginPage && (
+          <>
+            <Button color="inherit" component={Link} to="/dashboard" sx={{ fontWeight: 700, mr: 2 }}>Menu</Button>
+            <Button color="inherit" onClick={logout}>Logout</Button>
+          </>
         )}
       </Toolbar>
     </AppBar>
   );
 }
 
-function AppRoutes({ darkMode, setDarkMode }: { darkMode: boolean, setDarkMode: (v: boolean) => void }) {
+function MainMenuPage() {
+  // Fading background logic (like front page, but always blurred/dark)
+  const bgImages = [
+    process.env.PUBLIC_URL + '/backgrounds/image_1.png',
+    process.env.PUBLIC_URL + '/backgrounds/image_2.png',
+    process.env.PUBLIC_URL + '/backgrounds/image_3.jpeg',
+  ];
+  const [bgIndex, setBgIndex] = React.useState(0);
+  // Scroll to top on mount
+  React.useEffect(() => { window.scrollTo(0, 0); }, []);
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setBgIndex(i => (i + 1) % bgImages.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [bgImages.length]);
+
+  // Fade effect
+  const [fade, setFade] = React.useState(false);
+  React.useEffect(() => {
+    setFade(true);
+    const timeout = setTimeout(() => setFade(false), 1000);
+    return () => clearTimeout(timeout);
+  }, [bgIndex]);
+
+  // Navigation cards
+  const navCards = [
+    { label: 'Main Tasks', icon: <AssignmentIcon sx={{ fontSize: 48 }} />, to: '/x-tasks', desc: 'X-tasks: Core scheduling' },
+    { label: 'Secondary Tasks', icon: <ListAltIcon sx={{ fontSize: 48 }} />, to: '/y-tasks', desc: 'Y-tasks: Support scheduling' },
+    { label: 'Combined Schedule', icon: <DashboardIcon sx={{ fontSize: 48 }} />, to: '/combined', desc: 'View all schedules' },
+    { label: 'View History', icon: <HistoryIcon sx={{ fontSize: 48 }} />, to: '/reset-history', desc: 'See changes & resets' },
+    { label: 'Statistics', icon: <BarChartIcon sx={{ fontSize: 48 }} />, to: '/statistics', desc: 'View stats & analytics' },
+    { label: 'Help', icon: <HelpOutlineIcon sx={{ fontSize: 48 }} />, to: '/help', desc: 'Get help & info' },
+  ];
+
+  return (
+    <Box sx={{ minHeight: '100vh', width: '100vw', position: 'relative', overflow: 'hidden', bgcolor: 'transparent' }}>
+      {/* Fading blurred background */}
+      <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1, pointerEvents: 'none', overflow: 'hidden' }}>
+        {bgImages.map((img, i) => (
+          <img
+            key={img}
+            src={img}
+            alt="bg"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              objectFit: 'cover',
+              opacity: i === bgIndex ? (fade ? 0.7 : 1) : 0,
+              transition: 'opacity 1.2s',
+              filter: 'blur(16px) brightness(0.5)',
+            }}
+          />
+        ))}
+      </Box>
+      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', pt: { xs: 8, sm: 10, md: 12 } }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center', width: '100%', maxWidth: 1200 }}>
+          {navCards.map(card => (
+            <Box
+              key={card.label}
+              component={Link}
+              to={card.to}
+              sx={{
+                textDecoration: 'none',
+                bgcolor: 'rgba(35,39,43,0.75)',
+                borderRadius: 4,
+                boxShadow: 6,
+                p: 4,
+                minWidth: 220,
+                maxWidth: 260,
+                minHeight: 200,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#e0e6ed',
+                transition: 'transform 0.18s, box-shadow 0.18s, background 0.18s',
+                '&:hover': {
+                  transform: 'scale(1.045)',
+                  boxShadow: 12,
+                  bgcolor: 'rgba(35,39,43,0.92)',
+                },
+              }}
+            >
+              {card.icon}
+              <Typography variant="h5" sx={{ fontWeight: 700, mt: 2, mb: 1 }}>{card.label}</Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center' }}>{card.desc}</Typography>
+            </Box>
+          ))}
+        </Box>
+      </Box>
+      <Box sx={{ width: '100%', textAlign: 'center', py: 2, mt: 4, color: 'text.secondary', fontSize: 16, borderTop: '1px solid #ccc', opacity: 0.8 }}>
+        © All Rights Reserved | Davel
+      </Box>
+    </Box>
+  );
+}
+
+function AppRoutes() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [user, setUser] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Scroll to top on route change
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   // Real login/logout logic
   const login = async (username: string, password: string) => {
@@ -1481,38 +1682,31 @@ function AppRoutes({ darkMode, setDarkMode }: { darkMode: boolean, setDarkMode: 
 
   return (
     <AuthContext.Provider value={{ loggedIn, user, login, logout, error, loading }}>
-      <NavBar darkMode={darkMode} setDarkMode={setDarkMode} />
+      <NavBar />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/x-tasks" element={<ProtectedRoute><XTaskPage darkMode={darkMode} /></ProtectedRoute>} />
-        <Route path="/y-tasks" element={<ProtectedRoute><YTaskPage darkMode={darkMode} /></ProtectedRoute>} />
-        <Route path="/combined" element={<ProtectedRoute><CombinedPage darkMode={darkMode} /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><MainMenuPage /></ProtectedRoute>} />
+        <Route path="/x-tasks" element={<ProtectedRoute><XTaskPage darkMode={true} /></ProtectedRoute>} />
+        <Route path="/y-tasks" element={<ProtectedRoute><YTaskPage darkMode={true} /></ProtectedRoute>} />
+        <Route path="/combined" element={<ProtectedRoute><CombinedPage darkMode={true} /></ProtectedRoute>} />
         <Route path="/warnings" element={<ProtectedRoute><WarningsPage /></ProtectedRoute>} />
         <Route path="/reset-history" element={<ProtectedRoute><ResetHistoryPage /></ProtectedRoute>} />
-        <Route path="*" element={
-          (() => {
-            if (!loggedIn) return <Navigate to="/login" replace />;
-            const lastPage = localStorage.getItem('lastPage');
-            if (lastPage && lastPage !== '/login') {
-              return <Navigate to={lastPage} replace />;
-            }
-            return <Navigate to="/x-tasks" replace />;
-          })()
-        } />
+        <Route path="/statistics" element={<ProtectedRoute><Box sx={{ p: 4 }}><Typography variant='h4'>Statistics (Coming Soon)</Typography></Box></ProtectedRoute>} />
+        <Route path="/help" element={<ProtectedRoute><Box sx={{ p: 4 }}><Typography variant='h4'>Help (Coming Soon)</Typography></Box></ProtectedRoute>} />
+        {/* No catch-all redirect; let router handle refresh and unknown routes */}
       </Routes>
     </AuthContext.Provider>
   );
 }
 
 const App: React.FC = () => {
-  const [darkMode, setDarkMode] = useState(true);
-  const theme = useMemo(() => getTheme(darkMode), [darkMode]);
+  const theme = useMemo(() => getTheme(), []);
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <AppRoutes darkMode={darkMode} setDarkMode={setDarkMode} />
+        <AppRoutes />
       </Router>
     </ThemeProvider>
   );
