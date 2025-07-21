@@ -50,25 +50,25 @@ def get_weeks_for_period(start, end):
     Generates week ranges between start and end dates, always starting on Sunday and ending on Saturday.
     Args:
         start (datetime): Start date (any day).
-        end (datetime): End date (any day, exclusive).
+        end (datetime): End date (any day, inclusive).
     Returns:
         list: List of (week_num, week_start, week_end) tuples.
     """
-    # Find first Sunday on or after start
+    # Find first Sunday on or after start (inclusive)
     d = start
     while d.weekday() != 6:  # 6 = Sunday
         d += timedelta(days=1)
-    # Find last Saturday before end
-    last_saturday = end - timedelta(days=1)
+    # Find last Saturday on or before end (inclusive)
+    last_saturday = end
     while last_saturday.weekday() != 5:  # 5 = Saturday
         last_saturday -= timedelta(days=1)
     week_num = 1
     weeks = []
     while d <= last_saturday:
         week_start = d
-        week_end = week_start + timedelta(days=7)
-        weeks.append((week_num, week_start, week_end))
-        d = week_end
+        week_end = week_start + timedelta(days=6)  # Saturday
+        weeks.append((week_num, week_start, week_end + timedelta(days=1)))  # week_end is exclusive
+        d = week_end + timedelta(days=1)
         week_num += 1
     return weeks
 
