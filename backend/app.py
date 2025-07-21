@@ -320,7 +320,7 @@ def save_y_tasks():
     debug_info['start'] = start
     debug_info['end'] = end
     if not start or not end:
-        print(f"[DEBUG] /api/y-tasks POST missing start/end. Received: {debug_info}")
+        # print(f"[DEBUG] /api/y-tasks POST missing start/end. Received: {debug_info}") DEBUG 
         return jsonify({'error': 'Missing start or end date (ISO format required)', 'debug': debug_info}), 400
     def safe_date(date_str):
         return date_str.replace('/', '-')
@@ -339,7 +339,7 @@ def save_y_tasks():
             csv_data = None
     # Only write if csv_data is a valid CSV (not a JSON string)
     if not csv_data or csv_data.strip().startswith('{'):
-        print(f"[DEBUG] /api/y-tasks POST missing or invalid CSV data. Received: {csv_data[:100] if csv_data else 'None'}")
+        # print(f"[DEBUG] /api/y-tasks POST missing or invalid CSV data. Received: {csv_data[:100] if csv_data else 'None'}") DEBUG
         return jsonify({'error': 'Missing or invalid CSV data'}), 400
     with open(path, 'w', encoding='utf-8') as f:
         f.write(csv_data)
@@ -436,23 +436,23 @@ def available_soldiers_for_y_task():
     year = int(data.get('year', datetime.today().year))
     period = int(data.get('period', 1))
     x_csv = os.path.join(DATA_DIR, f"x_tasks_{year}_{period}.csv")
-    print(f"[DEBUG] Incoming available-soldiers request: date={date}, task={task}, current_assignments={current_assignments}, x_csv={x_csv}")
+    # print(f"[DEBUG] Incoming available-soldiers request: date={date}, task={task}, current_assignments={current_assignments}, x_csv={x_csv}") DEBUG
     if not date or not task:
-        print("[DEBUG] Missing date or task in request")
+        # print("[DEBUG] Missing date or task in request") DEBUG
         return jsonify({'error': 'Missing date or task'}), 400
     soldiers = y_tasks.load_soldiers(os.path.join(DATA_DIR, 'soldier_data.json'))
     x_assignments = y_tasks.read_x_tasks(x_csv)
     soldier_qual = y_tasks.build_qualification_map(soldiers)
     qualified = [s['name'] for s in soldiers if any(q in y_tasks.QUALIFICATION_MAP[task] for q in soldier_qual[s['name']])]
-    print(f"[DEBUG] Qualified soldiers for task '{task}': {qualified}")
+    # print(f"[DEBUG] Qualified soldiers for task '{task}': {qualified}") DEBUG
     available = [n for n in qualified if not (n in x_assignments and date in x_assignments[n])]
-    print(f"[DEBUG] After X task exclusion, available: {available}")
+    # print(f"[DEBUG] After X task exclusion, available: {available}") DEBUG
     already_assigned = set()
     for n, days in current_assignments.items():
         if days.get(date) and days.get(date) != '-' and n in available:
             already_assigned.add(n)
     result = [n for n in available if n not in already_assigned]
-    print(f"[DEBUG] After already-assigned exclusion, final available: {result}")
+    # print(f"[DEBUG] After already-assigned exclusion, final available: {result}") DEBUG
     return jsonify({'available': result})
 
 # --- Combined Schedule API ---
@@ -529,7 +529,7 @@ def get_combined_grid():
             task = day_map.get(d, '-')
             if task and task != '-' and task not in y_tasks_list:
                 x_tasks_set.add(task)
-    print('DEBUG X TASKS FOUND:', x_tasks_set)
+    # print('DEBUG X TASKS FOUND:', x_tasks_set) DEBUG
     # Print assignments for each date
     for name, day_map in x_assignments.items():
         print(f"{name}: {[ (d, day_map.get(d, '-')) for d in dates ]}")
@@ -578,15 +578,23 @@ def x_y_conflicts():
                 soldier = row[0]
                 for i, date in enumerate(dates):
                     y_task = row[i+1] if i+1 < len(row) else ''
-                    if y_task and y_task != '-' and soldier in x_assignments and date in x_assignments[soldier]:
-                        x_task = x_assignments[soldier][date]
-                        conflicts.append({
-                            'soldier': soldier,
-                            'date': date,
-                            'x_task': x_task,
-                            'y_task': y_task,
-                            'y_file': y_filename
-                        })
+                    # Ensure date is in dd/mm/yyyy format
+                    try:
+                        d = datetime.strptime(date, '%d/%m/%Y').strftime('%d/%m/%Y')
+                    except Exception:
+                        d = date
+                    if y_task and y_task != '-' and soldier in x_assignments and d in x_assignments[soldier]:
+                        x_task = x_assignments[soldier][d]
+                        if x_task and x_task != '-':
+                            print(f"[DEBUG] Conflict: {soldier} on {d} - X: {x_task}, Y: {y_task}")
+                            conflicts.append({
+                                'soldier': soldier,
+                                'date': d,
+                                'x_task': x_task,
+                                'y_task': y_task,
+                                'y_file': y_filename
+                            })
+    print(f"[DEBUG] Total conflicts found: {len(conflicts)}")
     return jsonify({'conflicts': conflicts})
 
 @app.route('/api/y-tasks/clear', methods=['POST'])
@@ -806,12 +814,11 @@ def get_combined_grid_full():
     for x_task in x_tasks_list:
         row = []
         for d in all_dates:
-            found = ''
+            found = []
             for name, day_map in x_assignments.items():
                 if day_map.get(d, '-') == x_task:
-                    found = name
-                    break
-            row.append(found)
+                    found.append(name)
+            row.append(', '.join(found))
         grid.append(row)
     row_labels = y_tasks_list + x_tasks_list
     return jsonify({
@@ -876,9 +883,9 @@ def get_combined_by_range():
             task = day_map.get(d, '-')
             if task and task != '-':
                 x_tasks_set.add(task)
-    print('DEBUG X TASKS FOUND:', x_tasks_set)
-    for name, day_map in x_assignments.items():
-        print(f"{name}: {[ (d, day_map.get(d, '-')) for d in dates ]}")
+    # print('DEBUG X TASKS FOUND:', x_tasks_set) DEBUG
+    # for name, day_map in x_assignments.items():
+    #     print(f"{name}: {[ (d, day_map.get(d, '-')) for d in dates ]}")
     x_tasks_list = sorted(x_tasks_set)
     y_tasks_list = ["Supervisor", "C&N Driver", "C&N Escort", "Southern Driver", "Southern Escort"]
     grid = []
@@ -892,12 +899,11 @@ def get_combined_by_range():
     for x_task in x_tasks_list:
         row = []
         for d in dates:
-            found = ''
+            found = []
             for name, day_map in x_assignments.items():
                 if day_map.get(d, '-') == x_task:
-                    found = name
-                    break
-            row.append(found)
+                    found.append(name)
+            row.append(', '.join(found))
         grid.append(row)
     row_labels = y_tasks_list + x_tasks_list
     return jsonify({

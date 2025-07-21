@@ -47,20 +47,24 @@ def load_soldiers(json_path='data/soldier_data.json'):
 
 def get_weeks_for_period(start, end):
     """
-    Generates week ranges between start and end dates.
-
+    Generates week ranges between start and end dates, always starting on Sunday and ending on Saturday.
     Args:
-        start (datetime): Start date.
-        end (datetime): End date.
+        start (datetime): Start date (any day).
+        end (datetime): End date (any day, exclusive).
     Returns:
         list: List of (week_num, week_start, week_end) tuples.
     """
-    weeks = []
+    # Find first Sunday on or after start
     d = start
+    while d.weekday() != 6:  # 6 = Sunday
+        d += timedelta(days=1)
     week_num = 1
+    weeks = []
     while d < end:
         week_start = d
-        week_end = min(week_start + timedelta(days=7), end)
+        week_end = week_start + timedelta(days=7)
+        if week_end > end:
+            week_end = end
         weeks.append((week_num, week_start, week_end))
         d = week_end
         week_num += 1
@@ -232,7 +236,7 @@ def main():
     custom_tasks = load_custom_x_tasks()
     assignments = input_x_tasks(weeks)
     save_x_tasks_to_csv(assignments, weeks, custom_tasks, year, half)
-    print(f"X task schedule saved to data/x_task.csv")
+    # print(f"X task schedule saved to data/x_task.csv") Debug otion for combined schedle
 
 if __name__ == '__main__':
     main() 
