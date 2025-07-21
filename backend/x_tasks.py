@@ -11,21 +11,50 @@ META_PATH = 'data/x_task_meta.json'
 
 # --- Custom X Task Storage ---
 def load_custom_x_tasks():
+    """
+    Loads custom X tasks from the JSON file.
+
+    Returns:
+        dict: Mapping of soldier name to list of custom task dicts.
+    """
     if not os.path.exists(CUSTOM_X_TASKS_PATH):
         return {}
     with open(CUSTOM_X_TASKS_PATH, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 def save_custom_x_tasks(custom_tasks):
+    """
+    Saves custom X tasks to the JSON file.
+
+    Args:
+        custom_tasks (dict): Mapping of soldier name to list of custom task dicts.
+    """
     with open(CUSTOM_X_TASKS_PATH, 'w', encoding='utf-8') as f:
         json.dump(custom_tasks, f, ensure_ascii=False, indent=2)
 
 # --- Weekly Grid Logic ---
 def load_soldiers(json_path='data/soldier_data.json'):
+    """
+    Loads soldier data from a JSON file.
+
+    Args:
+        json_path (str): Path to the soldier data JSON file.
+    Returns:
+        list: List of soldier dicts.
+    """
     with open(json_path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 def get_weeks_for_period(start, end):
+    """
+    Generates week ranges between start and end dates.
+
+    Args:
+        start (datetime): Start date.
+        end (datetime): End date.
+    Returns:
+        list: List of (week_num, week_start, week_end) tuples.
+    """
     weeks = []
     d = start
     week_num = 1
@@ -39,8 +68,19 @@ def get_weeks_for_period(start, end):
 
 # --- CSV Generation ---
 def save_x_tasks_to_csv(assignments, weeks, custom_tasks, year, half, csv_path='data/x_task.csv'):
+    """
+    Saves X task assignments and custom tasks to a CSV file.
+    Args:
+        assignments (dict): Mapping of soldier name to week assignments.
+        weeks (list): List of week tuples.
+        custom_tasks (dict): Mapping of soldier name to custom tasks.
+        year (int): The year of the schedule.
+        half (int): The half (1 or 2) of the year.
+        csv_path (str): Path to save the CSV file.
+    """
     headers = ['name'] + [str(week_num) for week_num, _, _ in weeks]
     subheaders = [''] + [f"{ws.strftime('%d/%m')} - {we.strftime('%d/%m')}" for _, ws, we in weeks]
+    # --- Write the main CSV (for frontend display, with week ranges) ---
     with open(csv_path, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(headers)
@@ -63,11 +103,33 @@ def save_x_tasks_to_csv(assignments, weeks, custom_tasks, year, half, csv_path='
                 else:
                     row.append(week_tasks.get(week_num, '-') or '-')
             writer.writerow(row)
+    # --- Write a daily assignment CSV (for backend logic, hidden from frontend) ---
+    daily_csv_path = csv_path.replace('.csv', '_daily.csv')
+    # Expand to daily assignments
+    daily = expand_x_tasks_to_daily(assignments, weeks, custom_tasks)
+    all_dates = set()
+    for day_map in daily.values():
+        all_dates.update(day_map.keys())
+    all_dates = sorted(all_dates, key=lambda d: datetime.strptime(d, '%d/%m/%Y'))
+    with open(daily_csv_path, 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(['name'] + all_dates)
+        for name in daily:
+            row = [name] + [daily[name].get(d, '-') for d in all_dates]
+            writer.writerow(row)
     # Save year and half to metadata
     with open(META_PATH, 'w', encoding='utf-8') as f:
         json.dump({'year': year, 'half': half}, f)
 
 def load_x_task_meta(meta_path=META_PATH):
+    """
+    Loads X task schedule metadata (year and half).
+
+    Args:
+        meta_path (str): Path to the metadata JSON file.
+    Returns:
+        dict or None: Metadata dict if exists, else None.
+    """
     if not os.path.exists(meta_path):
         return None
     with open(meta_path, 'r', encoding='utf-8') as f:
@@ -75,6 +137,16 @@ def load_x_task_meta(meta_path=META_PATH):
 
 # --- Daily Expansion for Y Task Blocking ---
 def expand_x_tasks_to_daily(assignments, weeks, custom_tasks):
+    """
+    Expands weekly X task assignments and custom tasks to daily assignments.
+
+    Args:
+        assignments (dict): Mapping of soldier name to week assignments.
+        weeks (list): List of week tuples.
+        custom_tasks (dict): Mapping of soldier name to custom tasks.
+    Returns:
+        dict: Mapping of soldier name to {date: x_task or '-'} assignments.
+    """
     # Returns { soldier: { date: x_task or '-' } }
     daily = {}
     for name, week_tasks in assignments.items():
@@ -98,6 +170,14 @@ def expand_x_tasks_to_daily(assignments, weeks, custom_tasks):
 
 # --- CLI for testing ---
 def input_x_tasks(weeks):
+    """
+    CLI for inputting X task assignments for each soldier and week.
+
+    Args:
+        weeks (list): List of week tuples.
+    Returns:
+        dict: Mapping of soldier name to week assignments.
+    """
     assignments = {}
     print(f"Input X task assignments for {len(weeks)} weeks. Type 'done' as name to finish.")
     print("If you leave a week blank, it will be filled with '-' automatically.")
@@ -132,6 +212,10 @@ def input_x_tasks(weeks):
     return assignments
 
 def main():
+    """
+    CLI entry point for creating and saving an X task schedule.
+    Prompts user for year, half, and assignments, then saves to CSV.
+    """
     year = int(input("Enter the starting year for the schedule (e.g. 2025): ").strip())
     half = int(input("Enter which half (1 for Jan-Jul, 2 for Jul-Jan): ").strip())
     if half == 1:

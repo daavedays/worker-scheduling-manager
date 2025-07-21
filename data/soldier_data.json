@@ -7,7 +7,7 @@
       "closings": "1:4",
       "name": "Yael Vinestein",
       "department": "דלק",
-      "qualifications": ["Southern Driver", "C&N Driver", "C&N Escort", "Supervisor"]
+      "qualifications": ["Southern Driver", "C&N Driver", "C&N Escort"]
     },
     {
       "id": "9168925",
@@ -17,7 +17,7 @@
       "closings": "1:4",
       "name": "Dima Khalustov",
       "department": "מכני",
-      "qualifications": ["Southern Driver", "C&N Driver", "C&N Escort", "Southern Escort", "Supervisor"]
+      "qualifications": ["Southern Driver", "C&N Driver", "C&N Escort", "Southern Escort"]
     },
     {
       "id": "9356189",
@@ -185,7 +185,7 @@
       "closes_saturdays": true,
       "weekends_home": 8,
       "closings": "1:8",
-      "name": "Lidar Pinker",
+      "name": "Lidar Penker",
       "department": "חשמל",
       "qualifications": ["Southern Driver", "C&N Driver", "Supervisor"]
     },

@@ -1,8 +1,22 @@
 {
+  "Dima Khalustov": [
+    {
+      "end": "05/07/2025",
+      "start": "07/01/2025",
+      "task": "Vacation"
+    }
+  ],
   "Melissa Roffe": [
     {
-      "end": "31/05/2025",
-      "start": "12/01/2025",
+      "end": "05/07/2025",
+      "start": "07/01/2025",
+      "task": "Vacation"
+    }
+  ],
+  "Yael Vinestein": [
+    {
+      "end": "07/07/2025",
+      "start": "07/01/2025",
       "task": "Vacation"
     }
   ]

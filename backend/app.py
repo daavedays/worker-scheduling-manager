@@ -9,6 +9,7 @@ from flask_cors import CORS
 import backend.x_tasks as x_tasks
 import backend.y_tasks as y_tasks
 import threading
+from typing import Optional
 HISTORY_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'history.json')
 history_lock = threading.Lock()
 
@@ -26,6 +27,12 @@ USERS = {
 
 # --- Auth Helpers ---
 def is_logged_in():
+    """
+    Checks if the current user session is logged in and not expired.
+
+    Returns:
+        bool: True if logged in and session is valid, False otherwise.
+    """
     # Flask's session is always available as a dict
     user = session.get('user')
     expires_at = session.get('expires_at')
@@ -39,6 +46,12 @@ def is_logged_in():
     return datetime.utcnow() < expires_at
 
 def require_login():
+    """
+    Returns a 401 Unauthorized response for unauthenticated requests.
+
+    Returns:
+        Response: Flask JSON response with error message and 401 status.
+    """
     return jsonify({'error': 'Authentication required'}), 401
 
 # --- Auth Endpoints ---
@@ -73,16 +86,16 @@ def check_session():
 def get_x_tasks():
     if not is_logged_in():
         return require_login()
-    path = os.path.join(DATA_DIR, 'x_task.csv')
+    year = int(request.args.get('year', datetime.today().year))
+    period = int(request.args.get('period', 1))
+    filename = f"x_tasks_{year}_{period}.csv"
+    path = os.path.join(DATA_DIR, filename)
     import io, csv, json
-    from datetime import datetime, timedelta
     from backend import x_tasks
     # If file does not exist or is empty, generate blank grid with weekly headers
     if not os.path.exists(path) or os.stat(path).st_size == 0:
         soldiers = x_tasks.load_soldiers(os.path.join(DATA_DIR, 'soldier_data.json'))
-        year = datetime.today().year
-        half = 1
-        if half == 1:
+        if period == 1:
             start = datetime(year, 1, 7)
             end = datetime(year, 7, 7)
         else:
@@ -102,16 +115,12 @@ def get_x_tasks():
         writer.writerows(rows)
         csv_data = output.getvalue()
         custom_tasks = x_tasks.load_custom_x_tasks()
-        return jsonify({"csv": csv_data, "custom_tasks": custom_tasks, "year": year, "half": half})
+        return jsonify({"csv": csv_data, "custom_tasks": custom_tasks, "year": year, "half": period})
     else:
         with open(path, 'r', encoding='utf-8') as f:
             csv_data = f.read()
     custom_tasks = x_tasks.load_custom_x_tasks()
-    # Load year and half from metadata
-    meta = x_tasks.load_x_task_meta()
-    year = meta['year'] if meta else datetime.today().year
-    half = meta['half'] if meta else 1
-    return jsonify({"csv": csv_data, "custom_tasks": custom_tasks, "year": year, "half": half})
+    return jsonify({"csv": csv_data, "custom_tasks": custom_tasks, "year": year, "half": period})
 
 @app.route('/api/x-tasks', methods=['POST'])
 def save_x_tasks():
@@ -120,23 +129,35 @@ def save_x_tasks():
     data = request.get_json() or {}
     csv_data = data.get('csv')
     custom_tasks = data.get('custom_tasks', {})
-    year = data.get('year')
-    half = data.get('half')
-    if not csv_data or not year or not half:
+    year = int(data.get('year', datetime.today().year))
+    period = int(data.get('half', 1))
+    if not csv_data or not year or not period:
         return jsonify({'error': 'Missing data'}), 400
     # Save CSV
-    x_task_path = os.path.join(DATA_DIR, 'x_task.csv')
+    filename = f"x_tasks_{year}_{period}.csv"
+    x_task_path = os.path.join(DATA_DIR, filename)
     with open(x_task_path, 'w', encoding='utf-8') as f:
         f.write(csv_data)
     # Save custom tasks
     import backend.x_tasks as x_tasks
     x_tasks.save_custom_x_tasks(custom_tasks)
-    # Save year/half meta
+    # Save year/half meta (optional, can be removed if not needed)
     meta_path = os.path.join(DATA_DIR, 'x_task_meta.json')
     with open(meta_path, 'w', encoding='utf-8') as f:
         import json
-        json.dump({'year': year, 'half': half}, f)
+        json.dump({'year': year, 'half': period}, f)
     return jsonify({'success': True})
+
+@app.route('/api/x-tasks/exists', methods=['GET'])
+def x_tasks_exists():
+    if not is_logged_in():
+        return require_login()
+    year = int(request.args.get('year', datetime.today().year))
+    period = int(request.args.get('period', 1))
+    filename = f"x_tasks_{year}_{period}.csv"
+    path = os.path.join(DATA_DIR, filename)
+    exists = os.path.exists(path) and os.stat(path).st_size > 0
+    return jsonify({'exists': exists})
 
 def log_history(event):
     with history_lock:
@@ -222,14 +243,14 @@ def tally():
         return jsonify({'success': True})
 
 # --- Reset/History API ---
-@app.route('/api/reset', methods=['POST'])
-def reset():
-    if not is_logged_in():
-        return require_login()
-    open(os.path.join(DATA_DIR, 'y_task.csv'), 'w').close()
-    open(os.path.join(DATA_DIR, 'soldier_state.json'), 'w').close()
-    log_history('Reset schedules')
-    return jsonify({'success': True})
+# @app.route('/api/reset', methods=['POST'])
+# def reset():
+#     if not is_logged_in():
+#         return require_login()
+#     open(os.path.join(DATA_DIR, 'y_task.csv'), 'w').close()
+#     open(os.path.join(DATA_DIR, 'soldier_state.json'), 'w').close()
+#     log_history('Reset schedules')
+#     return jsonify({'success': True})
 
 @app.route('/api/history', methods=['GET'])
 def get_history():
@@ -245,40 +266,40 @@ def get_history():
     return jsonify({'history': history})
 
 # --- Y Task API ---
+@app.route('/api/y-tasks/list', methods=['GET'])
+def list_y_task_schedules():
+    if not is_logged_in():
+        return require_login()
+    schedules = y_tasks.list_y_task_schedules()
+    # Return as list of dicts for frontend
+    return jsonify({'schedules': [
+        {'start': s, 'end': e, 'filename': f} for s, e, f in schedules
+    ]})
+
 @app.route('/api/y-tasks', methods=['GET'])
 def get_y_tasks():
     if not is_logged_in():
         return require_login()
-    path = os.path.join(DATA_DIR, 'y_task.csv')
-    if not os.path.exists(path) or os.stat(path).st_size == 0:
-        # Generate blank Y task grid
-        from backend import x_tasks, y_tasks
-        import io, csv
-        # Get weeks from x_task.csv
-        x_path = os.path.join(DATA_DIR, 'x_task.csv')
-        with open(x_path, 'r', encoding='utf-8') as f:
-            reader = csv.reader(f)
-            x_headers = next(reader)
-            x_subheaders = next(reader)
-        week_numbers = x_headers[1:]
-        week_ranges = x_subheaders[1:]
-        # Get Y task names
-        y_task_names = getattr(y_tasks, 'Y_TASKS', [
-            'Southern Driver', 'Southern Escort', 'C&N Driver', 'C&N Escort', 'Supervisor'])
-        # Build blank grid
-        headers = ['Y Task'] + week_numbers
-        subheaders = [''] + week_ranges
-        rows = []
-        for y_task in y_task_names:
-            row = [y_task] + ['' for _ in week_numbers]
-            rows.append(row)
-        output = io.StringIO()
-        writer = csv.writer(output)
-        writer.writerow(headers)
-        writer.writerow(subheaders)
-        writer.writerows(rows)
-        csv_data = output.getvalue()
-        return csv_data, 200, {'Content-Type': 'text/csv'}
+    # Accept ?date=YYYY-MM-DD or ?start=YYYY-MM-DD&end=YYYY-MM-DD
+    date = request.args.get('date')
+    start = request.args.get('start')
+    end = request.args.get('end')
+    filename = None
+    if date:
+        filename = y_tasks.find_y_task_file_for_date(date)
+    elif start and end:
+        key = f"{start}_to_{end}"
+        index = y_tasks.load_y_task_index()
+        filename = index.get(key)
+    # If not found, return list of available schedules
+    if not filename:
+        schedules = y_tasks.list_y_task_schedules()
+        return jsonify({'error': 'No Y task schedule found for given date/range.', 'available': [
+            {'start': s, 'end': e, 'filename': f} for s, e, f in schedules
+        ]}), 404
+    path = os.path.join(DATA_DIR, filename)
+    if not os.path.exists(path):
+        return jsonify({'error': 'Y task CSV file missing.'}), 404
     with open(path, 'r', encoding='utf-8') as f:
         return f.read(), 200, {'Content-Type': 'text/csv'}
 
@@ -286,52 +307,76 @@ def get_y_tasks():
 def save_y_tasks():
     if not is_logged_in():
         return require_login()
-    csv_data = request.data.decode('utf-8')
-    path = os.path.join(DATA_DIR, 'y_task.csv')
+    # Defensive: get start/end from args, form, or json (if present)
+    start = request.args.get('start') or request.form.get('start')
+    end = request.args.get('end') or request.form.get('end')
+    debug_info = {}
+    if start is None or end is None:
+        if request.is_json and request.get_json(silent=True):
+            data = request.get_json()
+            start = data.get('start')
+            end = data.get('end')
+            debug_info['json'] = data
+    debug_info['start'] = start
+    debug_info['end'] = end
+    if not start or not end:
+        print(f"[DEBUG] /api/y-tasks POST missing start/end. Received: {debug_info}")
+        return jsonify({'error': 'Missing start or end date (ISO format required)', 'debug': debug_info}), 400
+    def safe_date(date_str):
+        return date_str.replace('/', '-')
+    filename = f"y_schedule_{safe_date(start)}_{safe_date(end)}.csv"
+    path = os.path.join(DATA_DIR, filename)
+    # Only accept JSON with a 'csv' field
+    csv_data = None
+    if request.is_json and request.get_json(silent=True):
+        data = request.get_json()
+        csv_data = data.get('csv')
+    # fallback: try to decode as plain text (legacy)
+    elif request.data:
+        try:
+            csv_data = request.data.decode('utf-8')
+        except Exception:
+            csv_data = None
+    # Only write if csv_data is a valid CSV (not a JSON string)
+    if not csv_data or csv_data.strip().startswith('{'):
+        print(f"[DEBUG] /api/y-tasks POST missing or invalid CSV data. Received: {csv_data[:100] if csv_data else 'None'}")
+        return jsonify({'error': 'Missing or invalid CSV data'}), 400
     with open(path, 'w', encoding='utf-8') as f:
         f.write(csv_data)
-    log_history('Saved Y tasks')
-    return jsonify({'success': True})
+    y_tasks.add_y_task_schedule(start, end, filename)
+    log_history(f'Saved Y tasks for {start} to {end}')
+    return jsonify({'success': True, 'filename': filename})
 
 @app.route('/api/y-tasks/generate', methods=['POST'])
 def generate_y_tasks_api():
     if not is_logged_in():
         return require_login()
-    import json
-    from backend import y_tasks, x_tasks
     data = request.get_json() or {}
-    start = data.get('start')
+    start = data.get('start')  # Expect dd/mm/yyyy
     end = data.get('end')
+    if not start or not end:
+        return jsonify({'error': 'Missing start or end date'}), 400
     mode = data.get('mode', 'auto')
-    # Load year and half from meta
-    meta = x_tasks.load_x_task_meta()
-    year = meta['year'] if meta else datetime.today().year
-    half = meta['half'] if meta else 1
-    # Compute dates list if not provided
-    dates = data.get('dates')
-    if not dates and start and end:
-        # Build date list from start to end (inclusive)
-        try:
-            d0 = datetime.strptime(start, '%d/%m/%Y')
-            d1 = datetime.strptime(end, '%d/%m/%Y')
-            dates = []
-            d = d0
-            while d <= d1:
-                dates.append(d.strftime('%d/%m/%Y'))
-                d += timedelta(days=1)
-        except Exception:
-            return jsonify({'error': 'Invalid date format'}), 400
-    if not dates:
-        return jsonify({'error': 'No dates provided'}), 400
+    year = int(data.get('year', datetime.today().year))
+    period = int(data.get('period', 1))
+    x_csv = os.path.join(DATA_DIR, f"x_tasks_{year}_{period}.csv")
+    # Compute ISO dates for filename/index
+    try:
+        d0 = datetime.strptime(start, '%d/%m/%Y')
+        d1 = datetime.strptime(end, '%d/%m/%Y')
+        iso_start = d0.strftime('%Y-%m-%d')
+        iso_end = d1.strftime('%Y-%m-%d')
+        dates = [(d0 + timedelta(days=i)).strftime('%d/%m/%Y') for i in range((d1-d0).days+1)]
+    except Exception:
+        return jsonify({'error': 'Invalid date format'}), 400
     # --- BLOCK if any date is outside X schedule range ---
     x_dates = set()
     try:
-        x_dates = set(y_tasks.get_all_dates_from_x(os.path.join(DATA_DIR, 'x_task.csv')))
+        x_dates = set(y_tasks.get_all_dates_from_x(x_csv))
     except Exception:
         return jsonify({'error': 'Could not read X task schedule for validation.'}), 400
     out_of_range = [d for d in dates if d not in x_dates]
     if out_of_range:
-        # Instead of listing all dates, just show the allowed range
         if x_dates:
             sorted_x_dates = sorted(x_dates, key=lambda d: datetime.strptime(d, '%d/%m/%Y'))
             min_date = sorted_x_dates[0]
@@ -339,95 +384,45 @@ def generate_y_tasks_api():
             return jsonify({'error': f"Y task generation blocked: The selected date range is not fully covered by the X task schedule. Allowed range: {min_date} to {max_date}."}), 400
         else:
             return jsonify({'error': 'Y task generation blocked: No valid dates found in X task schedule.'}), 400
-    # --- HYBRID MODE: Fill empty cells, preserve user assignments ---
-    if mode == 'hybrid':
-        partial_grid = data.get('partial_grid')
-        y_tasks_list = data.get('y_tasks')
-        if not (partial_grid and y_tasks_list and dates):
-            return jsonify({'error': 'Missing partial_grid, y_tasks, or dates'}), 400
-        # Build a map: (y_task, date) -> assigned soldier (from partial_grid)
-        manual_assignments = {}
-        for y_idx, y_task in enumerate(y_tasks_list):
-            for d_idx, date in enumerate(dates):
-                soldier = partial_grid[y_idx][d_idx]
-                if soldier:
-                    manual_assignments[(y_task, date)] = soldier
-        # Get all soldiers
-        soldiers = y_tasks.load_soldiers(os.path.join(DATA_DIR, 'soldier_data.json'))
-        soldier_names = [s['name'] for s in soldiers]
-        # Build current_assignments for the generator
-        current_assignments = {name: {date: '-' for date in dates} for name in soldier_names}
-        for (y_task, date), soldier in manual_assignments.items():
-            if soldier in current_assignments:
-                current_assignments[soldier][date] = y_task
-        # Run the generator, but skip already assigned cells
-        y_assignments, _, _, warnings = y_tasks.generate_y_schedule(
-            soldier_json=os.path.join(DATA_DIR, 'soldier_data.json'),
-            x_csv=os.path.join(DATA_DIR, 'x_task.csv'),
-            y_csv=os.path.join(DATA_DIR, 'y_task.csv'),
-            date_list=dates,
-            interactive=False
-        )
-        # Build grid: rows = y_tasks_list, columns = dates
-        grid = []
-        for y_task in y_tasks_list:
-            row = []
-            for date in dates:
-                # If user assigned, use that
-                if (y_task, date) in manual_assignments:
-                    row.append(manual_assignments[(y_task, date)])
-                else:
-                    # Find which soldier (if any) is assigned this y_task on this date
-                    found = ''
-                    for soldier, day_map in y_assignments.items():
-                        if day_map.get(date) == y_task:
-                            found = soldier
-                            break
-                    row.append(found)
-            grid.append(row)
-        return jsonify({
-            'y_tasks': y_tasks_list,
-            'dates': dates,
-            'grid': grid,
-            'warnings': warnings
-        }), 200
-    # --- AUTO MODE: Return grid for frontend ---
-    if mode == 'auto':
-        Y_TASKS_ORDER = ["Supervisor", "C&N Driver", "C&N Escort", "Southern Driver", "Southern Escort"]
-        y_assignments, _, _, warnings = y_tasks.generate_y_schedule(
-            soldier_json=os.path.join(DATA_DIR, 'soldier_data.json'),
-            x_csv=os.path.join(DATA_DIR, 'x_task.csv'),
-            y_csv=os.path.join(DATA_DIR, 'y_task.csv'),
-            date_list=dates
-        )
-        grid = []
-        for y_task in Y_TASKS_ORDER:
-            row = []
-            for date in dates:
-                found = ''
-                for soldier, day_map in y_assignments.items():
-                    if day_map.get(date) == y_task:
-                        found = soldier
-                        break
-                row.append(found)
-            grid.append(row)
-        return jsonify({
-            'y_tasks': Y_TASKS_ORDER,
-            'dates': dates,
-            'grid': grid,
-            'warnings': warnings,
-            'year': year
-        }), 200
-    # --- LEGACY/CSV MODE ---
-    y_assignments, date_list, soldier_names, warnings = y_tasks.generate_y_schedule(
+    # --- Generate schedule (auto/hybrid/manual) ---
+    Y_TASKS_ORDER = ["Supervisor", "C&N Driver", "C&N Escort", "Southern Driver", "Southern Escort"]
+    y_assignments, _, _, warnings = y_tasks.generate_y_schedule(
         soldier_json=os.path.join(DATA_DIR, 'soldier_data.json'),
-        x_csv=os.path.join(DATA_DIR, 'x_task.csv'),
-        y_csv=os.path.join(DATA_DIR, 'y_task.csv'),
-        date_list=dates
+        x_csv=x_csv,
+        y_csv=None,  # Not needed for new schedule
+        date_list=dates,
+        interactive=False
     )
-    with open(os.path.join(DATA_DIR, 'y_task.csv'), 'r', encoding='utf-8') as f:
-        csv_data = f.read()
-    return jsonify({'csv': csv_data, 'warnings': warnings, 'year': year}), 200
+    grid = []
+    for y_task in Y_TASKS_ORDER:
+        row = []
+        for date in dates:
+            found = ''
+            for soldier, day_map in y_assignments.items():
+                if day_map.get(date) == y_task:
+                    found = soldier
+                    break
+            row.append(found)
+        grid.append(row)
+    # Compose CSV: header row is dates, each row is y_task + assignments
+    import csv, io
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Y Task'] + dates)
+    for i, y_task in enumerate(Y_TASKS_ORDER):
+        writer.writerow([y_task] + grid[i])
+    csv_data = output.getvalue()
+    # Do NOT write file or update index here!
+    return jsonify({
+        'y_tasks': Y_TASKS_ORDER,
+        'dates': dates,
+        'grid': grid,
+        'warnings': warnings,
+        'filename': f"y_schedule_{iso_start}_{iso_end}.csv",
+        'iso_start': iso_start,
+        'iso_end': iso_end,
+        'csv': csv_data
+    }), 200
 
 @app.route('/api/y-tasks/available-soldiers', methods=['POST'])
 def available_soldiers_for_y_task():
@@ -437,21 +432,21 @@ def available_soldiers_for_y_task():
     data = request.get_json() or {}
     date = data.get('date')
     task = data.get('task')
-    current_assignments = data.get('current_assignments', {})  # {soldier_name: {date: y_task}}
-    print(f"[DEBUG] Incoming available-soldiers request: date={date}, task={task}, current_assignments={current_assignments}")
+    current_assignments = data.get('current_assignments', {})
+    year = int(data.get('year', datetime.today().year))
+    period = int(data.get('period', 1))
+    x_csv = os.path.join(DATA_DIR, f"x_tasks_{year}_{period}.csv")
+    print(f"[DEBUG] Incoming available-soldiers request: date={date}, task={task}, current_assignments={current_assignments}, x_csv={x_csv}")
     if not date or not task:
         print("[DEBUG] Missing date or task in request")
         return jsonify({'error': 'Missing date or task'}), 400
-    # Load soldiers and X assignments
     soldiers = y_tasks.load_soldiers(os.path.join(DATA_DIR, 'soldier_data.json'))
-    x_assignments = y_tasks.read_x_tasks(os.path.join(DATA_DIR, 'x_task.csv'))
+    x_assignments = y_tasks.read_x_tasks(x_csv)
     soldier_qual = y_tasks.build_qualification_map(soldiers)
     qualified = [s['name'] for s in soldiers if any(q in y_tasks.QUALIFICATION_MAP[task] for q in soldier_qual[s['name']])]
     print(f"[DEBUG] Qualified soldiers for task '{task}': {qualified}")
-    # Exclude soldiers with X task on that date
     available = [n for n in qualified if not (n in x_assignments and date in x_assignments[n])]
     print(f"[DEBUG] After X task exclusion, available: {available}")
-    # Exclude soldiers already assigned a Y task on that date in current_assignments
     already_assigned = set()
     for n, days in current_assignments.items():
         if days.get(date) and days.get(date) != '-' and n in available:
@@ -471,75 +466,94 @@ def get_combined():
 
 @app.route('/api/combined/grid', methods=['GET'])
 def get_combined_grid():
+    """
+    Returns the combined schedule grid for a selected Y schedule period.
+    - Rows: All Y tasks (in order), then all unique X tasks assigned in the period.
+    - Columns: All dates in the selected period.
+    - Cells: Soldier names assigned to each task on each day.
+    Uses helper functions get_all_dates_from_x and read_x_tasks for X task expansion.
+    """
     if not is_logged_in():
         return require_login()
     import csv
     from backend import y_tasks
-    # Get date range from query params, or use all dates in y_task.csv
+    # --- 1. Determine which Y schedule period to use ---
     start = request.args.get('start')
     end = request.args.get('end')
-    y_path = os.path.join(DATA_DIR, 'y_task.csv')
-    x_path = os.path.join(DATA_DIR, 'x_task.csv')
-    # --- Get all dates ---
-    with open(y_path, 'r', encoding='utf-8') as f:
-        reader = list(csv.reader(f))
-        date_headers = reader[0][1:]
+    y_schedules = y_tasks.list_y_task_schedules()
     if start and end:
-        try:
-            from datetime import datetime, timedelta
-            d0 = datetime.strptime(start, '%d/%m/%Y')
-            d1 = datetime.strptime(end, '%d/%m/%Y')
-            all_dates = []
-            d = d0
-            while d <= d1:
-                all_dates.append(d.strftime('%d/%m/%Y'))
-                d += timedelta(days=1)
-            dates = [d for d in date_headers if d in all_dates]
-        except Exception:
-            dates = date_headers
+        # Find the matching Y schedule
+        y_filename = None
+        for s, e, f in y_schedules:
+            if s == start and e == end:
+                y_filename = f
+                break
+        if not y_filename:
+            return jsonify({'error': 'Y schedule not found for given period'}), 404
     else:
-        dates = date_headers
-    # --- Y task assignments ---
-    y_tasks_list = ['Supervisor', 'C&N Driver', 'C&N Escort', 'Southern Driver', 'Southern Escort']
-    y_assignments = {task: ['' for _ in dates] for task in y_tasks_list}
+        # Default: use the first available Y schedule
+        if not y_schedules:
+            return jsonify({'error': 'No Y schedules found'}), 404
+        start, end, y_filename = y_schedules[0]
+    y_path = y_tasks.y_schedule_path(y_filename)
+    if not os.path.exists(y_path):
+        return jsonify({'error': 'Y schedule CSV not found'}), 404
+    # --- 2. Read Y schedule CSV to get dates and Y assignments ---
     with open(y_path, 'r', encoding='utf-8') as f:
         reader = list(csv.reader(f))
-        rows = reader[1:]
-        for row in rows:
-            name = row[0]
-            for i, date in enumerate(dates):
-                y_task = row[i+1] if i+1 < len(row) else ''
-                if y_task and y_task != '-' and y_task in y_tasks_list:
-                    y_assignments[y_task][i] = name
-    # --- X task assignments (expanded to daily) ---
-    x_assignments = y_tasks.read_x_tasks(x_path)
-    # Find all X tasks present in the date range
+        if not reader or len(reader) < 2:
+            return jsonify({'error': 'Invalid Y schedule CSV format'}), 400
+        dates = reader[0][1:]  # First row, skip 'Y Task'
+        y_tasks_list = [row[0] for row in reader[1:]]
+        y_grid = [row[1:] for row in reader[1:]]  # Each row: assignments for that Y task
+    # --- 3. Get X assignments for these dates using helpers ---
+    import glob
+    import re
+    DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
+    x_files = glob.glob(os.path.join(DATA_DIR, 'x_tasks_*.csv'))
+    if not x_files:
+        x_assignments = {}
+    else:
+        def extract_year_period(fname):
+            m = re.search(r'x_tasks_(\d+)_(\d+)\.csv', fname)
+            if m:
+                return int(m.group(1)), int(m.group(2))
+            return (0, 0)
+        x_files.sort(key=extract_year_period, reverse=True)
+        x_csv = x_files[0]
+        x_assignments = y_tasks.read_x_tasks(x_csv)
+    # --- 4. Collect all unique X tasks assigned in the period (excluding Y task names) ---
     x_tasks_set = set()
     for name, day_map in x_assignments.items():
-        for date in dates:
-            x_task = day_map.get(date, '-')
-            if x_task and x_task != '-' and x_task not in y_tasks_list:
-                x_tasks_set.add(x_task)
-    x_tasks_list = sorted(x_tasks_set)
-    x_assignments_by_task = {task: ['' for _ in dates] for task in x_tasks_list}
+        for d in dates:
+            task = day_map.get(d, '-')
+            if task and task != '-' and task not in y_tasks_list:
+                x_tasks_set.add(task)
+    print('DEBUG X TASKS FOUND:', x_tasks_set)
+    # Print assignments for each date
     for name, day_map in x_assignments.items():
-        for i, date in enumerate(dates):
-            x_task = day_map.get(date, '-')
-            if x_task and x_task != '-' and x_task in x_tasks_list:
-                x_assignments_by_task[x_task][i] = name
-    # --- Build grid ---
-    grid = []
-    row_labels = []
-    for y_task in y_tasks_list:
-        grid.append(y_assignments[y_task])
-        row_labels.append(y_task)
+        print(f"{name}: {[ (d, day_map.get(d, '-')) for d in dates ]}")
+    x_tasks_list = sorted(x_tasks_set)
+    # --- 5. Build X task rows: for each X task, fill with soldier names for each date ---
+    x_grid = []
     for x_task in x_tasks_list:
-        grid.append(x_assignments_by_task[x_task])
-        row_labels.append(x_task)
+        row = []
+        for d in dates:
+            found = ''
+            for name, day_map in x_assignments.items():
+                if day_map.get(d, '-') == x_task:
+                    found = name
+                    break
+            row.append(found)
+        x_grid.append(row)
+    # --- 6. Build final grid and row labels ---
+    row_labels = y_tasks_list + x_tasks_list
+    grid = y_grid + x_grid
     return jsonify({
         'row_labels': row_labels,
         'dates': dates,
-        'grid': grid
+        'grid': grid,
+        'y_period': {'start': start, 'end': end, 'filename': y_filename}
     })
 
 @app.route('/api/x-tasks/conflicts', methods=['GET'])
@@ -547,29 +561,364 @@ def x_y_conflicts():
     if not is_logged_in():
         return require_login()
     import csv
-    from backend import y_tasks
-    x_path = os.path.join(DATA_DIR, 'x_task.csv')
-    y_path = os.path.join(DATA_DIR, 'y_task.csv')
     conflicts = []
-    if not (os.path.exists(x_path) and os.path.exists(y_path)):
-        return jsonify({'conflicts': []})
+    year = int(request.args.get('year', datetime.today().year))
+    period = int(request.args.get('period', 1))
+    x_path = os.path.join(DATA_DIR, f"x_tasks_{year}_{period}.csv")
     x_assignments = y_tasks.read_x_tasks(x_path)
-    with open(y_path, 'r', encoding='utf-8') as f:
-        reader = list(csv.reader(f))
-        dates = reader[0][1:]
-        for row in reader[1:]:
-            soldier = row[0]
-            for i, date in enumerate(dates):
-                y_task = row[i+1] if i+1 < len(row) else ''
-                if y_task and y_task != '-' and soldier in x_assignments and date in x_assignments[soldier]:
-                    x_task = x_assignments[soldier][date]
-                    conflicts.append({
-                        'soldier': soldier,
-                        'date': date,
-                        'x_task': x_task,
-                        'y_task': y_task
-                    })
+    # Check all Y task CSVs
+    for start, end, y_filename in y_tasks.list_y_task_schedules():
+        y_path = y_tasks.y_schedule_path(y_filename)
+        if not os.path.exists(y_path):
+            continue
+        with open(y_path, 'r', encoding='utf-8') as f:
+            reader = list(csv.reader(f))
+            dates = reader[0][1:]
+            for row in reader[1:]:
+                soldier = row[0]
+                for i, date in enumerate(dates):
+                    y_task = row[i+1] if i+1 < len(row) else ''
+                    if y_task and y_task != '-' and soldier in x_assignments and date in x_assignments[soldier]:
+                        x_task = x_assignments[soldier][date]
+                        conflicts.append({
+                            'soldier': soldier,
+                            'date': date,
+                            'x_task': x_task,
+                            'y_task': y_task,
+                            'y_file': y_filename
+                        })
     return jsonify({'conflicts': conflicts})
+
+@app.route('/api/y-tasks/clear', methods=['POST'])
+def clear_y_task_schedule():
+    if not is_logged_in():
+        return require_login()
+    data = request.get_json() or {}
+    start = data.get('start')
+    end = data.get('end')
+    if not start or not end:
+        return jsonify({'error': 'Missing start or end date'}), 400
+    index = y_tasks.load_y_task_index()
+    key = f"{start}_to_{end}"
+    filename = index.get(key)
+    if not filename:
+        return jsonify({'error': 'Schedule not found'}), 404
+    path = os.path.join(DATA_DIR, filename)
+    if not os.path.exists(path):
+        return jsonify({'error': 'File not found'}), 404
+    # Read header to get dates
+    import csv
+    with open(path, 'r', encoding='utf-8') as f:
+        reader = list(csv.reader(f))
+    if not reader or len(reader) < 2:
+        return jsonify({'error': 'Invalid file format'}), 400
+    header = reader[0]
+    # Clear all cells (keep header)
+    cleared = []
+    for row in reader[1:]:
+        cleared.append([row[0]] + ['' for _ in header[1:]])
+    with open(path, 'w', encoding='utf-8', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        writer.writerows(cleared)
+    return jsonify({'success': True})
+
+@app.route('/api/y-tasks/delete', methods=['POST'])
+def delete_y_task_schedule():
+    if not is_logged_in():
+        return require_login()
+    data = request.get_json() or {}
+    filename = data.get('filename')
+    if not filename:
+        return jsonify({'error': 'Missing filename'}), 400
+    path = os.path.join(DATA_DIR, filename)
+    # Remove file if it exists
+    if os.path.exists(path):
+        try:
+            os.remove(path)
+        except Exception as e:
+            return jsonify({'error': f'Failed to delete file: {str(e)}'}), 500
+    # Remove from index
+    from backend import y_tasks
+    index = y_tasks.load_y_task_index()
+    key_to_remove = None
+    for key, fname in index.items():
+        if fname == filename:
+            key_to_remove = key
+            break
+    if key_to_remove:
+        del index[key_to_remove]
+        y_tasks.save_y_task_index(index)
+    return jsonify({'success': True})
+
+@app.route('/api/combined/available-dates', methods=['GET'])
+def get_combined_available_dates():
+    # Returns all dates covered by any Y schedule
+    from backend import y_tasks
+    y_schedules = y_tasks.list_y_task_schedules()
+    all_dates = set()
+    for start, end, y_filename in y_schedules:
+        y_path = y_tasks.y_schedule_path(y_filename)
+        if not os.path.exists(y_path):
+            continue
+        import csv
+        with open(y_path, 'r', encoding='utf-8') as f:
+            reader = list(csv.reader(f))
+            if not reader or len(reader) < 2:
+                continue
+            dates = reader[0][1:]
+            all_dates.update(dates)
+    all_dates = sorted(all_dates, key=lambda d: [int(x) for x in d.split('/')][::-1])
+    return jsonify({'dates': all_dates})
+
+@app.route('/api/combined/by-date', methods=['GET'])
+def get_combined_by_date():
+    if not is_logged_in():
+        return require_login()
+    date = request.args.get('date')
+    if not date:
+        return jsonify({'error': 'Missing date'}), 400
+    from backend import y_tasks, x_tasks
+    # Find Y assignments for this date
+    y_schedules = y_tasks.list_y_task_schedules()
+    y_assignments = {}
+    y_tasks_list = ["Supervisor", "C&N Driver", "C&N Escort", "Southern Driver", "Southern Escort"]
+    for start, end, y_filename in y_schedules:
+        y_path = y_tasks.y_schedule_path(y_filename)
+        if not os.path.exists(y_path):
+            continue
+        import csv
+        with open(y_path, 'r', encoding='utf-8') as f:
+            reader = list(csv.reader(f))
+            if not reader or len(reader) < 2:
+                continue
+            header = reader[0]
+            date_idx = None
+            for i, d in enumerate(header[1:]):
+                if d == date:
+                    date_idx = i + 1
+                    break
+            if date_idx is None:
+                continue
+            for row in reader[1:]:
+                y_task = row[0]
+                if y_task in y_tasks_list:
+                    soldier = row[date_idx] if date_idx < len(row) else ''
+                    y_assignments[y_task] = soldier
+    # Find X assignments for this date
+    # Use the most recent x_tasks CSV (by year/period)
+    import glob
+    import re
+    x_files = glob.glob(os.path.join(DATA_DIR, 'x_tasks_*.csv'))
+    if not x_files:
+        x_assignments = {}
+        x_tasks_set = set()
+    else:
+        # Pick the file with the latest year/period
+        def extract_year_period(fname):
+            m = re.search(r'x_tasks_(\d+)_(\d+)\.csv', fname)
+            if m:
+                return int(m.group(1)), int(m.group(2))
+            return (0, 0)
+        x_files.sort(key=extract_year_period, reverse=True)
+        x_csv = x_files[0]
+        x_assignments = y_tasks.read_x_tasks(x_csv)
+        x_tasks_set = set()
+        for name, day_map in x_assignments.items():
+            task = day_map.get(date, '-')
+            if task and task != '-' and task not in y_tasks_list:
+                x_tasks_set.add(task)
+    x_tasks_list = sorted(x_tasks_set)
+    x_assignments_by_task = {task: '' for task in x_tasks_list}
+    for name, day_map in x_assignments.items():
+        task = day_map.get(date, '-')
+        if task and task != '-' and task in x_tasks_list:
+            x_assignments_by_task[task] = name
+    # Compose response
+    return jsonify({
+        'date': date,
+        'y_tasks': y_tasks_list,
+        'x_tasks': x_tasks_list,
+        'y_assignments': y_assignments,
+        'x_assignments': x_assignments_by_task
+    })
+
+@app.route('/api/combined/grid-full', methods=['GET'])
+def get_combined_grid_full():
+    if not is_logged_in():
+        return require_login()
+    from backend import y_tasks
+    import csv
+    # 1. Collect all dates from all Y schedules
+    y_schedules = y_tasks.list_y_task_schedules()
+    all_dates = set()
+    y_data_by_date = {}
+    for start, end, y_filename in y_schedules:
+        y_path = y_tasks.y_schedule_path(y_filename)
+        if not os.path.exists(y_path):
+            continue
+        with open(y_path, 'r', encoding='utf-8') as f:
+            reader = list(csv.reader(f))
+            if not reader or len(reader) < 2:
+                continue
+            dates = reader[0][1:]
+            for d in dates:
+                all_dates.add(d)
+            for row in reader[1:]:
+                y_task = row[0]
+                for i, d in enumerate(dates):
+                    if d not in y_data_by_date:
+                        y_data_by_date[d] = {}
+                    y_data_by_date[d][y_task] = row[i+1] if i+1 < len(row) else ''
+    all_dates = sorted(all_dates, key=lambda d: [int(x) for x in d.split('/')][::-1])
+    # 2. Get all X assignments for all dates
+    import glob
+    import re
+    x_files = glob.glob(os.path.join(DATA_DIR, 'x_tasks_*.csv'))
+    if not x_files:
+        x_assignments = {}
+        x_tasks_set = set()
+    else:
+        def extract_year_period(fname):
+            m = re.search(r'x_tasks_(\d+)_(\d+)\.csv', fname)
+            if m:
+                return int(m.group(1)), int(m.group(2))
+            return (0, 0)
+        x_files.sort(key=extract_year_period, reverse=True)
+        x_csv = x_files[0]
+        x_assignments = y_tasks.read_x_tasks(x_csv)
+        x_tasks_set = set()
+        for name, day_map in x_assignments.items():
+            for d, task in day_map.items():
+                if task and task != '-' and task not in ["Supervisor", "C&N Driver", "C&N Escort", "Southern Driver", "Southern Escort"]:
+                    x_tasks_set.add(task)
+    x_tasks_list = sorted(x_tasks_set)
+    # 3. Build grid: rows = y_tasks + x_tasks, columns = all_dates
+    y_tasks_list = ["Supervisor", "C&N Driver", "C&N Escort", "Southern Driver", "Southern Escort"]
+    grid = []
+    # Y tasks rows
+    for y_task in y_tasks_list:
+        row = []
+        for d in all_dates:
+            row.append(y_data_by_date.get(d, {}).get(y_task, ''))
+        grid.append(row)
+    # X tasks rows
+    for x_task in x_tasks_list:
+        row = []
+        for d in all_dates:
+            found = ''
+            for name, day_map in x_assignments.items():
+                if day_map.get(d, '-') == x_task:
+                    found = name
+                    break
+            row.append(found)
+        grid.append(row)
+    row_labels = y_tasks_list + x_tasks_list
+    return jsonify({
+        'row_labels': row_labels,
+        'dates': all_dates,
+        'grid': grid
+    })
+
+@app.route('/api/combined/by-range', methods=['GET'])
+def get_combined_by_range():
+    if not is_logged_in():
+        return require_login()
+    start = request.args.get('start')
+    end = request.args.get('end')
+    if not start or not end:
+        return jsonify({'error': 'Missing start or end date'}), 400
+    from backend import y_tasks
+    import csv
+    from datetime import datetime, timedelta
+    # Build date list
+    d0 = datetime.strptime(start, '%d/%m/%Y')
+    d1 = datetime.strptime(end, '%d/%m/%Y')
+    dates = [(d0 + timedelta(days=i)).strftime('%d/%m/%Y') for i in range((d1-d0).days+1)]
+    # Collect Y assignments for this period
+    y_schedules = y_tasks.list_y_task_schedules()
+    y_data_by_date = {}
+    for s, e, y_filename in y_schedules:
+        y_path = y_tasks.y_schedule_path(y_filename)
+        if not os.path.exists(y_path):
+            continue
+        with open(y_path, 'r', encoding='utf-8') as f:
+            reader = list(csv.reader(f))
+            if not reader or len(reader) < 2:
+                continue
+            file_dates = reader[0][1:]
+            for row in reader[1:]:
+                y_task = row[0]
+                for i, d in enumerate(file_dates):
+                    if d not in y_data_by_date:
+                        y_data_by_date[d] = {}
+                    y_data_by_date[d][y_task] = row[i+1] if i+1 < len(row) else ''
+    # Get X assignments for this period
+    import glob
+    import re
+    DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
+    x_files = glob.glob(os.path.join(DATA_DIR, 'x_tasks_*.csv'))
+    if not x_files:
+        x_assignments = {}
+    else:
+        def extract_year_period(fname):
+            m = re.search(r'x_tasks_(\d+)_(\d+)\.csv', fname)
+            if m:
+                return int(m.group(1)), int(m.group(2))
+            return (0, 0)
+        x_files.sort(key=extract_year_period, reverse=True)
+        x_csv = x_files[0]
+        x_assignments = y_tasks.read_x_tasks(x_csv)
+    # Collect all unique X tasks assigned for any date in the period
+    x_tasks_set = set()
+    for name, day_map in x_assignments.items():
+        for d in dates:
+            task = day_map.get(d, '-')
+            if task and task != '-':
+                x_tasks_set.add(task)
+    print('DEBUG X TASKS FOUND:', x_tasks_set)
+    for name, day_map in x_assignments.items():
+        print(f"{name}: {[ (d, day_map.get(d, '-')) for d in dates ]}")
+    x_tasks_list = sorted(x_tasks_set)
+    y_tasks_list = ["Supervisor", "C&N Driver", "C&N Escort", "Southern Driver", "Southern Escort"]
+    grid = []
+    # Y tasks rows
+    for y_task in y_tasks_list:
+        row = []
+        for d in dates:
+            row.append(y_data_by_date.get(d, {}).get(y_task, ''))
+        grid.append(row)
+    # X tasks rows
+    for x_task in x_tasks_list:
+        row = []
+        for d in dates:
+            found = ''
+            for name, day_map in x_assignments.items():
+                if day_map.get(d, '-') == x_task:
+                    found = name
+                    break
+            row.append(found)
+        grid.append(row)
+    row_labels = y_tasks_list + x_tasks_list
+    return jsonify({
+        'row_labels': row_labels,
+        'dates': dates,
+        'grid': grid
+    })
+
+@app.route('/api/combined/save', methods=['POST'])
+def save_combined_csv():
+    if not is_logged_in():
+        return require_login()
+    data = request.get_json() or {}
+    csv_data = data.get('csv')
+    filename = data.get('filename')
+    if not csv_data or not filename:
+        return jsonify({'error': 'Missing csv or filename'}), 400
+    path = os.path.join(DATA_DIR, filename)
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(csv_data)
+    return jsonify({'success': True, 'filename': filename})
 
 # --- Serve React Frontend (for local dev) ---
 @app.route('/', defaults={'path': ''})
