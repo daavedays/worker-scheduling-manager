@@ -58,13 +58,15 @@ def get_weeks_for_period(start, end):
     d = start
     while d.weekday() != 6:  # 6 = Sunday
         d += timedelta(days=1)
+    # Find last Saturday before end
+    last_saturday = end - timedelta(days=1)
+    while last_saturday.weekday() != 5:  # 5 = Saturday
+        last_saturday -= timedelta(days=1)
     week_num = 1
     weeks = []
-    while d < end:
+    while d <= last_saturday:
         week_start = d
         week_end = week_start + timedelta(days=7)
-        if week_end > end:
-            week_end = end
         weeks.append((week_num, week_start, week_end))
         d = week_end
         week_num += 1
