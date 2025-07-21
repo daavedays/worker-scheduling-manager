@@ -45,6 +45,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import SaveIcon from '@mui/icons-material/Save';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import DeleteIcon from '@mui/icons-material/Delete';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { formatDateDMY, getSoldierColor } from '../components/utils';
 
 function YTaskPage({ darkMode }: { darkMode: boolean }) {
@@ -84,6 +85,35 @@ function YTaskPage({ darkMode }: { darkMode: boolean }) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [scheduleToDelete, setScheduleToDelete] = useState<any | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [highlightCell, setHighlightCell] = useState<{row: number, col: number} | null>(null);
+  const [resolveConflictInfo, setResolveConflictInfo] = useState<any | null>(null);
+  const [showResolveWarning, setShowResolveWarning] = useState(false);
+
+  // On mount, check for resolveConflict in localStorage
+  useEffect(() => {
+    const info = localStorage.getItem('resolveConflict');
+    if (info) {
+      try {
+        const parsed = JSON.parse(info);
+        setResolveConflictInfo(parsed);
+        setHighlightCell({ row: parsed.yRow, col: parsed.yCol });
+        setShowResolveWarning(true);
+        // Optionally, scroll to the cell
+        setTimeout(() => {
+          const el = document.getElementById(`ycell-${parsed.yRow}-${parsed.yCol}`);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        }, 500);
+      } catch {}
+    }
+  }, []);
+
+  // After user edits or dismisses, clear highlight and flag
+  const handleResolveWarningClose = () => {
+    setShowResolveWarning(false);
+    setHighlightCell(null);
+    setResolveConflictInfo(null);
+    localStorage.removeItem('resolveConflict');
+  };
 
   useEffect(() => {
     fetch('http://localhost:5000/api/y-tasks/list', { credentials: 'include' })
@@ -527,6 +557,7 @@ function YTaskPage({ darkMode }: { darkMode: boolean }) {
                       {grid[rIdx]?.map((soldier: string, cIdx: number) => (
                         <td
                           key={cIdx}
+                          id={`ycell-${rIdx}-${cIdx}`}
                           style={{
                             background: soldier
                               ? (Y_TASK_COLORS[yTask]?.[darkMode ? 'dark' : 'light'] || (darkMode ? '#333' : '#f7f9fb'))
@@ -545,6 +576,8 @@ function YTaskPage({ darkMode }: { darkMode: boolean }) {
                             cursor: 'pointer',
                             boxShadow: soldier ? '0 1px 4px rgba(30,58,92,0.06)' : undefined,
                             opacity: soldier ? 1 : 0.6,
+                            outline: highlightCell && highlightCell.row === rIdx && highlightCell.col === cIdx ? '4px solid #ff1744' : undefined,
+                            animation: highlightCell && highlightCell.row === rIdx && highlightCell.col === cIdx ? 'blink-border 0.7s alternate infinite' : undefined,
                           }}
                           onClick={() => handleCellClick(rIdx, cIdx)}
                           onMouseOver={e => { (e.currentTarget as HTMLElement).style.background = '#ffe082'; }}
@@ -602,6 +635,17 @@ function YTaskPage({ darkMode }: { darkMode: boolean }) {
       <Snackbar open={!!saveError} autoHideDuration={4000} onClose={() => setSaveError(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <MuiAlert onClose={() => setSaveError(null)} severity="error" sx={{ width: '100%' }}>
           {saveError}
+        </MuiAlert>
+      </Snackbar>
+      <Snackbar open={showResolveWarning} autoHideDuration={10000} onClose={handleResolveWarningClose} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+        <MuiAlert onClose={handleResolveWarningClose} severity="warning" sx={{ width: '100%' }} icon={<WarningAmberIcon />}>
+          <strong>Conflict: X/Y Task Overlap</strong><br />
+          {resolveConflictInfo && (
+            <>
+              <b>{resolveConflictInfo.soldier}</b> is assigned to <b>Y: {resolveConflictInfo.yTask}</b> and <b>X: {resolveConflictInfo.xTask}</b> on <b>{resolveConflictInfo.date}</b>.<br />
+              Please update the highlighted cell in the Y schedule for <b>{resolveConflictInfo.date}</b>.
+            </>
+          )}
         </MuiAlert>
       </Snackbar>
     </Box>

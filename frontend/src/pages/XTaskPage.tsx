@@ -45,6 +45,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Tooltip from '@mui/material/Tooltip';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 const STANDARD_X_TASKS = ["Guarding Duties", "RASAR", "Kitchen"];
 const MAX_CUSTOM_TASK_LEN = 14;
@@ -78,6 +79,10 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [customTaskWarning, setCustomTaskWarning] = useState('');
   const [conflictWarning, setConflictWarning] = useState(false);
+  const [conflictDetails, setConflictDetails] = useState<any[]>([]); // Store conflict details for popup
+  const [blinkCells, setBlinkCells] = useState<{[key: string]: boolean}>({}); // Track blinking cells
+  const [pendingConflict, setPendingConflict] = useState<any | null>(null); // Track unresolved conflict
+  const [showResolveBtn, setShowResolveBtn] = useState(false);
 
   function renderCell(cell: string, colIdx: number, rowIdx: number) {
     let bg = darkMode ? '#1a2233' : '#eaf1fa';
@@ -98,6 +103,7 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
     }
     let isConflict = false;
     let conflictInfo: {x_task: string, y_task: string} | undefined = undefined;
+    let shouldBlink = false;
     if (conflicts && colIdx > 0 && editData[rowIdx] && editData[rowIdx][0]) {
       const soldier = editData[rowIdx][0];
       const date = headers[colIdx];
@@ -105,6 +111,7 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
       if (conflicts[key]) {
         isConflict = true;
         conflictInfo = conflicts[key];
+        shouldBlink = blinkCells[key];
       }
     }
     const cellContent = (
@@ -126,9 +133,10 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
-        border: isConflict ? '2.5px solid #ff1744' : `1.5px solid ${darkMode ? '#2c3550' : '#b0bec5'}`,
-        boxShadow: isConflict ? '0 0 12px 2px #ff1744cc' : undefined,
-        transition: 'box-shadow 0.2s, border 0.2s',
+        border: isConflict ? (shouldBlink ? '3.5px solid #ff1744' : '2.5px solid #ff1744') : `1.5px solid ${darkMode ? '#2c3550' : '#b0bec5'}`,
+        boxShadow: isConflict ? (shouldBlink ? '0 0 16px 4px #ff1744cc' : '0 0 12px 2px #ff1744cc') : undefined,
+        transition: shouldBlink ? 'box-shadow 0.2s, border 0.2s, background 0.2s' : 'box-shadow 0.2s, border 0.2s',
+        animation: shouldBlink ? 'blink-border 0.5s alternate 6' : undefined,
         cursor: isConflict ? 'pointer' : 'default',
       }}>
         <span style={{
@@ -217,10 +225,17 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
       .then(res => res.json())
       .then(data => {
         const map: {[key: string]: {x_task: string, y_task: string}} = {};
+        const blink: {[key: string]: boolean} = {};
         (data.conflicts || []).forEach((c: any) => {
           map[`${c.soldier}|${c.date}`] = { x_task: c.x_task, y_task: c.y_task };
+          blink[`${c.soldier}|${c.date}`] = true;
         });
         setConflicts(map);
+        setConflictDetails(data.conflicts || []);
+        setBlinkCells(blink);
+        setConflictWarning((data.conflicts || []).length > 0);
+        // Remove blinking after 3s
+        setTimeout(() => setBlinkCells({}), 3000);
         return (data.conflicts || []).length;
       });
   }, [yearParam, periodParam]);
@@ -303,9 +318,54 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
     }
   }
 
+  // Helper to check for conflicts for a single cell
+  async function checkCellConflict(soldier: string, date: string, xTask: string) {
+    // 1. Fetch y_tasks.json to get all Y schedule periods
+    const yIndexRes = await fetch('http://localhost:5000/data/y_tasks.json', { credentials: 'include' });
+    const yIndex = await yIndexRes.json();
+    // 2. For each period, check if date is in range
+    for (const key in yIndex) {
+      const [start, end] = key.split('_to_');
+      const d0 = parseDMY(start);
+      const d1 = parseDMY(end);
+      const d = parseDMY(date);
+      if (!d0 || !d1 || !d) continue;
+      if (d >= d0 && d <= d1) {
+        // 3. Load the Y schedule CSV for this period
+        const yCsvRes = await fetch(`http://localhost:5000/data/${yIndex[key]}`, { credentials: 'include' });
+        const yCsv = await yCsvRes.text();
+        const rows = yCsv.split('\n').filter(Boolean).map(line => line.split(','));
+        const yDates = rows[0].slice(1);
+        const yIdx = yDates.indexOf(date);
+        if (yIdx === -1) continue;
+        for (let r = 1; r < rows.length; ++r) {
+          if (rows[r][yIdx + 1] === soldier) {
+            // Conflict found
+            return {
+              soldier,
+              date,
+              xTask,
+              yTask: rows[r][0],
+              yPeriod: { start, end, filename: yIndex[key] },
+              yRow: r - 1,
+              yCol: yIdx
+            };
+          }
+        }
+      }
+    }
+    return null;
+  }
+  function parseDMY(d: string) {
+    const [day, month, year] = d.split('/').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
   const handleSave = async () => {
     setSaving(true);
     setError(null);
+    setShowResolveBtn(false);
+    setPendingConflict(null);
     try {
       const csv = Papa.unparse([headers, subheaders, ...editData]);
       const res = await fetch('http://localhost:5000/api/x-tasks', {
@@ -316,14 +376,65 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
       });
       if (!res.ok) throw new Error('Save failed');
       setSaveSuccess(true);
-      fetchConflicts().then((conflictCount) => {
-        setConflictWarning(conflictCount > 0);
-      });
+      // After saving, check for conflicts for changed cells only
+      // For demo: check all filled cells (could optimize to only changed)
+      let foundConflict = null;
+      for (let r = 0; r < editData.length; ++r) {
+        for (let c = 1; c < headers.length; ++c) {
+          const soldier = editData[r][0];
+          const cell = editData[r][c];
+          const date = subheaders[c];
+          if (soldier && cell && cell !== '-') {
+            const conflict = await checkCellConflict(soldier, date, cell);
+            if (conflict) {
+              foundConflict = conflict;
+              break;
+            }
+          }
+        }
+        if (foundConflict) break;
+      }
+      if (foundConflict) {
+        setPendingConflict(foundConflict);
+        setShowResolveBtn(true);
+        setConflictWarning(true);
+        setConflictDetails([foundConflict]);
+        setBlinkCells({ [`${foundConflict.soldier}|${foundConflict.date}`]: true });
+        setTimeout(() => setBlinkCells({}), 3000);
+      } else {
+        setShowResolveBtn(false);
+        setPendingConflict(null);
+      }
+      // Fetch conflicts for highlighting
+      fetch(`http://localhost:5000/api/x-tasks/conflicts?year=${yearParam}&period=${periodParam}`, { credentials: 'include' })
+        .then(res => res.json())
+        .then(data => {
+          const map: {[key: string]: {x_task: string, y_task: string}} = {};
+          const blink: {[key: string]: boolean} = {};
+          (data.conflicts || []).forEach((c: any) => {
+            map[`${c.soldier}|${c.date}`] = { x_task: c.x_task, y_task: c.y_task };
+            blink[`${c.soldier}|${c.date}`] = true;
+          });
+          setConflicts(map);
+          setConflictDetails(data.conflicts || []);
+          setBlinkCells(blink);
+          setConflictWarning((data.conflicts || []).length > 0);
+          // Remove blinking after 3s
+          setTimeout(() => setBlinkCells({}), 3000);
+        });
     } catch {
       setError('Failed to save X tasks');
     } finally {
       setSaving(false);
     }
+  };
+
+  // --- Resolve Conflict Button ---
+  const handleResolveConflict = () => {
+    if (!pendingConflict) return;
+    // Redirect to YTaskPage, pass conflict info via localStorage (or navigation state)
+    localStorage.setItem('resolveConflict', JSON.stringify(pendingConflict));
+    navigate('/y-tasks');
   };
 
   if (loading) return <Box sx={{ p: 4 }}><Typography>Loading X tasks...</Typography></Box>;
@@ -358,7 +469,7 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
           sx={{
             position: 'fixed',
             top: 100,
-            right: 32,
+            right: showResolveBtn ? 112 : 32,
             zIndex: 1200,
             width: 60,
             height: 60,
@@ -370,6 +481,28 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
         >
           <SaveIcon sx={{ fontSize: 28, color: '#fff' }} />
         </Fab>
+        {showResolveBtn && pendingConflict && (
+          <Fab
+            color="error"
+            onClick={handleResolveConflict}
+            sx={{
+              position: 'fixed',
+              top: 100,
+              right: 32,
+              zIndex: 1200,
+              width: 60,
+              height: 60,
+              boxShadow: 6,
+              borderRadius: '50%',
+              fontWeight: 700,
+              animation: 'blink-border 1s alternate infinite',
+            }}
+            aria-label="resolve-conflict"
+            title="Resolve Conflict"
+          >
+            <WarningAmberIcon sx={{ fontSize: 32, color: '#fff' }} />
+          </Fab>
+        )}
         <Box component="table" sx={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 900, background: 'none', borderRadius: 2, boxShadow: 3 }}>
           <thead>
             <tr style={{ marginBottom: '100px' }}>
@@ -533,13 +666,31 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
           X tasks saved successfully!
         </MuiAlert>
       </Snackbar>
-      <Snackbar open={conflictWarning} autoHideDuration={6000} onClose={() => setConflictWarning(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+      <Snackbar
+        open={conflictWarning}
+        autoHideDuration={10000}
+        onClose={() => setConflictWarning(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
         <MuiAlert onClose={() => setConflictWarning(false)} severity="warning" sx={{ width: '100%' }}>
-          X/Y conflict detected! Some X tasks overlap with Y tasks. Please review the highlighted cells and adjust the Y schedule as needed.
+          <strong>X/Y Task Conflict Detected!</strong>
+          <ul>
+            {conflictDetails.map((c, i) => (
+              <li key={i}>
+                <b>{c.soldier}</b> has <b>X: {c.x_task}</b> and <b>Y: {c.y_task}</b> on <b>{c.date}</b>
+              </li>
+            ))}
+          </ul>
+          Please review the highlighted (blinking) cells and adjust the Y schedule as needed.
         </MuiAlert>
       </Snackbar>
     </Box>
   );
 }
 
-export default XTaskPage; 
+export default XTaskPage;
+
+// Add blinking border animation
+const style = document.createElement('style');
+style.innerHTML = `@keyframes blink-border { 0% { border-color: #ff1744; } 100% { border-color: #fff; } }`;
+document.head.appendChild(style); 
