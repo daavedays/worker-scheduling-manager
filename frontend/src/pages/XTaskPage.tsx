@@ -46,6 +46,8 @@ import Tooltip from '@mui/material/Tooltip';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import { shortWeekRange } from '../components/utils';
+import FadingBackground from '../components/FadingBackground';
 
 const STANDARD_X_TASKS = ["Guarding Duties", "RASAR", "Kitchen"];
 const MAX_CUSTOM_TASK_LEN = 14;
@@ -83,6 +85,7 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
   const [blinkCells, setBlinkCells] = useState<{[key: string]: boolean}>({}); // Track blinking cells
   const [pendingConflict, setPendingConflict] = useState<any | null>(null); // Track unresolved conflict
   const [showResolveBtn, setShowResolveBtn] = useState(false);
+  const [soldiers, setSoldiers] = useState<{id: string, name: string}[]>([]);
 
   function renderCell(cell: string, colIdx: number, rowIdx: number) {
     let bg = darkMode ? '#1a2233' : '#eaf1fa';
@@ -92,11 +95,9 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
     let dateRange = '';
     if (cell.includes('\n(')) {
       isCustom = true;
-      const match = cell.match(/\((\d{2}\/\d{2}\/\d{4})-(\d{2}\/\d{2}\/\d{4})\)/);
-      if (match) {
-        const [_, start, end] = match;
-        dateRange = `${start.slice(0,5)}-${end.slice(0,5)}`;
-      }
+      // Remove date range from display for custom tasks on X Tasks page
+      task = cell.split('\n')[0];
+      dateRange = '';
       bg = TASK_COLORS['Custom'];
     } else if (TASK_COLORS[task]) {
       bg = TASK_COLORS[task];
@@ -147,9 +148,7 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
         }}>{task.length > MAX_CUSTOM_TASK_LEN ? task.slice(0, MAX_CUSTOM_TASK_LEN) + '…' : task}</span>
-        {isCustom && dateRange && (
-          <span style={{ fontSize: 11, color: darkMode ? '#b0bec5' : '#555', marginTop: 2 }}>{dateRange}</span>
-        )}
+        {/* No date range for custom tasks on X Tasks page */}
       </div>
     );
     if (isConflict && conflictInfo) {
@@ -261,6 +260,31 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
     setModalOther({name: '', range: [null, null]});
   };
 
+  // Helper to parse dd/mm and infer year for week start/end
+  function parseDMWithYear(dm: string, weekIdx: number, weeks: {start: Date, end: Date}[]): Date | null {
+    // Use the actual week start/end year from the weeks array
+    if (!dm) return null;
+    const [d, m] = dm.split('/');
+    if (!d || !m) return null;
+    // For week start, use weeks[weekIdx].start; for week end, use weeks[weekIdx].end
+    // If weekIdx is out of bounds, fallback to current year
+    let y = new Date().getFullYear();
+    if (weeks && weeks[weekIdx]) {
+      // If this is the first date in the subheader, it's the week start
+      // If this is the second date, it's the week end
+      // We'll infer based on the column index
+      // If dm matches the week start, use weeks[weekIdx].start.getFullYear()
+      // If dm matches the week end, use weeks[weekIdx].end.getFullYear()
+      // We'll check both
+      if (dm === weeks[weekIdx].start.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })) {
+        y = weeks[weekIdx].start.getFullYear();
+      } else if (dm === weeks[weekIdx].end.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })) {
+        y = weeks[weekIdx].end.getFullYear();
+      }
+    }
+    return new Date(Number(y), Number(m) - 1, Number(d));
+  }
+
   const handleModalSave = () => {
     if (modalTask === 'Other') {
       if (!modalOther.name || !modalOther.range[0] || !modalOther.range[1]) return;
@@ -278,15 +302,34 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
         end: formatDateDMY(modalOther.range[1]),
       });
       setCustomTasks(newCustom);
+      // Build weeks array for correct year inference
+      const weeksArr = headers.slice(2).map((h, i) => {
+        const [startDM, endDM] = (subheaders[i+2] || '').split(' - ');
+        // Use yearParam and handle year rollover for endDM
+        let startYear = yearParam;
+        let endYear = yearParam;
+        if (i > 0 && startDM && endDM) {
+          // If endDM month is January and startDM is December, increment year
+          const [endD, endM] = endDM.split('/').map(Number);
+          const [startD, startM] = startDM.split('/').map(Number);
+          if (startM === 12 && endM === 1) {
+            endYear = yearParam + 1;
+          }
+        }
+        const weekStart = new Date(startYear, Number(startDM.split('/')[1]) - 1, Number(startDM.split('/')[0]));
+        const weekEnd = new Date(endYear, Number(endDM.split('/')[1]) - 1, Number(endDM.split('/')[0]));
+        return { start: weekStart, end: weekEnd };
+      });
       setEditData(prev => {
         const copy = prev.map(r => [...r]);
         for (let c = 1; c < headers.length; ++c) {
           const [start, end] = (subheaders[c] || '').split(' - ');
           if (!start || !end) continue;
-          const weekStart = parseDM(start, headers[0]);
-          const weekEnd = parseDM(end, headers[0]);
+          // Use the new helper to get correct years
+          const weekStart = parseDMWithYear(start, c-2, weeksArr);
+          const weekEnd = parseDMWithYear(end, c-2, weeksArr);
           if (!weekStart || !weekEnd) continue;
-          if (modalOther.range[0]! < weekEnd && modalOther.range[1]! > weekStart) {
+          if (modalOther.range[0]! <= weekEnd && modalOther.range[1]! >= weekStart) {
             copy[modal.row][c] = `${modalOther.name}\n(${formatDateDMY(modalOther.range[0]!)}-${formatDateDMY(modalOther.range[1]!)})`;
           }
         }
@@ -422,26 +465,16 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
           // Remove blinking after 3s
           setTimeout(() => setBlinkCells({}), 3000);
         });
-    } catch {
-      setError('Failed to save X tasks');
+    } catch (e) {
+      setError('An error occurred');
     } finally {
       setSaving(false);
     }
   };
 
-  // --- Resolve Conflict Button ---
-  const handleResolveConflict = () => {
-    if (!pendingConflict) return;
-    // Redirect to YTaskPage, pass conflict info via localStorage (or navigation state)
-    localStorage.setItem('resolveConflict', JSON.stringify(pendingConflict));
-    navigate('/y-tasks');
-  };
-
-  if (loading) return <Box sx={{ p: 4 }}><Typography>Loading X tasks...</Typography></Box>;
-  if (error) return <Box sx={{ p: 4 }}><Typography color="error">{error}</Typography></Box>;
-
   return (
     <Box sx={{ p: 2, overflowX: 'auto', minWidth: 900, position: 'relative', mt: '100px' }}>
+      <FadingBackground />
       <Box sx={{ minWidth: 900, position: 'relative' }}>
         {/* Floating Navigation FAB in the top left */}
         <Fab
@@ -484,7 +517,10 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
         {showResolveBtn && pendingConflict && (
           <Fab
             color="error"
-            onClick={handleResolveConflict}
+            onClick={() => {
+              localStorage.setItem('resolveConflict', JSON.stringify(pendingConflict));
+              navigate('/y-tasks');
+            }}
             sx={{
               position: 'fixed',
               top: 100,
@@ -522,8 +558,8 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
                 borderRight: `1.5px solid ${darkMode ? '#3b4252' : '#b0bec5'}`,
                 borderBottom: `2px solid ${darkMode ? '#2c3550' : '#b0bec5'}`,
                 backgroundClip: 'padding-box',
-              }}>Soldier</th>
-              {headers.slice(1).map((h, i) => (
+              }}>שם</th>
+              {headers.slice(2).map((h, i) => (
                 <th key={i} style={{
                   textAlign: 'center',
                   padding: 8,
@@ -540,18 +576,19 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
                   borderBottom: `2px solid ${darkMode ? '#2c3550' : '#b0bec5'}`,
                   backgroundClip: 'padding-box',
                 }}>
-                  <div>Week {h}</div>
-                  <div style={{ fontSize: 12, color: '#ff9800', marginTop: 2 }}>{subheaders[i+1]}</div>
+                  <div>{h}</div>
+                  <div style={{ fontSize: 12, color: '#ff9800', marginTop: 2 }}>{shortWeekRange(subheaders[i+2])}</div>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {editData.map((row, rIdx) => {
-              if (!row[0] || row[0].includes('/')) return null;
-              const soldierName = (row[0] || '').trim();
-              const rowCells = row.slice(1);
-              const numCells = headers.length - 1;
+              // Only render rows with a valid Hebrew name (row[1])
+              if (!row[1] || row[1].includes('/')) return null;
+              const soldierName = (row[1] || '').trim();
+              const rowCells = row.slice(2); // skip id and name
+              const numCells = headers.length - 2;
               const paddedCells = rowCells.length < numCells ? [...rowCells, ...Array(numCells - rowCells.length).fill('')] : rowCells;
               return (
                 <tr key={rIdx}>
@@ -570,7 +607,7 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
                     backgroundClip: 'padding-box',
                   }}>{soldierName}</td>
                   {paddedCells.map((cell, cIdx) => {
-                    const colIdx = cIdx + 1;
+                    const colIdx = cIdx + 2;
                     return (
                       <td key={colIdx} style={{
                         padding: 0,
@@ -630,12 +667,14 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
                     label="Start Date"
                     value={modalOther.range[0]}
                     onChange={(date: Date | null) => setModalOther(o => ({...o, range: [date, o.range[1]]}))}
+                    format="dd/MM/yyyy"
                     slotProps={{ textField: { sx: { minWidth: 180 } } }}
                   />
                   <DatePicker
                     label="End Date"
                     value={modalOther.range[1]}
                     onChange={(date: Date | null) => setModalOther(o => ({...o, range: [o.range[0], date]}))}
+                    format="dd/MM/yyyy"
                     slotProps={{ textField: { sx: { minWidth: 180 } } }}
                   />
                 </Box>
@@ -689,8 +728,3 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
 }
 
 export default XTaskPage;
-
-// Add blinking border animation
-const style = document.createElement('style');
-style.innerHTML = `@keyframes blink-border { 0% { border-color: #ff1744; } 100% { border-color: #fff; } }`;
-document.head.appendChild(style); 

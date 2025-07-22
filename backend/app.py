@@ -13,6 +13,9 @@ from typing import Optional
 HISTORY_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'history.json')
 history_lock = threading.Lock()
 
+from backend.worker import Worker, load_workers_from_json
+from backend.scheduler_engine import SchedulerEngine
+
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
@@ -94,19 +97,13 @@ def get_x_tasks():
     from backend import x_tasks
     # If file does not exist or is empty, generate blank grid with weekly headers
     if not os.path.exists(path) or os.stat(path).st_size == 0:
-        soldiers = x_tasks.load_soldiers(os.path.join(DATA_DIR, 'soldier_data.json'))
-        if period == 1:
-            start = datetime(year, 1, 7)
-            end = datetime(year, 7, 7)
-        else:
-            start = datetime(year, 7, 7)
-            end = datetime(year + 1, 1, 7)
-        weeks = x_tasks.get_weeks_for_period(start, end)
-        headers = ['name'] + [str(week_num) for week_num, _, _ in weeks]
-        subheaders = [''] + [f"{ws.strftime('%d/%m')} - {we.strftime('%d/%m')}" for _, ws, we in weeks]
+        workers = x_tasks.load_soldiers(os.path.join(DATA_DIR, 'soldier_data.json'))
+        weeks = x_tasks.get_weeks_for_period(year, period)
+        headers = ['id', 'name'] + [str(week_num) for week_num, _, _ in weeks]
+        subheaders = ['', ''] + [f"{ws.strftime('%d/%m')} - {we.strftime('%d/%m')}" for _, ws, we in weeks]
         rows = []
-        for s in soldiers:
-            row = [s['name']] + ['' for _ in range(len(weeks))]
+        for w in workers:
+            row = [w.id, w.name] + ['' for _ in range(len(weeks))]
             rows.append(row)
         output = io.StringIO()
         writer = csv.writer(output)
@@ -320,7 +317,7 @@ def save_y_tasks():
     debug_info['start'] = start
     debug_info['end'] = end
     if not start or not end:
-        # print(f"[DEBUG] /api/y-tasks POST missing start/end. Received: {debug_info}") DEBUG 
+        # print(f"[DEBUG] /api/y-tasks POST missing start/end. Received: {debug_info}") DEBUG
         return jsonify({'error': 'Missing start or end date (ISO format required)', 'debug': debug_info}), 400
     def safe_date(date_str):
         return date_str.replace('/', '-')
@@ -356,51 +353,27 @@ def generate_y_tasks_api():
     end = data.get('end')
     if not start or not end:
         return jsonify({'error': 'Missing start or end date'}), 400
-    mode = data.get('mode', 'auto')
-    year = int(data.get('year', datetime.today().year))
-    period = int(data.get('period', 1))
-    x_csv = os.path.join(DATA_DIR, f"x_tasks_{year}_{period}.csv")
-    # Compute ISO dates for filename/index
-    try:
-        d0 = datetime.strptime(start, '%d/%m/%Y')
-        d1 = datetime.strptime(end, '%d/%m/%Y')
-        iso_start = d0.strftime('%Y-%m-%d')
-        iso_end = d1.strftime('%Y-%m-%d')
-        dates = [(d0 + timedelta(days=i)).strftime('%d/%m/%Y') for i in range((d1-d0).days+1)]
-    except Exception:
-        return jsonify({'error': 'Invalid date format'}), 400
-    # --- BLOCK if any date is outside X schedule range ---
-    x_dates = set()
-    try:
-        x_dates = set(y_tasks.get_all_dates_from_x(x_csv))
-    except Exception:
-        return jsonify({'error': 'Could not read X task schedule for validation.'}), 400
-    out_of_range = [d for d in dates if d not in x_dates]
-    if out_of_range:
-        if x_dates:
-            sorted_x_dates = sorted(x_dates, key=lambda d: datetime.strptime(d, '%d/%m/%Y'))
-            min_date = sorted_x_dates[0]
-            max_date = sorted_x_dates[-1]
-            return jsonify({'error': f"Y task generation blocked: The selected date range is not fully covered by the X task schedule. Allowed range: {min_date} to {max_date}."}), 400
-        else:
-            return jsonify({'error': 'Y task generation blocked: No valid dates found in X task schedule.'}), 400
-    # --- Generate schedule (auto/hybrid/manual) ---
+    d0 = datetime.strptime(start, '%d/%m/%Y')
+    d1 = datetime.strptime(end, '%d/%m/%Y')
+    dates = [(d0 + timedelta(days=i)) for i in range((d1-d0).days+1)]
+    # Load workers and X task data
+    workers = load_workers_from_json(os.path.join(DATA_DIR, 'worker_data.json'))
+    # TODO: Load X task assignments as needed for SchedulerEngine
+    engine = SchedulerEngine(workers, d0, d1)
+    # Optionally, pass y_task_names_by_day if needed
+    engine.assign_y_tasks()
+    engine.assign_weekend_closers(d0, d1)
+    # Build grid for response
     Y_TASKS_ORDER = ["Supervisor", "C&N Driver", "C&N Escort", "Southern Driver", "Southern Escort"]
-    y_assignments, _, _, warnings = y_tasks.generate_y_schedule(
-        soldier_json=os.path.join(DATA_DIR, 'soldier_data.json'),
-        x_csv=x_csv,
-        y_csv=None,  # Not needed for new schedule
-        date_list=dates,
-        interactive=False
-    )
     grid = []
     for y_task in Y_TASKS_ORDER:
         row = []
-        for date in dates:
+        for d in dates:
+            d_str = d.strftime('%d/%m/%Y')
             found = ''
-            for soldier, day_map in y_assignments.items():
-                if day_map.get(date) == y_task:
-                    found = soldier
+            for soldier_id, tasks in engine.schedule.get(d, {}).items():
+                if tasks == y_task:
+                    found = soldier_id
                     break
             row.append(found)
         grid.append(row)
@@ -408,19 +381,18 @@ def generate_y_tasks_api():
     import csv, io
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['Y Task'] + dates)
+    writer.writerow(['Y Task'] + [d.strftime('%d/%m/%Y') for d in dates])
     for i, y_task in enumerate(Y_TASKS_ORDER):
         writer.writerow([y_task] + grid[i])
     csv_data = output.getvalue()
-    # Do NOT write file or update index here!
     return jsonify({
         'y_tasks': Y_TASKS_ORDER,
-        'dates': dates,
+        'dates': [d.strftime('%d/%m/%Y') for d in dates],
         'grid': grid,
-        'warnings': warnings,
-        'filename': f"y_schedule_{iso_start}_{iso_end}.csv",
-        'iso_start': iso_start,
-        'iso_end': iso_end,
+        'warnings': [],
+        'filename': f"y_schedule_{d0.strftime('%Y-%m-%d')}_{d1.strftime('%Y-%m-%d')}.csv",
+        'iso_start': d0.strftime('%Y-%m-%d'),
+        'iso_end': d1.strftime('%Y-%m-%d'),
         'csv': csv_data
     }), 200
 
@@ -429,6 +401,7 @@ def available_soldiers_for_y_task():
     if not is_logged_in():
         return require_login()
     from backend import y_tasks
+    from backend.worker import load_workers_from_json
     data = request.get_json() or {}
     date = data.get('date')
     task = data.get('task')
@@ -436,24 +409,21 @@ def available_soldiers_for_y_task():
     year = int(data.get('year', datetime.today().year))
     period = int(data.get('period', 1))
     x_csv = os.path.join(DATA_DIR, f"x_tasks_{year}_{period}.csv")
-    # print(f"[DEBUG] Incoming available-soldiers request: date={date}, task={task}, current_assignments={current_assignments}, x_csv={x_csv}") DEBUG
     if not date or not task:
-        # print("[DEBUG] Missing date or task in request") DEBUG
         return jsonify({'error': 'Missing date or task'}), 400
-    soldiers = y_tasks.load_soldiers(os.path.join(DATA_DIR, 'soldier_data.json'))
+    # Use robust loader to get Hebrew names
+    workers = load_workers_from_json(os.path.join(DATA_DIR, 'soldier_data.json'), os.path.join(DATA_DIR, 'name_conv.json'))
     x_assignments = y_tasks.read_x_tasks(x_csv)
-    soldier_qual = y_tasks.build_qualification_map(soldiers)
-    qualified = [s['name'] for s in soldiers if any(q in y_tasks.QUALIFICATION_MAP[task] for q in soldier_qual[s['name']])]
-    # print(f"[DEBUG] Qualified soldiers for task '{task}': {qualified}") DEBUG
-    available = [n for n in qualified if not (n in x_assignments and date in x_assignments[n])]
-    # print(f"[DEBUG] After X task exclusion, available: {available}") DEBUG
+    soldier_qual = y_tasks.build_qualification_map(workers)
+    qualified = [w for w in workers if any(q in y_tasks.QUALIFICATION_MAP[task] for q in soldier_qual[w.id])]
+    available = [w for w in qualified if not (w.id in x_assignments and date in x_assignments[w.id])]
     already_assigned = set()
-    for n, days in current_assignments.items():
-        if days.get(date) and days.get(date) != '-' and n in available:
-            already_assigned.add(n)
-    result = [n for n in available if n not in already_assigned]
-    # print(f"[DEBUG] After already-assigned exclusion, final available: {result}") DEBUG
-    return jsonify({'available': result})
+    for wid, days in current_assignments.items():
+        if days.get(date) and days.get(date) != '-' and wid in [w.id for w in available]:
+            already_assigned.add(wid)
+    result = [w for w in available if w.id not in already_assigned]
+    # Return list of dicts with id and name
+    return jsonify({'available': [{'id': w.id, 'name': w.name} for w in result]})
 
 # --- Combined Schedule API ---
 @app.route('/api/combined', methods=['GET'])
@@ -883,19 +853,9 @@ def get_combined_by_range():
             task = day_map.get(d, '-')
             if task and task != '-':
                 x_tasks_set.add(task)
-    # print('DEBUG X TASKS FOUND:', x_tasks_set) DEBUG
-    # for name, day_map in x_assignments.items():
-    #     print(f"{name}: {[ (d, day_map.get(d, '-')) for d in dates ]}")
     x_tasks_list = sorted(x_tasks_set)
-    y_tasks_list = ["Supervisor", "C&N Driver", "C&N Escort", "Southern Driver", "Southern Escort"]
-    grid = []
-    # Y tasks rows
-    for y_task in y_tasks_list:
-        row = []
-        for d in dates:
-            row.append(y_data_by_date.get(d, {}).get(y_task, ''))
-        grid.append(row)
-    # X tasks rows
+    # Build X task rows: for each X task, fill with all soldier names for each date
+    x_grid = []
     for x_task in x_tasks_list:
         row = []
         for d in dates:
@@ -904,8 +864,17 @@ def get_combined_by_range():
                 if day_map.get(d, '-') == x_task:
                     found.append(name)
             row.append(', '.join(found))
+        x_grid.append(row)
+    y_tasks_list = ["Supervisor", "C&N Driver", "C&N Escort", "Southern Driver", "Southern Escort"]
+    grid = []
+    # Y tasks rows
+    for y_task in y_tasks_list:
+        row = []
+        for d in dates:
+            row.append(y_data_by_date.get(d, {}).get(y_task, ''))
         grid.append(row)
     row_labels = y_tasks_list + x_tasks_list
+    grid = grid + x_grid
     return jsonify({
         'row_labels': row_labels,
         'dates': dates,
@@ -925,6 +894,115 @@ def save_combined_csv():
     with open(path, 'w', encoding='utf-8') as f:
         f.write(csv_data)
     return jsonify({'success': True, 'filename': filename})
+
+# --- In-memory soldier list ---
+WORKER_JSON_PATH = os.path.join(DATA_DIR, 'worker_data.json')
+WORKERS: list[Worker] = []
+
+def load_workers_to_memory():
+    global WORKERS
+    WORKERS = load_workers_from_json(WORKER_JSON_PATH)
+
+# Load on startup
+load_workers_to_memory()
+
+@app.route('/api/workers', methods=['GET'])
+def get_workers():
+    if not is_logged_in():
+        return require_login()
+    # Only return id, name, qualifications
+    result = [
+        {
+            'id': getattr(w, 'id', None),
+            'name': w.name,
+            'qualifications': w.qualifications
+        } for w in WORKERS
+    ]
+    return jsonify({'workers': result})
+
+@app.route('/api/workers/<id>/qualifications', methods=['POST'])
+def update_worker_qualifications(id):
+    if not is_logged_in():
+        return require_login()
+    data = request.get_json() or {}
+    qualifications = data.get('qualifications')
+    if not isinstance(qualifications, list):
+        return jsonify({'error': 'Invalid qualifications'}), 400
+    updated = False
+    for w in WORKERS:
+        if str(getattr(w, 'id', None)) == str(id):
+            w.qualifications = qualifications
+            updated = True
+            break
+    if not updated:
+        return jsonify({'error': 'Worker not found'}), 404
+    # Write all workers back to JSON as a backup log
+    with open(WORKER_JSON_PATH, 'w', encoding='utf-8') as f:
+        json.dump([w.__dict__ for w in WORKERS], f, ensure_ascii=False, indent=2)
+    return jsonify({'success': True, 'id': id, 'qualifications': qualifications})
+
+@app.route('/api/workers', methods=['POST'])
+def add_worker():
+    if not is_logged_in():
+        return require_login()
+    data = request.get_json() or {}
+    # Validate required fields
+    required = ['id', 'name', 'qualifications', 'closing_interval']
+    for field in required:
+        if field not in data:
+            return jsonify({'error': f'Missing field: {field}'}), 400
+    # Create Worker instance
+    w = Worker(
+        id=str(data['id']),
+        name=data['name'],
+        start_date=data.get('start_date'),
+        qualifications=data.get('qualifications', []),
+        closing_interval=data.get('closing_interval', 4),
+        officer=data.get('officer', False),
+        seniority=data.get('seniority'),
+        score=data.get('score'),
+    )
+    WORKERS.append(w)
+    with open(WORKER_JSON_PATH, 'w', encoding='utf-8') as f:
+        json.dump([w.__dict__ for w in WORKERS], f, ensure_ascii=False, indent=2)
+    return jsonify({'success': True, 'worker': w.__dict__})
+
+@app.route('/api/workers/<id>', methods=['PUT'])
+def update_worker(id):
+    if not is_logged_in():
+        return require_login()
+    data = request.get_json() or {}
+    updated = False
+    for w in WORKERS:
+        if str(getattr(w, 'id', None)) == str(id):
+            w.name = data.get('name', w.name)
+            w.start_date = data.get('start_date', w.start_date)
+            w.qualifications = data.get('qualifications', w.qualifications)
+            w.closing_interval = data.get('closing_interval', w.closing_interval)
+            w.officer = data.get('officer', w.officer)
+            w.seniority = data.get('seniority', w.seniority)
+            w.score = data.get('score', w.score)
+            updated = True
+            break
+    if not updated:
+        return jsonify({'error': 'Worker not found'}), 404
+    with open(WORKER_JSON_PATH, 'w', encoding='utf-8') as f:
+        json.dump([w.__dict__ for w in WORKERS], f, ensure_ascii=False, indent=2)
+    return jsonify({'success': True, 'worker': w.__dict__})
+
+@app.route('/api/workers/<id>', methods=['DELETE'])
+def delete_worker(id):
+    if not is_logged_in():
+        return require_login()
+    global WORKERS
+    before = len(WORKERS)
+    WORKERS = [w for w in WORKERS if str(getattr(w, 'id', None)) != str(id)]
+    after = len(WORKERS)
+    with open(WORKER_JSON_PATH, 'w', encoding='utf-8') as f:
+        json.dump([w.__dict__ for w in WORKERS], f, ensure_ascii=False, indent=2)
+    if before == after:
+        return jsonify({'error': 'Worker not found'}), 404
+    return jsonify({'success': True})
 
 # --- Serve React Frontend (for local dev) ---
 @app.route('/', defaults={'path': ''})

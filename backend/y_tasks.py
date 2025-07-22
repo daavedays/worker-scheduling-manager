@@ -1,10 +1,11 @@
 import os
 import csv
 import json
-from datetime import datetime, timedelta
-from random import shuffle
+from datetime import datetime, timedelta, date
 from typing import List, Dict, Optional, Tuple
-from backend.x_tasks import load_soldiers
+from backend.worker import load_workers_from_json
+from backend.scheduler_engine import SchedulerEngine
+import re
 
 # --- Y Task Definitions ---
 Y_TASKS = ["Southern Driver", "Southern Escort", "C&N Driver", "C&N Escort", "Supervisor"]
@@ -112,14 +113,13 @@ def y_schedule_path(filename: str) -> str:
 # --- Utility Functions ---
 def build_qualification_map(soldiers):
     """
-    Builds a map of soldier names to their qualifications.
-
+    Builds a map of soldier IDs to their qualifications.
     Args:
-        soldiers (list): List of soldier dicts.
+        soldiers (list): List of Worker instances.
     Returns:
-        dict: Mapping of soldier name to list of qualifications.
+        dict: Mapping of soldier ID to list of qualifications.
     """
-    return {s['name']: s.get('qualifications', []) for s in soldiers}
+    return {s.id: s.qualifications for s in soldiers}
 
 def get_weekday(date_str):
     """
@@ -173,12 +173,11 @@ def get_all_dates_from_x(csv_path, year=None):
 def read_x_tasks(csv_path, year=None):
     """
     Reads X task assignments from a CSV and expands them to daily assignments.
-
     Args:
         csv_path (str): Path to the X task CSV.
         year (int, optional): Year to use for date expansion. Defaults to None.
     Returns:
-        dict: Mapping of soldier name to {date: x_task} assignments.
+        dict: Mapping of soldier ID to {date: x_task} assignments.
     """
     if not os.path.exists(csv_path):
         return {}
@@ -195,196 +194,54 @@ def read_x_tasks(csv_path, year=None):
             except Exception:
                 year = datetime.today().year
         period_starts = []
+        date_pattern = re.compile(r'^\d{2}/\d{2}/\d{4}$')
         for s in subheaders[1:]:
             start_str = s.split(' - ')[0]
             if len(start_str.split('/')) == 3:
                 date_str = start_str
             else:
                 date_str = f"{start_str}/{year}"
+            if not date_pattern.match(date_str):
+                continue  # skip invalid date strings
             period_starts.append(datetime.strptime(date_str, "%d/%m/%Y"))
         period_ends = period_starts[1:] + [period_starts[-1] + timedelta(days=7)]
         for row in reader:
             if not row or not row[0].strip():
                 continue
-            name = row[0]
-            x_assignments[name] = {}
+            soldier_id = row[0]  # Always use ID as key
+            x_assignments[soldier_id] = {}
             for i, task in enumerate(row[1:]):
+                if i >= len(period_starts):
+                    break
                 if task.strip() and task.strip() != '-':
                     start = period_starts[i]
                     end = period_ends[i]
                     d = start
                     while d < end:
                         day = d.strftime('%d/%m/%Y')
-                        x_assignments[name][day] = task.strip()
+                        x_assignments[soldier_id][day] = task.strip()
                         d += timedelta(days=1)
     return x_assignments
 
-def get_eligible_candidates(task, date, soldier_names, assigned_today,
- soldier_qual, x_assignments, y_assignments, last_y_task_day,
-  date_list, day_idx, extra_dates=None):
-    """
-    Returns a shuffled list of eligible candidates for a Y task on a given date.
-    Filters by qualification, X-task conflicts, and Y-task recency.
+# Remove all legacy assignment and scheduling logic below
+# Only keep file I/O and API glue code as needed
 
-    Args:
-        task (str): The Y task name.
-        date (str): The date.
-        soldier_names (list): List of soldier names.
-        assigned_today (set): Set of already assigned soldiers for the day.
-        soldier_qual (dict): Map of soldier name to qualifications.
-        x_assignments (dict): X task assignments.
-        y_assignments (dict): Y task assignments.
-        last_y_task_day (dict): Last day each soldier did each Y task.
-        date_list (list): List of all dates.
-        day_idx (int): Index of the current day in date_list.
-        extra_dates (list, optional): Additional dates to check for conflicts.
-    Returns:
-        list: List of eligible soldier names (shuffled).
-    """
-    # 1. Filter by qualification
-    qualified = [n for n in soldier_names if n not in assigned_today and any(q in QUALIFICATION_MAP[task] for q in soldier_qual[n])]
-    # 2. Filter by X-task conflicts (for all relevant dates)
-    if extra_dates is None:
-        extra_dates = [date]
-    available = [n for n in qualified if all(not (n in x_assignments and d in x_assignments[n]) for d in extra_dates)]
-    # 3. Filter by Y-task recency
-    not_recent = []
-    for n in available:
-        last_idx = None
-        if last_y_task_day[n][task]:
-            try:
-                last_idx = date_list.index(last_y_task_day[n][task])
-            except ValueError:
-                last_idx = None
-        if last_idx is None or day_idx - last_idx >= Y_TASK_LOOKBACK_DAYS:
-            not_recent.append(n)
-    # 4. Prefer not_recent, but fallback to available
-    candidates = not_recent if not_recent else available
+# Example: New Y schedule generation using SchedulerEngine
 
-    # TODO: instead of using the shufle, add further complications to find specific soldiers for the tasks. 
-    shuffle(candidates)
-
-    return candidates
-
-def assign_y_tasks_for_day(date, day_idx, y_assignments, assigned_today, soldier_names, soldier_qual, x_assignments, last_y_task_day, date_list, warnings):
-    """
-    Assigns Y tasks for a single day, skipping Fri/Sat (handled in Thu block).
-
-    Args:
-        date (str): The date.
-        day_idx (int): Index of the day in date_list.
-        y_assignments (dict): Y task assignments.
-        assigned_today (set): Set of already assigned soldiers for the day.
-        soldier_names (list): List of soldier names.
-        soldier_qual (dict): Map of soldier name to qualifications.
-        x_assignments (dict): X task assignments.
-        last_y_task_day (dict): Last day each soldier did each Y task.
-        date_list (list): List of all dates.
-        warnings (list): List to append warnings to.
-    """
-    for task in Y_TASKS:
-        candidates = get_eligible_candidates(
-            task, date, soldier_names, assigned_today, soldier_qual, x_assignments, y_assignments, last_y_task_day, date_list, day_idx
-        )
-        if candidates:
-            chosen = candidates[0]
-            y_assignments[chosen][date] = task
-            assigned_today.add(chosen)
-            last_y_task_day[chosen][task] = date
-        else:
-            warnings.append(f"No qualified soldier for {task} on {date}.")
-
-def assign_y_tasks_for_thursday(date, day_idx, y_assignments, assigned_today, soldier_names, soldier_qual, x_assignments, last_y_task_day, date_list, warnings):
-    """
-    Assigns Y tasks for Thu, Fri, Sat as a block.
-    TODO 1) Add further complications of choosing the correct person to close in accordance to closing intervals.
-    TODO 2) Ensure soldiers who have been assigned to weekends with prefrences do the same task for thur, fri, sat.
-
-
-    Args:
-        date (str): The Thursday date.
-        day_idx (int): Index of the day in date_list.
-        y_assignments (dict): Y task assignments.
-        assigned_today (set): Set of already assigned soldiers for the day.
-        soldier_names (list): List of soldier names.
-        soldier_qual (dict): Map of soldier name to qualifications.
-        x_assignments (dict): X task assignments.
-        last_y_task_day (dict): Last day each soldier did each Y task.
-        date_list (list): List of all dates.
-        warnings (list): List to append warnings to.
-    """
-    friday_dt = datetime.strptime(date, '%d/%m/%Y') + timedelta(days=1)
-    friday = friday_dt.strftime('%d/%m/%Y')
-    saturday_dt = friday_dt + timedelta(days=1)
-    saturday = saturday_dt.strftime('%d/%m/%Y')
-    if friday not in date_list or saturday not in date_list:
-        return
-    for task in Y_TASKS:
-        candidates = get_eligible_candidates(
-            task, date, soldier_names, assigned_today, soldier_qual, x_assignments, y_assignments, last_y_task_day, date_list, day_idx, extra_dates=[date, friday, saturday]
-        )
-        if candidates:
-            chosen = candidates[0]
-            y_assignments[chosen][date] = task
-            y_assignments[chosen][friday] = task
-            y_assignments[chosen][saturday] = task
-            assigned_today.add(chosen)
-            last_y_task_day[chosen][task] = saturday  # Saturday is the most recent
-        else:
-            warnings.append(f"No qualified soldier for {task} on {date}, {friday}, and {saturday}.")
-
-# --- Main Y Task Generation Function ---
 def generate_y_schedule(
-    soldier_json=os.path.join(DATA_DIR, 'soldier_data.json'),
-    x_csv=os.path.join(DATA_DIR, 'x_task.csv'),
-    y_csv: Optional[str] = None,
-    date_list=None,
-    interactive=False
+    worker_json_path,
+    x_task_data,
+    start_date: date,
+    end_date: date,
+    y_task_names_by_day: dict
 ):
-    """
-    Automatic Y schedule generator with fairness and conflict checks.
-    Assigns Y tasks for each day in date_list (or all days in X schedule if not provided).
-    Skips Fri/Sat (assigned in Thu block).
-    Respects qualifications, X-task conflicts, and recent Y task assignments.
-
-    Args:
-        soldier_json (str): Path to soldier data JSON.
-        x_csv (str): Path to X task CSV.
-        y_csv (str, optional): Path to output Y task CSV. Defaults to None.
-        date_list (list, optional): List of dates to schedule. Defaults to None.
-        interactive (bool, optional): If True, run interactively. Defaults to False.
-    Returns:
-        tuple: (y_assignments, date_list, soldier_names, warnings)
-    """
-    soldiers = load_soldiers(soldier_json)
-    x_assignments = read_x_tasks(x_csv)
-    all_dates = get_all_dates_from_x(x_csv)
-    if date_list is None:
-        date_list = all_dates
-    soldier_names = [s['name'] for s in soldiers]
-    shuffle(soldier_names)
-    soldier_qual = build_qualification_map(soldiers)
-    y_assignments = {name: {date: '-' for date in date_list} for name in soldier_names}
-    warnings = []
-    last_y_task_day = {name: {task: '' for task in Y_TASKS} for name in soldier_names}
-
-    for day_idx, date in enumerate(date_list):
-        assigned_today = set()
-        weekday = datetime.strptime(date, '%d/%m/%Y').weekday()
-        if weekday == 3:  # Thursday
-            assign_y_tasks_for_thursday(date, day_idx, y_assignments, assigned_today, soldier_names, soldier_qual, x_assignments, last_y_task_day, date_list, warnings)
-            continue  # Skip Friday and Saturday, as they're already assigned
-        if weekday in [4, 5]:  # Friday or Saturday
-            continue
-        assign_y_tasks_for_day(date, day_idx, y_assignments, assigned_today, soldier_names, soldier_qual, x_assignments, last_y_task_day, date_list, warnings)
-
-    # Only write to file if y_csv is not None
-    if y_csv:
-        headers = ['Name'] + date_list
-        with open(y_csv, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            writer.writerow(headers)
-            for name in soldier_names:
-                row = [name] + [y_assignments[name][date] for date in date_list]
-                writer.writerow(row)
-    return y_assignments, date_list, soldier_names, warnings 
+    workers = load_workers_from_json(worker_json_path)
+    engine = SchedulerEngine(workers, start_date, end_date)
+    engine.assign_y_tasks(y_task_names_by_day)
+    engine.assign_weekend_closers(start_date, end_date)
+    # Convert schedule to string keys for file I/O
+    schedule_str = {}
+    for d, tasks in engine.schedule.items():
+        d_str = d.strftime('%d/%m/%Y')
+        schedule_str[d_str] = tasks
+    return schedule_str 

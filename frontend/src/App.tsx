@@ -39,42 +39,20 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation, useParams } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline, AppBar, Toolbar, Typography, IconButton, Button, Switch, Box, Menu, MenuItem, TextField } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import Papa from 'papaparse';
-import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemText from '@mui/material/ListItemText';
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
 import Fab from '@mui/material/Fab';
-import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
-import CircularProgress from '@mui/material/CircularProgress';
-import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
-import logo from './logo_2.png';
-import nevatimLogo from './nevatim.jpeg';
-import Tooltip from '@mui/material/Tooltip';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import AssignmentIcon from '@mui/icons-material/Assignment';
-import ListAltIcon from '@mui/icons-material/ListAlt';
-import HistoryIcon from '@mui/icons-material/History';
-import BarChartIcon from '@mui/icons-material/BarChart';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import XTaskPage from './pages/XTaskPage';
 import YTaskPage from './pages/YTaskPage';
 import XTasksDashboardPage from './pages/XTasksDashboardPage';
 import { useNavigate } from 'react-router-dom';
 import { formatDateDMY, getSoldierColor } from './components/utils';
+import MainMenuPage from './pages/MainMenuPage'; // Import from dedicated file
+import ManageWorkersPage from './pages/ManageWorkersPage';
+// Remove commented-out imports for unused pages
+import StatisticsPage from './pages/StatisticsPage';
 
 // Add a global fetch wrapper to handle 401 Unauthorized and redirect to login
 const fetchWithAuth: typeof fetch = async (...args) => {
@@ -579,107 +557,6 @@ function NavBar() {
   );
 }
 
-function MainMenuPage() {
-  // Fading background logic (like front page, but always blurred/dark)
-  const bgImages = [
-    process.env.PUBLIC_URL + '/backgrounds/image_1.png',
-    process.env.PUBLIC_URL + '/backgrounds/image_2.png',
-    process.env.PUBLIC_URL + '/backgrounds/image_3.jpeg',
-  ];
-  const [bgIndex, setBgIndex] = React.useState(0);
-  // Scroll to top on mount
-  React.useEffect(() => { window.scrollTo(0, 0); }, []);
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      setBgIndex(i => (i + 1) % bgImages.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [bgImages.length]);
-
-  // Fade effect
-  const [fade, setFade] = React.useState(false);
-  React.useEffect(() => {
-    setFade(true);
-    const timeout = setTimeout(() => setFade(false), 1000);
-    return () => clearTimeout(timeout);
-  }, [bgIndex]);
-
-  // Navigation cards
-  const navCards = [
-    { label: 'Main Tasks', icon: <AssignmentIcon sx={{ fontSize: 48 }} />, to: '/x-tasks', desc: 'X-tasks: Core scheduling' },
-    { label: 'Secondary Tasks', icon: <ListAltIcon sx={{ fontSize: 48 }} />, to: '/y-tasks', desc: 'Y-tasks: Support scheduling' },
-    { label: 'Combined Schedule', icon: <DashboardIcon sx={{ fontSize: 48 }} />, to: '/combined', desc: 'View all schedules' },
-    { label: 'View History', icon: <HistoryIcon sx={{ fontSize: 48 }} />, to: '/reset-history', desc: 'See changes & resets' },
-    { label: 'Statistics', icon: <BarChartIcon sx={{ fontSize: 48 }} />, to: '/statistics', desc: 'View stats & analytics' },
-    { label: 'Help', icon: <HelpOutlineIcon sx={{ fontSize: 48 }} />, to: '/help', desc: 'Get help & info' },
-  ];
-
-  return (
-    <Box sx={{ minHeight: '100vh', width: '100vw', position: 'relative', overflow: 'hidden', bgcolor: 'transparent' }}>
-      {/* Fading blurred background */}
-      <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1, pointerEvents: 'none', overflow: 'hidden' }}>
-        {bgImages.map((img, i) => (
-          <img
-            key={img}
-            src={img}
-            alt="bg"
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100vw',
-              height: '100vh',
-              objectFit: 'cover',
-              opacity: i === bgIndex ? (fade ? 0.7 : 1) : 0,
-              transition: 'opacity 1.2s',
-              filter: 'blur(16px) brightness(0.5)',
-            }}
-          />
-        ))}
-      </Box>
-      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', pt: { xs: 8, sm: 10, md: 12 } }}>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center', width: '100%', maxWidth: 1200 }}>
-          {navCards.map(card => (
-            <Box
-              key={card.label}
-              component={Link}
-              to={card.to}
-              sx={{
-                textDecoration: 'none',
-                bgcolor: 'rgba(35,39,43,0.75)',
-                borderRadius: 4,
-                boxShadow: 6,
-                p: 4,
-                minWidth: 220,
-                maxWidth: 260,
-                minHeight: 200,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#e0e6ed',
-                transition: 'transform 0.18s, box-shadow 0.18s, background 0.18s',
-                '&:hover': {
-                  transform: 'scale(1.045)',
-                  boxShadow: 12,
-                  bgcolor: 'rgba(35,39,43,0.92)',
-                },
-              }}
-            >
-              {card.icon}
-              <Typography variant="h5" sx={{ fontWeight: 700, mt: 2, mb: 1 }}>{card.label}</Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center' }}>{card.desc}</Typography>
-            </Box>
-          ))}
-        </Box>
-      </Box>
-      <Box sx={{ width: '100%', textAlign: 'center', py: 2, mt: 4, color: 'text.secondary', fontSize: 16, borderTop: '1px solid #ccc', opacity: 0.8 }}>
-        © All Rights Reserved | Davel
-      </Box>
-    </Box>
-  );
-}
-
 function AppRoutes() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [user, setUser] = useState<string | null>(null);
@@ -788,7 +665,8 @@ function AppRoutes() {
         <Route path="/combined" element={<ProtectedRoute><CombinedPage darkMode={true} /></ProtectedRoute>} />
         <Route path="/warnings" element={<ProtectedRoute><WarningsPage /></ProtectedRoute>} />
         <Route path="/reset-history" element={<ProtectedRoute><ResetHistoryPage /></ProtectedRoute>} />
-        <Route path="/statistics" element={<ProtectedRoute><Box sx={{ p: 4 }}><Typography variant='h4'>Statistics (Coming Soon)</Typography></Box></ProtectedRoute>} />
+        <Route path="/manage-workers" element={<ProtectedRoute><ManageWorkersPage /></ProtectedRoute>} />
+        {/* Remove commented-out routes for unused pages */}
         <Route path="/help" element={<ProtectedRoute><Box sx={{ p: 4 }}><Typography variant='h4'>Help (Coming Soon)</Typography></Box></ProtectedRoute>} />
         {/* No catch-all redirect; let router handle refresh and unknown routes */}
       </Routes>

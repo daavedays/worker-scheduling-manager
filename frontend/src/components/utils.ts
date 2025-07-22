@@ -44,4 +44,20 @@ export function getSoldierColor(name: string, darkMode: boolean) {
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
   const hue = Math.abs(hash) % 360;
   return `hsl(${hue}, 60%, ${darkMode ? '32%' : '82%'})`;
+}
+
+/**
+ * Converts a week range from 'dd/mm/yyyy - dd/mm/yyyy' to 'dd/mm-dd/mm'.
+ * If input is not in the expected format, returns the original string.
+ *
+ * Example:
+ *   shortWeekRange('06/07/2025 - 13/07/2025') => '06/07-13/07'
+ */
+export function shortWeekRange(range: string) {
+  const match = range.match(/(\d{2}\/\d{2})\/\d{4} - (\d{2}\/\d{2})\/\d{4}/);
+  if (match) {
+    return `${match[1]}-${match[2]}`;
+  }
+  // fallback: if already short or not matching, return as is
+  return range;
 } 
