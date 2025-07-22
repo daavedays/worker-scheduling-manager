@@ -48,7 +48,9 @@ import XTaskPage from './pages/XTaskPage';
 import YTaskPage from './pages/YTaskPage';
 import XTasksDashboardPage from './pages/XTasksDashboardPage';
 import { useNavigate } from 'react-router-dom';
-import { formatDateDMY, getSoldierColor } from './components/utils';
+import { formatDateDMY } from './components/utils';
+import { getWorkerColor } from './components/colors';
+import DarkModeToggle from './components/DarkModeToggle';
 import MainMenuPage from './pages/MainMenuPage'; // Import from dedicated file
 import ManageWorkersPage from './pages/ManageWorkersPage';
 // Remove commented-out imports for unused pages
@@ -162,7 +164,7 @@ function LoginPage() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
   // Calculate which image to show and fade amount
-  const sectionHeight = 500; // px per section
+  const sectionHeight = 1000; // px per section
   let fade = (scrollY % sectionHeight) / sectionHeight;
   let bgIndex1 = Math.floor(scrollY / sectionHeight) % bgImages.length;
   let bgIndex2 = (bgIndex1 + 1) % bgImages.length;
@@ -294,7 +296,7 @@ function LoginPage() {
   );
 }
 
-function CombinedPage({ darkMode }: { darkMode: boolean }) {
+function CombinedPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; onToggleDarkMode: () => void }) {
   const [availableSchedules, setAvailableSchedules] = React.useState<any[]>([]);
   const [selectedSchedule, setSelectedSchedule] = React.useState<any | null>(null);
   const [rowLabels, setRowLabels] = React.useState<string[]>([]);
@@ -360,6 +362,7 @@ function CombinedPage({ darkMode }: { darkMode: boolean }) {
 
   return (
     <Box sx={{ p: 4 }}>
+      <DarkModeToggle darkMode={darkMode} onToggle={onToggleDarkMode} />
       <Typography variant="h5" sx={{ mb: 2 }}>Combined Schedule</Typography>
       
       {/* Schedule Selection */}
@@ -415,7 +418,7 @@ function CombinedPage({ darkMode }: { darkMode: boolean }) {
                 <tr key={rIdx} style={{ background: rIdx % 2 === 0 ? (darkMode ? '#232a36' : '#f9fafb') : (darkMode ? '#181c23' : '#fff') }}>
                   <td style={{ background: darkMode ? '#22304a' : '#dbeafe', color: darkMode ? '#fff' : '#1e3a5c', fontWeight: 600, position: 'sticky', left: 0, zIndex: 1, fontSize: 18, borderRight: darkMode ? '3.5px solid #b0bec5' : '3.5px solid #666', borderBottom: darkMode ? '2px solid #b0bec5' : '2px solid #888', height: 56, paddingLeft: 32, paddingRight: 16, minWidth: 180, boxShadow: darkMode ? undefined : '2px 0 8px -4px #8882' }}>{task}</td>
                   {grid[rIdx]?.map((soldier: string, cIdx: number) => (
-                    <td key={cIdx} style={{ background: soldier ? getSoldierColor(soldier, darkMode) : (darkMode ? '#1a2233' : '#f7f9fb'), color: darkMode ? '#fff' : '#1e3a5c', textAlign: 'center', fontWeight: 600, minWidth: 120, border: darkMode ? '2px solid #b0bec5' : '2px solid #888', borderRadius: 8, fontSize: 18, height: 56, boxSizing: 'border-box', transition: 'background 0.2s', opacity: soldier ? 1 : 0.6, boxShadow: soldier ? '0 1px 4px rgba(30,58,92,0.06)' : undefined }}>{soldier}</td>
+                    <td key={cIdx} style={{ background: soldier ? getWorkerColor(soldier, darkMode) : (darkMode ? '#1a2233' : '#f7f9fb'), color: darkMode ? '#fff' : '#1e3a5c', textAlign: 'center', fontWeight: 600, minWidth: 120, border: darkMode ? '2px solid #b0bec5' : '2px solid #888', borderRadius: 8, fontSize: 18, height: 56, boxSizing: 'border-box', transition: 'background 0.2s', opacity: soldier ? 1 : 0.6, boxShadow: soldier ? '0 1px 4px rgba(30,58,92,0.06)' : undefined }}>{soldier}</td>
                   ))}
                 </tr>
               ))}
@@ -564,6 +567,18 @@ function AppRoutes() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Dark mode state with localStorage persistence
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode');
+    return saved ? JSON.parse(saved) : true; // Default to dark mode
+  });
+
+  const toggleDarkMode = () => {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    localStorage.setItem('darkMode', JSON.stringify(newMode));
+  };
 
   // Scroll to top on route change
   React.useEffect(() => {
@@ -660,12 +675,12 @@ function AppRoutes() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/dashboard" element={<ProtectedRoute><MainMenuPage /></ProtectedRoute>} />
         <Route path="/x-tasks" element={<ProtectedRoute><XTasksDashboardPage /></ProtectedRoute>} />
-        <Route path="/x-tasks/:mode" element={<ProtectedRoute><XTaskPage darkMode={true} /></ProtectedRoute>} />
-        <Route path="/y-tasks" element={<ProtectedRoute><YTaskPage darkMode={true} /></ProtectedRoute>} />
-        <Route path="/combined" element={<ProtectedRoute><CombinedPage darkMode={true} /></ProtectedRoute>} />
+        <Route path="/x-tasks/:mode" element={<ProtectedRoute><XTaskPage darkMode={darkMode} onToggleDarkMode={toggleDarkMode} /></ProtectedRoute>} />
+        <Route path="/y-tasks" element={<ProtectedRoute><YTaskPage darkMode={darkMode} onToggleDarkMode={toggleDarkMode} /></ProtectedRoute>} />
+        <Route path="/combined" element={<ProtectedRoute><CombinedPage darkMode={darkMode} onToggleDarkMode={toggleDarkMode} /></ProtectedRoute>} />
         <Route path="/warnings" element={<ProtectedRoute><WarningsPage /></ProtectedRoute>} />
         <Route path="/reset-history" element={<ProtectedRoute><ResetHistoryPage /></ProtectedRoute>} />
-        <Route path="/manage-workers" element={<ProtectedRoute><ManageWorkersPage /></ProtectedRoute>} />
+        <Route path="/manage-workers" element={<ProtectedRoute><ManageWorkersPage darkMode={darkMode} onToggleDarkMode={toggleDarkMode} /></ProtectedRoute>} />
         {/* Remove commented-out routes for unused pages */}
         <Route path="/help" element={<ProtectedRoute><Box sx={{ p: 4 }}><Typography variant='h4'>Help (Coming Soon)</Typography></Box></ProtectedRoute>} />
         {/* No catch-all redirect; let router handle refresh and unknown routes */}

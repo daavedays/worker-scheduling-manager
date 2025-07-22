@@ -3,7 +3,7 @@ from typing import List
 import json
 
 class Worker:
-    def __init__(self, id, name, start_date, qualifications, closing_interval, officer=False, seniority=None, score=None):
+    def __init__(self, id, name, start_date, qualifications, closing_interval, officer=False, seniority=None, score=None, long_timer=False):
         self.id = id
         self.name = name
         self.start_date = start_date  # datetime.date
@@ -15,6 +15,7 @@ class Worker:
         self.officer = officer # if rank == mandatory, officer = False. 
         self.seniority = seniority  # Add this line
         self.score = score  # how many points the worker has
+        self.long_timer = long_timer  # Add this line
 
     def is_resting_after_x(self, date):
         prev = date - timedelta(days=1)
@@ -96,7 +97,10 @@ def load_workers_from_json(json_path: str, name_conv_path: str = 'data/name_conv
             start_date=start_date,
             qualifications=item.get('qualifications', []),
             closing_interval=closing_interval,
-            officer=item.get('officer', False)
+            officer=item.get('officer', False),
+            seniority=item.get('seniority'),
+            score=item.get('score'),
+            long_timer=long_timer
         )
         # Optionally load x_tasks, y_tasks, closing_history if present
         if 'x_tasks' in item:

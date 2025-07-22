@@ -97,7 +97,7 @@ def get_x_tasks():
     from backend import x_tasks
     # If file does not exist or is empty, generate blank grid with weekly headers
     if not os.path.exists(path) or os.stat(path).st_size == 0:
-        workers = x_tasks.load_soldiers(os.path.join(DATA_DIR, 'soldier_data.json'))
+        workers = x_tasks.load_soldiers(os.path.join(DATA_DIR, 'worker_data.json'))
         weeks = x_tasks.get_weeks_for_period(year, period)
         headers = ['id', 'name'] + [str(week_num) for week_num, _, _ in weeks]
         subheaders = ['', ''] + [f"{ws.strftime('%d/%m')} - {we.strftime('%d/%m')}" for _, ws, we in weeks]
@@ -412,7 +412,7 @@ def available_soldiers_for_y_task():
     if not date or not task:
         return jsonify({'error': 'Missing date or task'}), 400
     # Use robust loader to get Hebrew names
-    workers = load_workers_from_json(os.path.join(DATA_DIR, 'soldier_data.json'), os.path.join(DATA_DIR, 'name_conv.json'))
+    workers = load_workers_from_json(os.path.join(DATA_DIR, 'worker_data.json'), os.path.join(DATA_DIR, 'name_conv.json'))
     x_assignments = y_tasks.read_x_tasks(x_csv)
     soldier_qual = y_tasks.build_qualification_map(workers)
     qualified = [w for w in workers if any(q in y_tasks.QUALIFICATION_MAP[task] for q in soldier_qual[w.id])]

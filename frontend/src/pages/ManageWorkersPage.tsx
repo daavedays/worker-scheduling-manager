@@ -2,12 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { Box, Typography, Table, TableHead, TableRow, TableCell, TableBody, Button, Select, MenuItem, Chip, CircularProgress, TextField, Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Checkbox } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import FadingBackground from '../components/FadingBackground';
+import Footer from '../components/Footer';
+import PageContainer from '../components/PageContainer';
+import TableContainer from '../components/TableContainer';
+import DarkModeToggle from '../components/DarkModeToggle';
 
 const QUALIFICATIONS = [
   'Supervisor', 'C&N Driver', 'C&N Escort', 'Southern Driver', 'Southern Escort', 'Guarding Duties', 'RASAR', 'Kitchen'
 ];
 
-function ManageWorkersPage() {
+function ManageWorkersPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; onToggleDarkMode: () => void }) {
   const [workers, setWorkers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editId, setEditId] = useState<string | null>(null);
@@ -71,8 +75,9 @@ function ManageWorkersPage() {
   if (error) return <Box sx={{ p: 4 }}><Typography color="error">{error}</Typography></Box>;
 
   return (
-    <Box sx={{ p: 4, position: 'relative', minHeight: '100vh', width: '100vw', overflow: 'hidden' }}>
+    <PageContainer>
       <FadingBackground />
+      <DarkModeToggle darkMode={darkMode} onToggle={onToggleDarkMode} />
       <Box sx={{ position: 'relative', zIndex: 1 }}>
         <Typography variant="h5" sx={{ mb: 2 }}>Manage Workers</Typography>
         <Button variant="contained" sx={{ mb: 3 }} onClick={() => setAddDialog(true)}>Add Worker</Button>
@@ -90,64 +95,66 @@ function ManageWorkersPage() {
           isOptionEqualToValue={(option, value) => option.id === value.id}
         />
         {selectedWorker ? (
-          <Table sx={{ bgcolor: 'rgba(30,42,60,0.85)', borderRadius: 2 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell>ID</TableCell>
-                <TableCell>שם</TableCell>
-                <TableCell>Start Date</TableCell>
-                <TableCell>Qualifications</TableCell>
-                <TableCell>Closing Interval</TableCell>
-                <TableCell>Officer</TableCell>
-                <TableCell>Seniority</TableCell>
-                <TableCell>Score</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              <TableRow key={selectedWorker.id}>
-                <TableCell>{selectedWorker.id}</TableCell>
-                <TableCell>{selectedWorker.name}</TableCell>
-                <TableCell>{selectedWorker.start_date}</TableCell>
-                <TableCell>
-                  {editId === selectedWorker.id ? (
-                    <Select
-                      multiple
-                      value={editQuals}
-                      onChange={e => setEditQuals(e.target.value as string[])}
-                      fullWidth
-                      renderValue={selected => (
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>{selected.map((val: string) => (<Chip key={val} label={val} />))}</Box>
-                      )}
-                    >
-                      {QUALIFICATIONS.map(q => <MenuItem key={q} value={q}>{q}</MenuItem>)}
-                    </Select>
-                  ) : (
-                    selectedWorker.qualifications.join(', ')
-                  )}
-                </TableCell>
-                <TableCell>{selectedWorker.closing_interval}</TableCell>
-                <TableCell>{selectedWorker.officer ? 'Yes' : 'No'}</TableCell>
-                <TableCell>{selectedWorker.seniority}</TableCell>
-                <TableCell>{selectedWorker.score}</TableCell>
-                <TableCell>
-                  {editId === selectedWorker.id ? (
-                    <>
-                      <Button variant="contained" size="small" onClick={handleSave} sx={{ mr: 1 }}>Save</Button>
-                      <Button variant="outlined" size="small" onClick={() => { setEditId(null); setEditWorker(null); setEditQuals([]); }}>Cancel</Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button variant="outlined" size="small" onClick={() => handleEdit(selectedWorker)}>Edit</Button>
-                      <IconButton color="error" onClick={() => handleDelete(selectedWorker.id)}><DeleteIcon /></IconButton>
-                    </>
-                  )}
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+          <TableContainer>
+            <Table sx={{ bgcolor: 'rgba(30,42,60,0.85)', borderRadius: 2 }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell>ID</TableCell>
+                  <TableCell>שם</TableCell>
+                  <TableCell>Start Date</TableCell>
+                  <TableCell>Qualifications</TableCell>
+                  <TableCell>Closing Interval</TableCell>
+                  <TableCell>Officer</TableCell>
+                  <TableCell>Seniority</TableCell>
+                  <TableCell>Score</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                <TableRow key={selectedWorker.id}>
+                  <TableCell>{selectedWorker.id}</TableCell>
+                  <TableCell>{selectedWorker.name}</TableCell>
+                  <TableCell>{selectedWorker.start_date}</TableCell>
+                  <TableCell>
+                    {editId === selectedWorker.id ? (
+                      <Select
+                        multiple
+                        value={editQuals}
+                        onChange={e => setEditQuals(e.target.value as string[])}
+                        fullWidth
+                        renderValue={selected => (
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>{selected.map((val: string) => (<Chip key={val} label={val} />))}</Box>
+                        )}
+                      >
+                        {QUALIFICATIONS.map(q => <MenuItem key={q} value={q}>{q}</MenuItem>)}
+                      </Select>
+                    ) : (
+                      selectedWorker.qualifications.join(', ')
+                    )}
+                  </TableCell>
+                  <TableCell>{selectedWorker.closing_interval}</TableCell>
+                  <TableCell>{selectedWorker.officer ? 'Yes' : 'No'}</TableCell>
+                  <TableCell>{selectedWorker.seniority}</TableCell>
+                  <TableCell>{selectedWorker.score}</TableCell>
+                  <TableCell>
+                    {editId === selectedWorker.id ? (
+                      <>
+                        <Button variant="contained" size="small" onClick={handleSave} sx={{ mr: 1 }}>Save</Button>
+                        <Button variant="outlined" size="small" onClick={() => { setEditId(null); setEditWorker(null); setEditQuals([]); }}>Cancel</Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button variant="outlined" size="small" onClick={() => handleEdit(selectedWorker)}>Edit</Button>
+                        <IconButton color="error" onClick={() => handleDelete(selectedWorker.id)}><DeleteIcon /></IconButton>
+                      </>
+                    )}
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
         ) : (
-          <Typography sx={{ color: 'text.secondary', mt: 4, fontSize: 18 }}>Search for a worker by ID or name to view, edit, or remove them.</Typography>
+          <Typography sx={{ color: 'text.secondary', mt: 4, fontSize: 18 }}>Search for a worker by ID or name to view and edit qualifications.</Typography>
         )}
         {/* Add Worker Dialog */}
         <Dialog open={addDialog} onClose={() => setAddDialog(false)}>
@@ -179,7 +186,8 @@ function ManageWorkersPage() {
           </DialogActions>
         </Dialog>
       </Box>
-    </Box>
+      <Footer />
+    </PageContainer>
   );
 }
 

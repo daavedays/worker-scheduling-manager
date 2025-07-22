@@ -2,12 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { Box, Typography, Table, TableHead, TableRow, TableCell, TableBody, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, Chip, IconButton } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Checkbox from '@mui/material/Checkbox';
+import PageContainer from '../components/PageContainer';
+import TableContainer from '../components/TableContainer';
+import DarkModeToggle from '../components/DarkModeToggle';
 
 const QUALIFICATIONS = [
   'Supervisor', 'C&N Driver', 'C&N Escort', 'Southern Driver', 'Southern Escort', 'Guarding Duties', 'RASAR', 'Kitchen'
 ];
 
-function UpdateWorkersPage() {
+function UpdateWorkersPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; onToggleDarkMode: () => void }) {
   const [workers, setWorkers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editDialog, setEditDialog] = useState<{open: boolean, worker: any | null}>({open: false, worker: null});
@@ -53,32 +56,35 @@ function UpdateWorkersPage() {
   };
 
   return (
-    <Box sx={{ p: 4 }}>
+    <PageContainer>
+      <DarkModeToggle darkMode={darkMode} onToggle={onToggleDarkMode} />
       <Typography variant="h5" sx={{ mb: 2 }}>Update Workers</Typography>
       <Button variant="contained" sx={{ mb: 2 }} onClick={() => setAddDialog(true)}>Add Worker</Button>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>ID</TableCell>
-            <TableCell>Name</TableCell>
-            <TableCell>Qualifications</TableCell>
-            <TableCell>Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {workers.map(worker => (
-            <TableRow key={worker.id}>
-              <TableCell>{worker.id}</TableCell>
-              <TableCell>{worker.name}</TableCell>
-              <TableCell>{worker.qualifications.join(', ')}</TableCell>
-              <TableCell>
-                <Button variant="outlined" size="small" onClick={() => handleEdit(worker)}>Edit</Button>
-                <IconButton color="error" onClick={() => handleDelete(worker.id)}><DeleteIcon /></IconButton>
-              </TableCell>
+      <TableContainer>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>ID</TableCell>
+              <TableCell>Name</TableCell>
+              <TableCell>Qualifications</TableCell>
+              <TableCell>Actions</TableCell>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHead>
+          <TableBody>
+            {workers.map(worker => (
+              <TableRow key={worker.id}>
+                <TableCell>{worker.id}</TableCell>
+                <TableCell>{worker.name}</TableCell>
+                <TableCell>{worker.qualifications.join(', ')}</TableCell>
+                <TableCell>
+                  <Button variant="outlined" size="small" onClick={() => handleEdit(worker)}>Edit</Button>
+                  <IconButton color="error" onClick={() => handleDelete(worker.id)}><DeleteIcon /></IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
       {/* Edit Dialog */}
       <Dialog open={editDialog.open} onClose={() => setEditDialog({ open: false, worker: null })}>
         <DialogTitle>Edit Worker</DialogTitle>
@@ -136,7 +142,7 @@ function UpdateWorkersPage() {
           <Button onClick={handleAdd} variant="contained">Add</Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </PageContainer>
   );
 }
 

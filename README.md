@@ -1,8 +1,27 @@
 # Worker Scheduling Manager
 
-A modern, full-stack web application for managing and generating fair work schedules for soldiers, built with Flask (Python) backend and React (Material-UI) frontend.
+A full-stack application for managing worker schedules, tasks, and qualifications. Built with React (frontend) and Flask (backend).
+
+## Features
+- Manage workers (add, edit, remove, qualifications)
+- X/Y task scheduling
+- Modern UI with search/autocomplete
+- Data stored as worker instances (not just JSON)
+
+## Copyright & License
+
+**Copyright © 2024 David Mirzoyan. All rights reserved.**
+
+This project and all its code, design, and documentation are the sole property of David Mirzoyan. No part of this project may be copied, distributed, or used without explicit written permission from the owner.
+
+This project is proprietary and not open source unless otherwise specified.
+
+## Author
+David Mirzoyan
 
 ---
+
+For questions or licensing inquiries, contact: [your-email@example.com]
 
 ## Project Structure
 

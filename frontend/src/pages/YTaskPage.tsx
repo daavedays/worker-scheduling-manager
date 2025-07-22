@@ -46,10 +46,15 @@ import SaveIcon from '@mui/icons-material/Save';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import DeleteIcon from '@mui/icons-material/Delete';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import { formatDateDMY, getSoldierColor } from '../components/utils';
+import { formatDateDMY, shortWeekRange } from '../components/utils';
+import { getWorkerColor, Y_TASK_COLORS } from '../components/colors';
 import FadingBackground from '../components/FadingBackground';
+import Footer from '../components/Footer';
+import PageContainer from '../components/PageContainer';
+import TableContainer from '../components/TableContainer';
+import DarkModeToggle from '../components/DarkModeToggle';
 
-function YTaskPage({ darkMode }: { darkMode: boolean }) {
+function YTaskPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; onToggleDarkMode: () => void }) {
   const Y_TASKS = [
     "Supervisor",
     "C&N Driver",
@@ -57,13 +62,6 @@ function YTaskPage({ darkMode }: { darkMode: boolean }) {
     "Southern Driver",
     "Southern Escort"
   ];
-  const Y_TASK_COLORS: Record<string, { light: string, dark: string }> = {
-    'Supervisor':      { light: '#b39ddb', dark: '#5e35b1' },
-    'C&N Driver':      { light: '#80cbc4', dark: '#00897b' },
-    'C&N Escort':      { light: '#ffe082', dark: '#fbc02d' },
-    "Southern Driver": { light: '#90caf9', dark: '#1976d2' },
-    "Southern Escort": { light: '#a5d6a7', dark: '#388e3c' },
-  };
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [mode, setMode] = useState('');
@@ -326,8 +324,9 @@ function YTaskPage({ darkMode }: { darkMode: boolean }) {
   const formattedEndDate = endDate ? formatDateDMY(endDate.toLocaleDateString('en-GB')) : '';
 
   return (
-    <Box sx={{ p: 3, position: 'relative', minHeight: '100vh', width: '100vw', overflow: 'hidden' }}>
+    <PageContainer>
       <FadingBackground />
+      <DarkModeToggle darkMode={darkMode} onToggle={onToggleDarkMode} />
       <Box sx={{ width: '100%', overflowX: 'auto' }}>
         {/* Schedule Selector */}
         <Box sx={{ mb: 3 }}>
@@ -476,7 +475,7 @@ function YTaskPage({ darkMode }: { darkMode: boolean }) {
               </MuiAlert>
             )}
             {grid.length > 0 && (
-              <>
+              <TableContainer>
                 <Box
                   component="table"
                   sx={{
@@ -626,7 +625,7 @@ function YTaskPage({ darkMode }: { darkMode: boolean }) {
                     <Button onClick={() => setPickerOpen(false)}>Cancel</Button>
                   </DialogActions>
                 </Dialog>
-              </>
+              </TableContainer>
             )}
           </Box>
         </Box>
@@ -652,7 +651,8 @@ function YTaskPage({ darkMode }: { darkMode: boolean }) {
           </MuiAlert>
         </Snackbar>
       </Box>
-    </Box>
+      <Footer />
+    </PageContainer>
   );
 }
 

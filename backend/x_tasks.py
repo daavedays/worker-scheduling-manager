@@ -46,8 +46,8 @@ def save_custom_x_tasks(custom_tasks):
         json.dump(custom_tasks, f, ensure_ascii=False, indent=2)
 
 # --- Weekly Grid Logic ---
-def load_soldiers(json_path='data/soldier_data.json', name_conv_path='data/name_conv.json'):
-    return load_workers_from_json(json_path, name_conv_path) # TODO: Ensure this is changed to worker instances for all future workers
+def load_soldiers(json_path='data/worker_data.json', name_conv_path='data/name_conv.json'):
+    return load_workers_from_json(json_path, name_conv_path)
 
 def get_weeks_for_period(year, half):
     """

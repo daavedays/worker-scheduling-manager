@@ -29,24 +29,6 @@ export function formatDateDMY(date: string) {
 }
 
 /**
- * Returns a consistent HSL color string for a given soldier name.
- * Used to color-code cells in X and Y task tables so each soldier has a unique hue.
- *
- * @param {string} name - The soldier's name.
- * @param {boolean} darkMode - Whether the UI is in dark mode (affects lightness).
- * @returns {string} HSL color string for use in CSS.
- *
- * Example:
- *   getSoldierColor('John Doe', true) => 'hsl(123, 60%, 32%)'
- */
-export function getSoldierColor(name: string, darkMode: boolean) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 60%, ${darkMode ? '32%' : '82%'})`;
-}
-
-/**
  * Converts a week range from 'dd/mm/yyyy - dd/mm/yyyy' to 'dd/mm-dd/mm'.
  * If input is not in the expected format, returns the original string.
  *

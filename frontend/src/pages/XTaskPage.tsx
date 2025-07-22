@@ -48,18 +48,16 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { shortWeekRange } from '../components/utils';
 import FadingBackground from '../components/FadingBackground';
+import Footer from '../components/Footer';
+import { getWorkerColor, getXTaskColor } from '../components/colors';
+import PageContainer from '../components/PageContainer';
+import TableContainer from '../components/TableContainer';
+import DarkModeToggle from '../components/DarkModeToggle';
 
 const STANDARD_X_TASKS = ["Guarding Duties", "RASAR", "Kitchen"];
 const MAX_CUSTOM_TASK_LEN = 14;
 
-const TASK_COLORS: Record<string, string> = {
-  'Guarding Duties': '#2e7dbe',
-  'RASAR': '#8e24aa',
-  'Kitchen': '#fbc02d',
-  'Custom': '#43a047',
-};
-
-function XTaskPage({ darkMode }: { darkMode: boolean }) {
+function XTaskPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; onToggleDarkMode: () => void }) {
   const { mode } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -88,19 +86,21 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
   const [soldiers, setSoldiers] = useState<{id: string, name: string}[]>([]);
 
   function renderCell(cell: string, colIdx: number, rowIdx: number) {
-    let bg = darkMode ? '#1a2233' : '#eaf1fa';
+    // Use a slightly lighter blue for empty cells
+    let bg = cell && cell.trim() !== '' && cell !== '-' ? getXTaskColor(cell.split('\n')[0]) : (darkMode ? '#26324a' : '#eaf1fa');
     let color = darkMode ? '#fff' : '#1e3a5c';
     let task = cell.split('\n')[0];
     let isCustom = false;
     let dateRange = '';
-    if (cell.includes('\n(')) {
-      isCustom = true;
-      // Remove date range from display for custom tasks on X Tasks page
-      task = cell.split('\n')[0];
-      dateRange = '';
-      bg = TASK_COLORS['Custom'];
-    } else if (TASK_COLORS[task]) {
-      bg = TASK_COLORS[task];
+    if (cell && cell.trim() !== '' && cell !== '-') {
+      if (cell.includes('\n(')) {
+        isCustom = true;
+        task = cell.split('\n')[0];
+        dateRange = '';
+        bg = getXTaskColor('Custom');
+      } else {
+        bg = getXTaskColor(task);
+      }
     }
     let isConflict = false;
     let conflictInfo: {x_task: string, y_task: string} | undefined = undefined;
@@ -121,29 +121,31 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
         height: '100%',
         background: isConflict ? '#ffbdbd' : bg,
         color,
-        borderRadius: 6,
+        borderRadius: 8,
         padding: '4px 6px',
-        fontWeight: 600,
-        fontSize: 15,
+        fontWeight: 700,
+        fontSize: 18,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: 36,
+        minHeight: 44,
         boxSizing: 'border-box',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
-        border: isConflict ? (shouldBlink ? '3.5px solid #ff1744' : '2.5px solid #ff1744') : `1.5px solid ${darkMode ? '#2c3550' : '#b0bec5'}`,
-        boxShadow: isConflict ? (shouldBlink ? '0 0 16px 4px #ff1744cc' : '0 0 12px 2px #ff1744cc') : undefined,
+        border: isConflict ? (shouldBlink ? '3.5px solid #ff1744' : '2.5px solid #ff1744') : `2px solid ${darkMode ? '#b0bec5' : '#888'}`,
+        boxShadow: cell && cell.trim() !== '' && cell !== '-' ? '0 1px 4px rgba(30,58,92,0.10)' : undefined,
+        textShadow: cell && cell.trim() !== '' && cell !== '-' ? '0 1px 4px #000a' : undefined,
         transition: shouldBlink ? 'box-shadow 0.2s, border 0.2s, background 0.2s' : 'box-shadow 0.2s, border 0.2s',
         animation: shouldBlink ? 'blink-border 0.5s alternate 6' : undefined,
         cursor: isConflict ? 'pointer' : 'default',
+        opacity: cell && cell.trim() !== '' && cell !== '-' ? 1 : 0.85,
       }}>
         <span style={{
-          fontSize: isCustom ? 13 : 15,
+          fontSize: isCustom ? 15 : 18,
           fontWeight: 700,
-          maxWidth: 90,
+          maxWidth: 120,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -473,8 +475,9 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
   };
 
   return (
-    <Box sx={{ p: 2, overflowX: 'auto', minWidth: 900, position: 'relative', mt: '100px' }}>
+    <PageContainer>
       <FadingBackground />
+      <DarkModeToggle darkMode={darkMode} onToggle={onToggleDarkMode} />
       <Box sx={{ minWidth: 900, position: 'relative' }}>
         {/* Floating Navigation FAB in the top left */}
         <Fab
@@ -539,96 +542,115 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
             <WarningAmberIcon sx={{ fontSize: 32, color: '#fff' }} />
           </Fab>
         )}
-        <Box component="table" sx={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 900, background: 'none', borderRadius: 2, boxShadow: 3 }}>
-          <thead>
-            <tr style={{ marginBottom: '100px' }}>
-              <th style={{
-                minWidth: 160,
-                fontWeight: 700,
-                fontSize: 18,
-                background: darkMode ? '#22304a' : '#e3f2fd',
-                color: darkMode ? '#fff' : '#1e3a5c',
-                borderTopLeftRadius: 8,
-                position: 'sticky',
-                left: 0,
-                zIndex: 3,
-                top: 0,
-                borderLeft: `3px solid ${darkMode ? '#3b4252' : '#b0bec5'}`,
-                paddingLeft: 16,
-                borderRight: `1.5px solid ${darkMode ? '#3b4252' : '#b0bec5'}`,
-                borderBottom: `2px solid ${darkMode ? '#2c3550' : '#b0bec5'}`,
-                backgroundClip: 'padding-box',
-              }}>שם</th>
-              {headers.slice(2).map((h, i) => (
-                <th key={i} style={{
-                  textAlign: 'center',
-                  padding: 8,
-                  background: '#1e3a5c',
-                  color: '#fff',
+        <TableContainer>
+          <Box component="table" sx={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 900, background: 'none', borderRadius: 2, boxShadow: 3 }}>
+            <thead>
+              <tr style={{ marginBottom: '100px' }}>
+                <th style={{
+                  minWidth: 160,
                   fontWeight: 700,
-                  fontSize: 16,
+                  fontSize: 18,
+                  background: darkMode ? '#22304a' : '#e3f2fd',
+                  color: darkMode ? '#fff' : '#1e3a5c',
+                  borderTopLeftRadius: 8,
                   position: 'sticky',
+                  left: 0,
+                  zIndex: 3,
                   top: 0,
-                  zIndex: 2,
-                  minWidth: 120,
-                  maxWidth: 160,
-                  whiteSpace: 'nowrap',
+                  borderLeft: `3px solid ${darkMode ? '#3b4252' : '#b0bec5'}`,
+                  paddingLeft: 16,
+                  borderRight: `1.5px solid ${darkMode ? '#3b4252' : '#b0bec5'}`,
                   borderBottom: `2px solid ${darkMode ? '#2c3550' : '#b0bec5'}`,
                   backgroundClip: 'padding-box',
-                }}>
-                  <div>{h}</div>
-                  <div style={{ fontSize: 12, color: '#ff9800', marginTop: 2 }}>{shortWeekRange(subheaders[i+2])}</div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {editData.map((row, rIdx) => {
-              // Only render rows with a valid Hebrew name (row[1])
-              if (!row[1] || row[1].includes('/')) return null;
-              const soldierName = (row[1] || '').trim();
-              const rowCells = row.slice(2); // skip id and name
-              const numCells = headers.length - 2;
-              const paddedCells = rowCells.length < numCells ? [...rowCells, ...Array(numCells - rowCells.length).fill('')] : rowCells;
-              return (
-                <tr key={rIdx}>
-                  <td style={{
-                    fontWeight: 600,
-                    background: darkMode ? '#22304a' : '#e3f2fd',
-                    color: darkMode ? '#fff' : '#1e3a5c',
-                    minWidth: 160,
+                }}>שם</th>
+                {headers.slice(2).map((h, i) => (
+                  <th key={i} style={{
+                    textAlign: 'center',
+                    padding: 8,
+                    background: '#1e3a5c',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: 16,
                     position: 'sticky',
-                    left: 0,
-                    zIndex: 1,
-                    borderLeft: `3px solid ${darkMode ? '#3b4252' : '#b0bec5'}`,
-                    paddingLeft: 16,
-                    borderRight: `1.5px solid ${darkMode ? '#3b4252' : '#b0bec5'}`,
-                    borderBottom: `1.5px solid ${darkMode ? '#2c3550' : '#b0bec5'}`,
+                    top: 0,
+                    zIndex: 2,
+                    minWidth: 120,
+                    maxWidth: 160,
+                    whiteSpace: 'nowrap',
+                    borderBottom: `2px solid ${darkMode ? '#2c3550' : '#b0bec5'}`,
                     backgroundClip: 'padding-box',
-                  }}>{soldierName}</td>
-                  {paddedCells.map((cell, cIdx) => {
-                    const colIdx = cIdx + 2;
-                    return (
-                      <td key={colIdx} style={{
-                        padding: 0,
-                        minWidth: 120,
-                        maxWidth: 160,
-                        borderBottom: `1.5px solid ${darkMode ? '#2c3550' : '#b0bec5'}`,
-                        background: darkMode ? '#1a2233' : '#eaf1fa',
-                        backgroundClip: 'padding-box',
-                        height: 48,
-                      }}
-                        onClick={() => handleCellClick(rIdx, colIdx)}
-                      >
-                        {renderCell(cell, colIdx, rIdx)}
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-          </tbody>
-        </Box>
+                  }}>
+                    <div>{h}</div>
+                    <div style={{ fontSize: 12, color: '#ff9800', marginTop: 2 }}>{shortWeekRange(subheaders[i+2])}</div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {editData.map((row, rIdx) => {
+                // Only render rows with a valid Hebrew name (row[1])
+                if (!row[1] || row[1].includes('/')) return null;
+                const soldierName = (row[1] || '').trim();
+                const rowCells = row.slice(2); // skip id and name
+                const numCells = headers.length - 2;
+                const paddedCells = rowCells.length < numCells ? [...rowCells, ...Array(numCells - rowCells.length).fill('')] : rowCells;
+                return (
+                  <tr key={rIdx}>
+                    <td style={{
+                      fontWeight: 600,
+                      background: darkMode ? '#22304a' : '#e3f2fd',
+                      color: darkMode ? '#fff' : '#1e3a5c',
+                      minWidth: 160,
+                      position: 'sticky',
+                      left: 0,
+                      zIndex: 1,
+                      borderLeft: `3px solid ${darkMode ? '#3b4252' : '#b0bec5'}`,
+                      paddingLeft: 16,
+                      borderRight: `1.5px solid ${darkMode ? '#3b4252' : '#b0bec5'}`,
+                      borderBottom: `1.5px solid ${darkMode ? '#2c3550' : '#b0bec5'}`,
+                      backgroundClip: 'padding-box',
+                    }}>{soldierName}</td>
+                    {paddedCells.map((cell, cIdx) => {
+                      const colIdx = cIdx + 2;
+                      const isFilled = cell && cell.trim() !== '' && cell !== '-';
+                      return (
+                        <td
+                          key={colIdx}
+                          style={{
+                            background: isFilled
+                              ? getXTaskColor(cell.split('\n')[0])
+                              : (darkMode ? '#1a2233' : '#f7f9fb'),
+                            color: '#fff',
+                            textShadow: '0 1px 4px #000a',
+                            textAlign: 'center',
+                            fontWeight: 600,
+                            minWidth: 120,
+                            border: darkMode ? '2px solid #232a36' : '2px solid rgba(176,190,197,0.35)',
+                            borderRadius: 8,
+                            fontSize: 18,
+                            height: 56,
+                            boxSizing: 'border-box',
+                            transition: 'background 0.2s',
+                            cursor: 'pointer',
+                            boxShadow: '0 1px 4px rgba(30,58,92,0.06)',
+                            opacity: isFilled ? 1 : 0.6,
+                          }}
+                          onClick={() => handleCellClick(rIdx, colIdx)}
+                          onMouseOver={e => { (e.currentTarget as HTMLElement).style.background = '#ffe082'; }}
+                          onMouseOut={e => { (e.currentTarget as HTMLElement).style.background = isFilled
+                            ? getXTaskColor(cell.split('\n')[0])
+                            : (darkMode ? '#1a2233' : '#f7f9fb'); }}
+                        >
+                          {renderCell(cell, colIdx, rIdx)}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </Box>
+        </TableContainer>
       </Box>
       <Dialog open={modal.open} onClose={() => setModal(m => ({...m, open: false}))}>
         <DialogTitle sx={{ color: darkMode ? '#fff' : '#1e3a5c', background: darkMode ? '#232a36' : '#fff' }}>Assign X Task for {modal.soldier} - Week {modal.weekLabel}</DialogTitle>
@@ -636,13 +658,13 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
           <List>
             {STANDARD_X_TASKS.map((task, idx) => (
               <ListItem key={idx} disablePadding>
-                <ListItemButton selected={modalTask === task} onClick={() => setModalTask(task)} sx={{ color: darkMode ? '#fff' : '#1e3a5c', background: modalTask === task ? (TASK_COLORS[task] || '#e3f2fd') : 'inherit' }}>
+                <ListItemButton selected={modalTask === task} onClick={() => setModalTask(task)} sx={{ color: darkMode ? '#fff' : '#1e3a5c', background: modalTask === task ? (getXTaskColor(task) || '#e3f2fd') : 'inherit' }}>
                   <ListItemText primary={task} />
                 </ListItemButton>
               </ListItem>
             ))}
             <ListItem disablePadding>
-              <ListItemButton selected={modalTask === 'Other'} onClick={() => setModalTask('Other')} sx={{ color: darkMode ? '#fff' : '#1e3a5c', background: modalTask === 'Other' ? (TASK_COLORS['Custom'] || '#e3f2fd') : 'inherit' }}>
+              <ListItemButton selected={modalTask === 'Other'} onClick={() => setModalTask('Other')} sx={{ color: darkMode ? '#fff' : '#1e3a5c', background: modalTask === 'Other' ? (getXTaskColor('Custom') || '#e3f2fd') : 'inherit' }}>
                 <ListItemText primary="Other (Custom Task)" />
               </ListItemButton>
             </ListItem>
@@ -723,7 +745,8 @@ function XTaskPage({ darkMode }: { darkMode: boolean }) {
           Please review the highlighted (blinking) cells and adjust the Y schedule as needed.
         </MuiAlert>
       </Snackbar>
-    </Box>
+      <Footer />
+    </PageContainer>
   );
 }
 

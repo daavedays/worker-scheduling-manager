@@ -36,6 +36,7 @@ import HistoryIcon from '@mui/icons-material/History';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import FadingBackground from '../components/FadingBackground';
+import Footer from '../components/Footer';
 
 function MainMenuPage() {
   const navigate = useNavigate();
@@ -88,9 +89,7 @@ function MainMenuPage() {
           ))}
         </Box>
       </Box>
-      <Box sx={{ width: '100%', textAlign: 'center', py: 2, mt: 4, color: 'text.secondary', fontSize: 16, borderTop: '1px solid #ccc', opacity: 0.8 }}>
-        © All Rights Reserved | Davel
-      </Box>
+      <Footer />
     </Box>
   );
 }
