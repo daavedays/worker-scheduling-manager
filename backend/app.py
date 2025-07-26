@@ -3,18 +3,19 @@ SESSION_TIMEOUT_MINUTES = 30
 
 import os
 import json
+import csv
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, session, send_from_directory, Response
 from flask_cors import CORS
-import backend.x_tasks as x_tasks
-import backend.y_tasks as y_tasks
+from . import x_tasks
+from . import y_tasks
 import threading
 from typing import Optional
 HISTORY_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'history.json')
 history_lock = threading.Lock()
 
-from backend.worker import Worker, load_workers_from_json
-from backend.scheduler_engine import SchedulerEngine
+from .worker import Worker, load_workers_from_json
+from .scheduler_engine import SchedulerEngine
 
 
 app = Flask(__name__)
@@ -94,7 +95,7 @@ def get_x_tasks():
     filename = f"x_tasks_{year}_{period}.csv"
     path = os.path.join(DATA_DIR, filename)
     import io, csv, json
-    from backend import x_tasks
+    from . import x_tasks
     # If file does not exist or is empty, generate blank grid with weekly headers
     if not os.path.exists(path) or os.stat(path).st_size == 0:
         workers = x_tasks.load_soldiers(os.path.join(DATA_DIR, 'worker_data.json'))
@@ -136,7 +137,7 @@ def save_x_tasks():
     with open(x_task_path, 'w', encoding='utf-8') as f:
         f.write(csv_data)
     # Save custom tasks
-    import backend.x_tasks as x_tasks
+    from . import x_tasks
     x_tasks.save_custom_x_tasks(custom_tasks)
     # Save year/half meta (optional, can be removed if not needed)
     meta_path = os.path.join(DATA_DIR, 'x_task_meta.json')
@@ -208,7 +209,7 @@ def get_warnings():
         x_path = os.path.join(DATA_DIR, 'x_task.csv')
         if os.path.exists(x_path) and os.path.exists(y_path):
             import csv
-            from backend import y_tasks
+            from . import y_tasks
             x_assignments = y_tasks.read_x_tasks(x_path)
             with open(y_path, 'r', encoding='utf-8') as f:
                 reader = list(csv.reader(f))
@@ -351,79 +352,205 @@ def generate_y_tasks_api():
     data = request.get_json() or {}
     start = data.get('start')  # Expect dd/mm/yyyy
     end = data.get('end')
+    mode = data.get('mode', 'auto')  # auto, hybrid, manual
+    partial_grid = data.get('partial_grid', [])
+    y_tasks = data.get('y_tasks', [])
+    dates = data.get('dates', [])
+    
     if not start or not end:
         return jsonify({'error': 'Missing start or end date'}), 400
-    d0 = datetime.strptime(start, '%d/%m/%Y')
-    d1 = datetime.strptime(end, '%d/%m/%Y')
-    dates = [(d0 + timedelta(days=i)) for i in range((d1-d0).days+1)]
+    
+    d0 = datetime.strptime(start, '%d/%m/%Y').date()
+    d1 = datetime.strptime(end, '%d/%m/%Y').date()
+    
     # Load workers and X task data
     workers = load_workers_from_json(os.path.join(DATA_DIR, 'worker_data.json'))
-    # TODO: Load X task assignments as needed for SchedulerEngine
+    
+    # Load X task assignments for the period
+    x_assignments = {}
+    try:
+        # Try to find existing X task file for this period
+        year = d0.year
+        period = 1 if d0.month <= 6 else 2
+        x_csv = os.path.join(DATA_DIR, f"x_tasks_{year}_{period}.csv")
+        if os.path.exists(x_csv):
+            from . import y_tasks as y_tasks_module
+            x_assignments = y_tasks_module.read_x_tasks(x_csv)
+            
+            # Load X assignments into workers
+            for worker in workers:
+                if worker.id in x_assignments:
+                    for date_str, task_name in x_assignments[worker.id].items():
+                        try:
+                            date_obj = datetime.strptime(date_str, '%d/%m/%Y').date()
+                            worker.x_tasks[date_obj] = True
+                        except:
+                            pass
+    except Exception as e:
+        print(f"Warning: Could not load X task data: {e}")
+    
+    # Create scheduler engine
     engine = SchedulerEngine(workers, d0, d1)
-    # Optionally, pass y_task_names_by_day if needed
-    engine.assign_y_tasks()
-    engine.assign_weekend_closers(d0, d1)
-    # Build grid for response
-    Y_TASKS_ORDER = ["Supervisor", "C&N Driver", "C&N Escort", "Southern Driver", "Southern Escort"]
-    grid = []
-    for y_task in Y_TASKS_ORDER:
-        row = []
-        for d in dates:
-            d_str = d.strftime('%d/%m/%Y')
-            found = ''
-            for soldier_id, tasks in engine.schedule.get(d, {}).items():
-                if tasks == y_task:
-                    found = soldier_id
-                    break
-            row.append(found)
-        grid.append(row)
-    # Compose CSV: header row is dates, each row is y_task + assignments
-    import csv, io
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['Y Task'] + [d.strftime('%d/%m/%Y') for d in dates])
-    for i, y_task in enumerate(Y_TASKS_ORDER):
-        writer.writerow([y_task] + grid[i])
-    csv_data = output.getvalue()
-    return jsonify({
-        'y_tasks': Y_TASKS_ORDER,
-        'dates': [d.strftime('%d/%m/%Y') for d in dates],
-        'grid': grid,
-        'warnings': [],
-        'filename': f"y_schedule_{d0.strftime('%Y-%m-%d')}_{d1.strftime('%Y-%m-%d')}.csv",
-        'iso_start': d0.strftime('%Y-%m-%d'),
-        'iso_end': d1.strftime('%Y-%m-%d'),
-        'csv': csv_data
-    }), 200
+    
+    # Handle different modes
+    if mode == 'hybrid' and partial_grid and y_tasks and dates:
+        # Load existing assignments from partial grid
+        for y_idx, y_task in enumerate(y_tasks):
+            for d_idx, date_str in enumerate(dates):
+                if partial_grid[y_idx] and partial_grid[y_idx][d_idx]:
+                    worker_name = partial_grid[y_idx][d_idx]
+                    # Find worker by name
+                    for worker in workers:
+                        if worker.name == worker_name:
+                            try:
+                                date_obj = datetime.strptime(date_str, '%d/%m/%Y').date()
+                                worker.assign_y_task(date_obj, y_task)
+                            except:
+                                pass
+                            break
+    
+    # Generate schedule using new engine
+    try:
+        # Assign Y tasks (including weekend assignments)
+        engine.assign_y_tasks(d0, d1)
+        
+        # Get complete schedule
+        schedule = engine.get_schedule()
+        
+        # Build grid for response
+        Y_TASKS_ORDER = ["Supervisor", "C&N Driver", "C&N Escort", "Southern Driver", "Southern Escort"]
+        all_dates = [(d0 + timedelta(days=i)) for i in range((d1-d0).days+1)]
+        
+        grid = []
+        warnings = []
+        
+        for y_task in Y_TASKS_ORDER:
+            row = []
+            for d in all_dates:
+                d_str = d.strftime('%d/%m/%Y')
+                found = ''
+                if d in schedule and y_task in schedule[d]:
+                    found = schedule[d][y_task]
+                row.append(found)
+            grid.append(row)
+        
+        # Generate warnings from insufficient workers report
+        try:
+            report = engine.get_insufficient_workers_report(d0, d1)
+            if report['weekend_closing_issues']:
+                warnings.append(f"Weekend closing issues: {len(report['weekend_closing_issues'])} weekends with insufficient candidates")
+            if report['y_task_issues']:
+                warnings.append(f"Y task issues: {len(report['y_task_issues'])} tasks with insufficient qualified workers")
+        except Exception as e:
+            warnings.append(f"Could not generate worker shortage report: {e}")
+        
+        # Compose CSV
+        import csv, io
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['Y Task'] + [d.strftime('%d/%m/%Y') for d in all_dates])
+        for i, y_task in enumerate(Y_TASKS_ORDER):
+            writer.writerow([y_task] + grid[i])
+        csv_data = output.getvalue()
+        
+        return jsonify({
+            'y_tasks': Y_TASKS_ORDER,
+            'dates': [d.strftime('%d/%m/%Y') for d in all_dates],
+            'grid': grid,
+            'warnings': warnings,
+            'filename': f"y_schedule_{d0.strftime('%Y-%m-%d')}_{d1.strftime('%Y-%m-%d')}.csv",
+            'iso_start': d0.strftime('%Y-%m-%d'),
+            'iso_end': d1.strftime('%Y-%m-%d'),
+            'csv': csv_data
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to generate schedule: {str(e)}'}), 500
 
 @app.route('/api/y-tasks/available-soldiers', methods=['POST'])
 def available_soldiers_for_y_task():
     if not is_logged_in():
         return require_login()
-    from backend import y_tasks
-    from backend.worker import load_workers_from_json
+    from . import y_tasks
+    from .worker import load_workers_from_json
     data = request.get_json() or {}
     date = data.get('date')
     task = data.get('task')
     current_assignments = data.get('current_assignments', {})
-    year = int(data.get('year', datetime.today().year))
-    period = int(data.get('period', 1))
-    x_csv = os.path.join(DATA_DIR, f"x_tasks_{year}_{period}.csv")
+    
     if not date or not task:
         return jsonify({'error': 'Missing date or task'}), 400
-    # Use robust loader to get Hebrew names
-    workers = load_workers_from_json(os.path.join(DATA_DIR, 'worker_data.json'), os.path.join(DATA_DIR, 'name_conv.json'))
-    x_assignments = y_tasks.read_x_tasks(x_csv)
-    soldier_qual = y_tasks.build_qualification_map(workers)
-    qualified = [w for w in workers if any(q in y_tasks.QUALIFICATION_MAP[task] for q in soldier_qual[w.id])]
-    available = [w for w in qualified if not (w.id in x_assignments and date in x_assignments[w.id])]
-    already_assigned = set()
-    for wid, days in current_assignments.items():
-        if days.get(date) and days.get(date) != '-' and wid in [w.id for w in available]:
-            already_assigned.add(wid)
-    result = [w for w in available if w.id not in already_assigned]
-    # Return list of dicts with id and name
-    return jsonify({'available': [{'id': w.id, 'name': w.name} for w in result]})
+    
+    try:
+        # Parse date
+        date_obj = datetime.strptime(date, '%d/%m/%Y').date()
+        
+        # Load workers
+        workers = load_workers_from_json(os.path.join(DATA_DIR, 'worker_data.json'), os.path.join(DATA_DIR, 'name_conv.json'))
+        
+        # Load X task assignments
+        year = date_obj.year
+        period = 1 if date_obj.month <= 6 else 2
+        x_csv = os.path.join(DATA_DIR, f"x_tasks_{year}_{period}.csv")
+        
+        # Load X assignments into workers
+        if os.path.exists(x_csv):
+            x_assignments = y_tasks.read_x_tasks(x_csv)
+            for worker in workers:
+                if worker.id in x_assignments:
+                    for date_str, task_name in x_assignments[worker.id].items():
+                        try:
+                            x_date_obj = datetime.strptime(date_str, '%d/%m/%Y').date()
+                            worker.x_tasks[x_date_obj] = True
+                        except:
+                            pass
+        
+        # Load current Y task assignments into workers
+        for worker in workers:
+            for wid, days in current_assignments.items():
+                if wid == worker.id:
+                    for day_str, task_name in days.items():
+                        if task_name and task_name != '-':
+                            try:
+                                y_date_obj = datetime.strptime(day_str, '%d/%m/%Y').date()
+                                worker.y_tasks[y_date_obj] = task_name
+                            except:
+                                pass
+        
+        # Filter qualified workers
+        qualified = [w for w in workers if task in w.qualifications]
+        
+        # Filter available workers (no X task on this date, no Y task on this date)
+        available = []
+        for worker in qualified:
+            # Skip if has X task on this date (except Rituk)
+            if date_obj in worker.x_tasks:
+                # Check if it's Rituk - if so, allow assignment
+                if not worker.has_specific_x_task(date_obj - timedelta(days=date_obj.weekday()), "Rituk"):
+                    continue
+            
+            # Skip if has Y task on this date
+            if date_obj in worker.y_tasks:
+                continue
+            
+            # Skip if recently finished X task (within 2 days)
+            recently_finished = False
+            for i in range(1, 3):  # 1 and 2 days ago
+                check_date = date_obj - timedelta(days=i)
+                if check_date in worker.x_tasks:
+                    recently_finished = True
+                    break
+            
+            if recently_finished:
+                continue
+            
+            available.append(worker)
+        
+        # Return list of dicts with id and name
+        return jsonify({'available': [{'id': w.id, 'name': w.name} for w in available]})
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to get available soldiers: {str(e)}'}), 500
 
 # --- Combined Schedule API ---
 @app.route('/api/combined', methods=['GET'])
@@ -446,7 +573,7 @@ def get_combined_grid():
     if not is_logged_in():
         return require_login()
     import csv
-    from backend import y_tasks
+    from . import y_tasks
     # --- 1. Determine which Y schedule period to use ---
     start = request.args.get('start')
     end = request.args.get('end')
@@ -531,6 +658,7 @@ def x_y_conflicts():
     if not is_logged_in():
         return require_login()
     import csv
+    from . import y_tasks
     conflicts = []
     year = int(request.args.get('year', datetime.today().year))
     period = int(request.args.get('period', 1))
@@ -617,7 +745,7 @@ def delete_y_task_schedule():
         except Exception as e:
             return jsonify({'error': f'Failed to delete file: {str(e)}'}), 500
     # Remove from index
-    from backend import y_tasks
+    from . import y_tasks
     index = y_tasks.load_y_task_index()
     key_to_remove = None
     for key, fname in index.items():
@@ -629,10 +757,61 @@ def delete_y_task_schedule():
         y_tasks.save_y_task_index(index)
     return jsonify({'success': True})
 
+@app.route('/api/y-tasks/insufficient-workers-report', methods=['POST'])
+def get_insufficient_workers_report():
+    if not is_logged_in():
+        return require_login()
+    data = request.get_json() or {}
+    start = data.get('start')  # Expect dd/mm/yyyy
+    end = data.get('end')
+    
+    if not start or not end:
+        return jsonify({'error': 'Missing start or end date'}), 400
+    
+    try:
+        d0 = datetime.strptime(start, '%d/%m/%Y').date()
+        d1 = datetime.strptime(end, '%d/%m/%Y').date()
+        
+        # Load workers
+        workers = load_workers_from_json(os.path.join(DATA_DIR, 'worker_data.json'))
+        
+        # Load X task assignments
+        x_assignments = {}
+        try:
+            year = d0.year
+            period = 1 if d0.month <= 6 else 2
+            x_csv = os.path.join(DATA_DIR, f"x_tasks_{year}_{period}.csv")
+            if os.path.exists(x_csv):
+                from . import y_tasks
+                x_assignments = y_tasks.read_x_tasks(x_csv)
+                
+                # Load X assignments into workers
+                for worker in workers:
+                    if worker.id in x_assignments:
+                        for date_str, task_name in x_assignments[worker.id].items():
+                            try:
+                                date_obj = datetime.strptime(date_str, '%d/%m/%Y').date()
+                                worker.x_tasks[date_obj] = True
+                            except:
+                                pass
+        except Exception as e:
+            print(f"Warning: Could not load X task data: {e}")
+        
+        # Create scheduler engine
+        engine = SchedulerEngine(workers, d0, d1)
+        
+        # Generate report
+        report = engine.get_insufficient_workers_report(d0, d1)
+        
+        return jsonify(report), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to generate report: {str(e)}'}), 500
+
 @app.route('/api/combined/available-dates', methods=['GET'])
 def get_combined_available_dates():
     # Returns all dates covered by any Y schedule
-    from backend import y_tasks
+    from . import y_tasks
     y_schedules = y_tasks.list_y_task_schedules()
     all_dates = set()
     for start, end, y_filename in y_schedules:
@@ -656,7 +835,7 @@ def get_combined_by_date():
     date = request.args.get('date')
     if not date:
         return jsonify({'error': 'Missing date'}), 400
-    from backend import y_tasks, x_tasks
+    from . import y_tasks, x_tasks
     # Find Y assignments for this date
     y_schedules = y_tasks.list_y_task_schedules()
     y_assignments = {}
@@ -725,7 +904,7 @@ def get_combined_by_date():
 def get_combined_grid_full():
     if not is_logged_in():
         return require_login()
-    from backend import y_tasks
+    from . import y_tasks
     import csv
     # 1. Collect all dates from all Y schedules
     y_schedules = y_tasks.list_y_task_schedules()
@@ -805,7 +984,7 @@ def get_combined_by_range():
     end = request.args.get('end')
     if not start or not end:
         return jsonify({'error': 'Missing start or end date'}), 400
-    from backend import y_tasks
+    from . import y_tasks
     import csv
     from datetime import datetime, timedelta
     # Build date list
@@ -906,6 +1085,17 @@ def load_workers_to_memory():
 # Load on startup
 load_workers_to_memory()
 
+@app.route('/api/workers/reload', methods=['POST'])
+def reload_workers():
+    """Reload workers from JSON file"""
+    if not is_logged_in():
+        return require_login()
+    try:
+        load_workers_to_memory()
+        return jsonify({'success': True, 'count': len(WORKERS)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/workers', methods=['GET'])
 def get_workers():
     if not is_logged_in():
@@ -1003,6 +1193,413 @@ def delete_worker(id):
     if before == after:
         return jsonify({'error': 'Worker not found'}), 404
     return jsonify({'success': True})
+
+@app.route('/api/statistics', methods=['GET'])
+def get_statistics():
+    """Get comprehensive statistics for charts and analysis"""
+    if not is_logged_in():
+        return require_login()
+    
+    try:
+        # Load all available data
+        workers = load_workers_from_json(WORKER_JSON_PATH)
+        
+        # Get all X task files
+        x_task_files = []
+        for filename in os.listdir(DATA_DIR):
+            if filename.startswith('x_tasks_') and filename.endswith('.csv'):
+                x_task_files.append(filename)
+        
+        # Sort files by year and half
+        x_task_files.sort()
+        
+        # Load X tasks data from all files
+        all_x_tasks = {}
+        x_tasks_timeline = []
+        
+        for filename in x_task_files:
+            file_path = os.path.join(DATA_DIR, filename)
+            if os.path.exists(file_path):
+                # Extract year and half from filename
+                parts = filename.replace('.csv', '').split('_')
+                year = int(parts[2])
+                half = int(parts[3])
+                
+                # Load X tasks from this file
+                x_data = y_tasks.read_x_tasks(file_path, year)
+                
+                # Count tasks per worker
+                for worker_id, tasks in x_data.items():
+                    if worker_id not in all_x_tasks:
+                        all_x_tasks[worker_id] = 0
+                    all_x_tasks[worker_id] += len(tasks)
+                
+                # Add to timeline
+                x_tasks_timeline.append({
+                    'period': f"{year}-{half}",
+                    'year': year,
+                    'half': half,
+                    'total_tasks': sum(len(tasks) for tasks in x_data.values())
+                })
+        
+        # Load Y tasks data from generated CSV files
+        all_y_tasks = {}
+        y_tasks_timeline = []
+        
+        # Check for saved Y task CSV files
+        y_task_files = []
+        for filename in os.listdir(DATA_DIR):
+            if filename.startswith('y_schedule_') and filename.endswith('.csv'):
+                y_task_files.append(filename)
+        
+        for filename in y_task_files:
+            file_path = os.path.join(DATA_DIR, filename)
+            if os.path.exists(file_path):
+                try:
+                    # Read CSV file
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        reader = csv.reader(f)
+                        headers = next(reader)  # Skip header row
+                        
+                        # Process each row (Y task type)
+                        for row in reader:
+                            if len(row) < 2:
+                                continue
+                            
+                            task_name = row[0]
+                            # Process each date column (starting from index 1)
+                            for i in range(1, len(row)):
+                                if i < len(headers):
+                                    date_str = headers[i]
+                                    worker_name = row[i].strip()
+                                    
+                                    if worker_name and worker_name != '-':
+                                        # Find worker by name
+                                        for worker in workers:
+                                            if worker.name == worker_name:
+                                                if worker.id not in all_y_tasks:
+                                                    all_y_tasks[worker.id] = 0
+                                                all_y_tasks[worker.id] += 1
+                                                break
+                except Exception as e:
+                    print(f"Error loading Y tasks from {filename}: {e}")
+        
+        # Prepare pie chart data
+        x_tasks_pie = []
+        y_tasks_pie = []
+        combined_pie = []
+        
+        for worker in workers:
+            x_count = all_x_tasks.get(worker.id, 0)
+            y_count = all_y_tasks.get(worker.id, 0)
+            combined_count = x_count + y_count
+            
+            if x_count > 0:
+                x_tasks_pie.append({
+                    'name': worker.name,
+                    'value': x_count,
+                    'worker_id': worker.id
+                })
+            
+            if y_count > 0:
+                y_tasks_pie.append({
+                    'name': worker.name,
+                    'value': y_count,
+                    'worker_id': worker.id
+                })
+            
+            if combined_count > 0:
+                combined_pie.append({
+                    'name': worker.name,
+                    'value': combined_count,
+                    'worker_id': worker.id
+                })
+        
+        # Sort by value (descending)
+        x_tasks_pie.sort(key=lambda x: x['value'], reverse=True)
+        y_tasks_pie.sort(key=lambda x: x['value'], reverse=True)
+        combined_pie.sort(key=lambda x: x['value'], reverse=True)
+        
+        # Prepare bar chart data for X tasks timeline
+        x_tasks_timeline.sort(key=lambda x: (x['year'], x['half']))
+        
+        # Calculate percentages for pie charts
+        total_x = sum(item['value'] for item in x_tasks_pie)
+        total_y = sum(item['value'] for item in y_tasks_pie)
+        total_combined = sum(item['value'] for item in combined_pie)
+        
+        for item in x_tasks_pie:
+            item['percentage'] = round((item['value'] / total_x * 100), 1) if total_x > 0 else 0
+        
+        for item in y_tasks_pie:
+            item['percentage'] = round((item['value'] / total_y * 100), 1) if total_y > 0 else 0
+        
+        for item in combined_pie:
+            item['percentage'] = round((item['value'] / total_combined * 100), 1) if total_combined > 0 else 0
+        
+        # Calculate fairness metrics
+        fairness_metrics = {
+            'seniority_distribution': {},
+            'score_vs_tasks': [],
+            'weekend_vs_weekday': {},
+            'task_type_distribution': {},
+            'qualification_utilization': {},
+            'y_task_analysis': {},
+            'closing_interval_analysis': {},
+            'worker_performance_metrics': []
+        }
+        
+        # Seniority distribution
+        for worker in workers:
+            # Handle seniority values properly - convert to string for consistent comparison
+            if worker.seniority and worker.seniority != 'None':
+                try:
+                    # Try to convert to int first, then to string for consistent formatting
+                    seniority = str(int(worker.seniority))
+                except (ValueError, TypeError):
+                    seniority = str(worker.seniority)
+            else:
+                seniority = 'Unknown'
+            
+            if seniority not in fairness_metrics['seniority_distribution']:
+                fairness_metrics['seniority_distribution'][seniority] = {'x_tasks': 0, 'y_tasks': 0, 'workers': 0}
+            fairness_metrics['seniority_distribution'][seniority]['x_tasks'] += all_x_tasks.get(worker.id, 0)
+            fairness_metrics['seniority_distribution'][seniority]['y_tasks'] += all_y_tasks.get(worker.id, 0)
+            fairness_metrics['seniority_distribution'][seniority]['workers'] += 1
+        
+        # Score vs tasks correlation
+        for worker in workers:
+            score = int(worker.score) if worker.score is not None else 0
+            total_tasks = all_x_tasks.get(worker.id, 0) + all_y_tasks.get(worker.id, 0)
+            fairness_metrics['score_vs_tasks'].append({
+                'worker_name': worker.name,
+                'score': score,
+                'total_tasks': total_tasks,
+                'x_tasks': all_x_tasks.get(worker.id, 0),
+                'y_tasks': all_y_tasks.get(worker.id, 0)
+            })
+        
+        # Sort by score for better visualization
+        fairness_metrics['score_vs_tasks'].sort(key=lambda x: x['score'], reverse=True)
+        
+        # Qualification utilization
+        all_qualifications = set()
+        for worker in workers:
+            all_qualifications.update(worker.qualifications)
+        
+        for qualification in all_qualifications:
+            qualified_workers = [w for w in workers if qualification in w.qualifications]
+            total_qualified_tasks = sum(all_x_tasks.get(w.id, 0) + all_y_tasks.get(w.id, 0) for w in qualified_workers)
+            fairness_metrics['qualification_utilization'][qualification] = {
+                'qualified_workers': len(qualified_workers),
+                'total_tasks': total_qualified_tasks,
+                'avg_tasks_per_worker': total_qualified_tasks / len(qualified_workers) if qualified_workers else 0
+            }
+        
+        # Task distribution histogram
+        task_counts = []
+        for worker in workers:
+            total_tasks = all_x_tasks.get(worker.id, 0) + all_y_tasks.get(worker.id, 0)
+            task_counts.append(total_tasks)
+        
+        # Create histogram bins
+        if task_counts:
+            min_tasks = min(task_counts)
+            max_tasks = max(task_counts)
+            bin_size = (max_tasks - min_tasks) / 10 if max_tasks > min_tasks else 1
+            
+            histogram = {}
+            for i in range(10):
+                bin_start = min_tasks + (i * bin_size)
+                bin_end = min_tasks + ((i + 1) * bin_size)
+                bin_label = f"{int(bin_start)}-{int(bin_end)}"
+                histogram[bin_label] = 0
+            
+            # Count workers in each bin
+            for count in task_counts:
+                bin_index = min(9, int((count - min_tasks) / bin_size) if bin_size > 0 else 0)
+                bin_start = min_tasks + (bin_index * bin_size)
+                bin_end = min_tasks + ((bin_index + 1) * bin_size)
+                bin_label = f"{int(bin_start)}-{int(bin_end)}"
+                histogram[bin_label] += 1
+            
+            fairness_metrics['task_distribution_histogram'] = histogram
+        
+        # Y Task Analysis
+        y_task_workers = []
+        for worker in workers:
+            y_count = all_y_tasks.get(worker.id, 0)
+            if y_count > 0:
+                y_task_workers.append({
+                    'worker_name': worker.name,
+                    'worker_id': worker.id,
+                    'y_tasks': y_count,
+                    'score': int(worker.score) if worker.score is not None else 0,
+                    'seniority': worker.seniority if worker.seniority and worker.seniority != 'None' else 'Unknown',
+                    'closing_interval': worker.closing_interval,
+                    'qualifications': worker.qualifications
+                })
+        
+        # Sort by Y task count for better visualization
+        y_task_workers.sort(key=lambda x: x['y_tasks'], reverse=True)
+        fairness_metrics['y_task_analysis']['worker_distribution'] = y_task_workers
+        
+        # Calculate Y task statistics
+        if y_task_workers:
+            y_task_counts = [w['y_tasks'] for w in y_task_workers]
+            fairness_metrics['y_task_analysis']['statistics'] = {
+                'total_workers_with_y_tasks': len(y_task_workers),
+                'average_y_tasks_per_worker': sum(y_task_counts) / len(y_task_counts),
+                'median_y_tasks': sorted(y_task_counts)[len(y_task_counts)//2],
+                'min_y_tasks': min(y_task_counts),
+                'max_y_tasks': max(y_task_counts),
+                'standard_deviation': (sum((x - sum(y_task_counts)/len(y_task_counts))**2 for x in y_task_counts) / len(y_task_counts))**0.5
+            }
+        
+        # Closing Interval Analysis - Count actual closings from Y task data
+        closing_workers = []
+        
+        # Count weekend Y task assignments for each worker
+        worker_closing_counts = {}
+        worker_closing_dates = {}
+        
+        # Process Y task CSV files to count weekend assignments
+        for filename in y_task_files:
+            file_path = os.path.join(DATA_DIR, filename)
+            if os.path.exists(file_path):
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        reader = csv.reader(f)
+                        headers = next(reader)  # Skip header row
+                        
+                        # Process each row (Y task type)
+                        for row in reader:
+                            if len(row) < 2:
+                                continue
+                            
+                            task_name = row[0]
+                            # Process each date column (starting from index 1)
+                            for i in range(1, len(row)):
+                                if i < len(headers):
+                                    date_str = headers[i]
+                                    worker_name = row[i].strip()
+                                    
+                                    if worker_name and worker_name != '-':
+                                        # Find worker by name
+                                        for worker in workers:
+                                            if worker.name == worker_name:
+                                                if worker.id not in worker_closing_counts:
+                                                    worker_closing_counts[worker.id] = 0
+                                                    worker_closing_dates[worker.id] = []
+                                                
+                                                # Count this as a closing assignment
+                                                worker_closing_counts[worker.id] += 1
+                                                worker_closing_dates[worker.id].append(date_str)
+                                                break
+                except Exception as e:
+                    print(f"Error loading Y tasks from {filename}: {e}")
+        
+        # Calculate closing interval accuracy for each worker
+        for worker in workers:
+            if worker.closing_interval > 0:  # Only workers who participate in closing
+                total_closings = worker_closing_counts.get(worker.id, 0)
+                
+                # Calculate total weeks in the data period
+                # For the Y task data, we have from July 2025 to January 2026 (about 26 weeks)
+                total_weeks = 26  # Approximate based on the data period
+                
+                # Calculate how well they follow their interval
+                if total_closings > 0 and total_weeks > 0:
+                    actual_interval = total_weeks / total_closings
+                    interval_accuracy = abs(actual_interval - worker.closing_interval) / worker.closing_interval
+                    interval_percentage = max(0, 100 - (interval_accuracy * 100))
+                else:
+                    actual_interval = 0
+                    interval_accuracy = 1
+                    interval_percentage = 0
+                
+                closing_workers.append({
+                    'worker_name': worker.name,
+                    'worker_id': worker.id,
+                    'closing_interval': worker.closing_interval,
+                    'total_closings': total_closings,
+                    'total_weeks_served': total_weeks,
+                    'actual_interval': round(actual_interval, 2),
+                    'interval_accuracy': round(interval_percentage, 2),
+                    'closing_dates': worker_closing_dates.get(worker.id, []),
+                    'score': int(worker.score) if worker.score is not None else 0
+                })
+        
+        # Sort by interval accuracy for better visualization
+        closing_workers.sort(key=lambda x: x['interval_accuracy'], reverse=True)
+        fairness_metrics['closing_interval_analysis']['worker_distribution'] = closing_workers
+        
+        # Calculate closing interval statistics
+        if closing_workers:
+            accuracy_scores = [w['interval_accuracy'] for w in closing_workers]
+            fairness_metrics['closing_interval_analysis']['statistics'] = {
+                'total_closing_workers': len(closing_workers),
+                'average_accuracy': sum(accuracy_scores) / len(accuracy_scores),
+                'workers_above_90_percent': sum(1 for acc in accuracy_scores if acc >= 90),
+                'workers_above_80_percent': sum(1 for acc in accuracy_scores if acc >= 80),
+                'workers_below_50_percent': sum(1 for acc in accuracy_scores if acc < 50),
+                'algorithm_accuracy_percentage': sum(accuracy_scores) / len(accuracy_scores)
+            }
+        
+        # Worker Performance Metrics (for algorithm improvement)
+        for worker in workers:
+            x_count = all_x_tasks.get(worker.id, 0)
+            y_count = all_y_tasks.get(worker.id, 0)
+            total_tasks = x_count + y_count
+            
+            # Calculate workload balance
+            if total_tasks > 0:
+                x_percentage = (x_count / total_tasks) * 100
+                y_percentage = (y_count / total_tasks) * 100
+            else:
+                x_percentage = 0
+                y_percentage = 0
+            
+            # Calculate if worker is overworked/underworked
+            avg_tasks_per_worker = total_combined / len(workers)
+            workload_deviation = ((total_tasks - avg_tasks_per_worker) / avg_tasks_per_worker) * 100
+            
+            fairness_metrics['worker_performance_metrics'].append({
+                'worker_name': worker.name,
+                'worker_id': worker.id,
+                'total_tasks': total_tasks,
+                'x_tasks': x_count,
+                'y_tasks': y_count,
+                'x_percentage': round(x_percentage, 2),
+                'y_percentage': round(y_percentage, 2),
+                'workload_deviation': round(workload_deviation, 2),
+                'score': int(worker.score) if worker.score is not None else 0,
+                'seniority': worker.seniority if worker.seniority and worker.seniority != 'None' else 'Unknown',
+                'closing_interval': worker.closing_interval,
+                'qualifications': worker.qualifications
+            })
+        
+        # Sort by workload deviation to identify overworked/underworked workers
+        fairness_metrics['worker_performance_metrics'].sort(key=lambda x: abs(x['workload_deviation']), reverse=True)
+        
+        return jsonify({
+            'x_tasks_pie': x_tasks_pie,
+            'y_tasks_pie': y_tasks_pie,
+            'combined_pie': combined_pie,
+            'x_tasks_timeline': x_tasks_timeline,
+            'fairness_metrics': fairness_metrics,
+            'summary': {
+                'total_workers': len(workers),
+                'total_x_tasks': total_x,
+                'total_y_tasks': total_y,
+                'total_combined': total_combined,
+                'x_task_files': len(x_task_files),
+                'y_task_files': len(y_task_files)
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # --- Serve React Frontend (for local dev) ---
 @app.route('/', defaults={'path': ''})

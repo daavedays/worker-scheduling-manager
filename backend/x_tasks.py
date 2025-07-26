@@ -2,7 +2,7 @@ import csv
 import json
 import os
 from datetime import datetime, timedelta, date
-from backend.worker import load_workers_from_json
+from .worker import load_workers_from_json
 
 
 STANDARD_X_TASKS = ["Guarding Duties", "RASAR", "Kitchen"]
@@ -68,15 +68,11 @@ def get_weeks_for_period(year, half):
         start = first_half_end + timedelta(days=1)  # Next Sunday
         # Find first Sunday of next January
         next_jan = date(year + 1, 1, 1)
-        
-        # TODO: Remove this
-        print(f"[DEBUG] Next Jan: {next_jan}")
 
         while next_jan.weekday() != 6:
             next_jan += timedelta(days=1)
         end = next_jan - timedelta(days=1)  # Last Saturday before next first Sunday
-        # TODO: Remove this
-        print(f"[DEBUG] Start: {start}, End: {end}")
+
     # Generate weeks
     weeks = []
     week_num = 1

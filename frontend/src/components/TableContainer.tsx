@@ -11,7 +11,7 @@ const TableContainer: React.FC<TableContainerProps> = ({ children, sx }) => (
     sx={{
       width: '100%',
       overflowX: 'auto',
-      background: theme => theme.palette.mode === 'dark' ? '#1a2233' : '#eaf1fa',
+      background: theme => theme.palette.mode === 'dark' ? '#1a2233' : '#fafbfc',
       borderRadius: 4,
       boxShadow: theme => theme.palette.mode === 'dark' ? 3 : '0 2px 12px 0 #b0bec522',
       border: theme => theme.palette.mode === 'dark' ? undefined : '1.5px solid #b0bec5',

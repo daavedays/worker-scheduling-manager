@@ -6,6 +6,7 @@ import Footer from '../components/Footer';
 import PageContainer from '../components/PageContainer';
 import TableContainer from '../components/TableContainer';
 import DarkModeToggle from '../components/DarkModeToggle';
+import Header from '../components/Header';
 
 const QUALIFICATIONS = [
   'Supervisor', 'C&N Driver', 'C&N Escort', 'Southern Driver', 'Southern Escort', 'Guarding Duties', 'RASAR', 'Kitchen'
@@ -77,6 +78,13 @@ function ManageWorkersPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; 
   return (
     <PageContainer>
       <FadingBackground />
+      <Header 
+        darkMode={darkMode}
+        onToggleDarkMode={onToggleDarkMode}
+        showBackButton={true}
+        showHomeButton={true}
+        title="Manage Workers"
+      />
       <DarkModeToggle darkMode={darkMode} onToggle={onToggleDarkMode} />
       <Box sx={{ position: 'relative', zIndex: 1 }}>
         <Typography variant="h5" sx={{ mb: 2 }}>Manage Workers</Typography>

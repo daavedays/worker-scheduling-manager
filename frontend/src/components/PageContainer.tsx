@@ -9,7 +9,9 @@ interface PageContainerProps {
 const PageContainer: React.FC<PageContainerProps> = ({ children, sx }) => (
   <Box
     sx={{
-      p: { xs: 2, sm: 3, md: 4 },
+      pt: { xs: 10, sm: 11, md: 12 }, // Add top padding for header
+      px: { xs: 2, sm: 3, md: 4 },
+      pb: { xs: 2, sm: 3, md: 4 },
       minHeight: '100vh',
       width: '100vw',
       background: 'none',

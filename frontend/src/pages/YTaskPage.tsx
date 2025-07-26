@@ -39,7 +39,7 @@
  *   - Inline comments explain non-obvious logic and UI structure
  */
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Button, Typography, Fab, Snackbar, Alert as MuiAlert, Dialog, DialogTitle, DialogContent, DialogActions, List, ListItemButton, ListItemText, CircularProgress, IconButton } from '@mui/material';
+import { Box, Button, Typography, Fab, Snackbar, Alert as MuiAlert, Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemButton, ListItemText, CircularProgress, IconButton } from '@mui/material';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import SaveIcon from '@mui/icons-material/Save';
@@ -53,8 +53,9 @@ import Footer from '../components/Footer';
 import PageContainer from '../components/PageContainer';
 import TableContainer from '../components/TableContainer';
 import DarkModeToggle from '../components/DarkModeToggle';
+import Header from '../components/Header';
 
-function YTaskPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; onToggleDarkMode: () => void }) {
+function YTaskPage() {
   const Y_TASKS = [
     "Supervisor",
     "C&N Driver",
@@ -87,6 +88,9 @@ function YTaskPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; onToggle
   const [highlightCell, setHighlightCell] = useState<{row: number, col: number} | null>(null);
   const [resolveConflictInfo, setResolveConflictInfo] = useState<any | null>(null);
   const [showResolveWarning, setShowResolveWarning] = useState(false);
+  const [tableDarkMode, setTableDarkMode] = useState(true); // local state
+  const [insufficientWorkersReport, setInsufficientWorkersReport] = useState<any | null>(null);
+  const [showInsufficientReport, setShowInsufficientReport] = useState(false);
 
   // On mount, check for resolveConflict in localStorage
   useEffect(() => {
@@ -319,6 +323,33 @@ function YTaskPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; onToggle
     }
   };
 
+  const handleGetInsufficientWorkersReport = async () => {
+    if (!startDate || !endDate) return;
+    
+    const start = startDate.toLocaleDateString('en-GB').split('/').map((x: string) => x.padStart(2, '0')).join('/');
+    const end = endDate.toLocaleDateString('en-GB').split('/').map((x: string) => x.padStart(2, '0')).join('/');
+    
+    try {
+      const res = await fetch('http://localhost:5000/api/y-tasks/insufficient-workers-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ start, end })
+      });
+      
+      if (res.ok) {
+        const report = await res.json();
+        setInsufficientWorkersReport(report);
+        setShowInsufficientReport(true);
+      } else {
+        const error = await res.json();
+        setWarnings([error.error || 'Failed to get insufficient workers report']);
+      }
+    } catch (e: any) {
+      setWarnings([e.message || 'Failed to get insufficient workers report']);
+    }
+  };
+
   const tableWidth = dates.length > 0 ? Math.max(900, 180 + dates.length * 120) : 900;
   const formattedStartDate = startDate ? formatDateDMY(startDate.toLocaleDateString('en-GB')) : '';
   const formattedEndDate = endDate ? formatDateDMY(endDate.toLocaleDateString('en-GB')) : '';
@@ -326,17 +357,44 @@ function YTaskPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; onToggle
   return (
     <PageContainer>
       <FadingBackground />
-      <DarkModeToggle darkMode={darkMode} onToggle={onToggleDarkMode} />
-      <Box sx={{ width: '100%', overflowX: 'auto' }}>
-        {/* Schedule Selector */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" sx={{ mb: 1 }}>Select Y Task Schedule</Typography>
+      <Header 
+        darkMode={true} // always dark for header
+        onToggleDarkMode={() => setTableDarkMode(d => !d)}
+        showBackButton={true}
+        showHomeButton={true}
+        title="Y Tasks"
+      />
+      {/* Selector box always dark, not affected by tableDarkMode */}
+      <Box sx={{
+        width: '100%',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        mb: 3,
+      }}>
+        <Box sx={{
+          bgcolor: '#1a2233',
+          borderRadius: 3,
+          boxShadow: 3,
+          border: undefined,
+          p: 2,
+          minWidth: 400,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+        }}>
+          <Typography sx={{ color: '#fff', fontWeight: 700, mb: 1 }}>Select Y Task Schedule</Typography>
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
             {availableSchedules.map((sch: any) => (
               <Box key={sch.filename} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Button
                   variant={selectedSchedule && sch.filename === selectedSchedule.filename ? 'contained' : 'outlined'}
                   onClick={() => setSelectedSchedule(sch)}
+                  sx={{
+                    bgcolor: selectedSchedule && sch.filename === selectedSchedule.filename ? '#1976d2' : undefined,
+                    color: selectedSchedule && sch.filename === selectedSchedule.filename ? '#fff' : undefined,
+                    fontWeight: 700,
+                  }}
                 >
                   {formatDateDMY(sch.start)} TO {formatDateDMY(sch.end)}
                 </Button>
@@ -353,304 +411,396 @@ function YTaskPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; onToggle
             ))}
           </Box>
         </Box>
-        {/* Delete confirmation dialog */}
-        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-          <DialogTitle>Delete Schedule</DialogTitle>
-          <DialogContent>
-            <Typography color="error" sx={{ mb: 2 }}>
-              Warning: This will permanently delete the selected Y task schedule CSV file and remove it from the list. This action cannot be undone.
-            </Typography>
-            <Typography>
-              Are you sure you want to delete the schedule for <b>{scheduleToDelete && formatDateDMY(scheduleToDelete.start)} to {scheduleToDelete && formatDateDMY(scheduleToDelete.end)}</b>?
-            </Typography>
-            {deleteError && <MuiAlert severity="error" sx={{ mt: 2 }}>{deleteError}</MuiAlert>}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-            <Button color="error" onClick={handleDeleteSchedule}>Delete</Button>
-          </DialogActions>
-        </Dialog>
-        {grid.length > 0 && (
-          <Box sx={{ width: '100%', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2, mb: 2 }}>
-            <Fab
-              color="info"
-              onClick={handleHybridGenerate}
-              disabled={loading}
-              sx={{ width: 60, height: 60, boxShadow: 6, borderRadius: '50%', fontWeight: 700 }}
-              aria-label="generate-rest"
-            >
-              <AutoFixHighIcon sx={{ fontSize: 28, color: '#fff' }} />
-            </Fab>
-            <Fab
-              color="primary"
-              onClick={handleSave}
-              disabled={saving || grid.length === 0}
-              sx={{ width: 60, height: 60, boxShadow: 6, borderRadius: '50%', fontWeight: 700 }}
-              aria-label="save"
-            >
-              <SaveIcon sx={{ fontSize: 28, color: '#fff' }} />
-            </Fab>
-            <Button variant="outlined" color="error" onClick={() => setClearDialogOpen(true)} sx={{ height: 60 }}>Clear</Button>
-          </Box>
-        )}
-        <Dialog open={clearDialogOpen} onClose={() => setClearDialogOpen(false)}>
-          <DialogTitle>Clear Schedule</DialogTitle>
-          <DialogContent>Are you sure you would like to clear the table?</DialogContent>
-          <DialogActions>
-            <Button onClick={() => setClearDialogOpen(false)}>Cancel</Button>
-            <Button color="error" onClick={handleClear}>Clear</Button>
-          </DialogActions>
-        </Dialog>
-        <Box sx={{ width: '100%', overflowX: 'auto' }}>
-          <Box sx={{ minWidth: tableWidth, width: '100%' }}>
-            <Box
-              sx={{
-                minWidth: tableWidth,
-                width: '100%',
-                background: darkMode ? '#1a2233' : '#eaf1fa',
-                borderRadius: 3,
-                boxShadow: darkMode ? 3 : '0 2px 12px 0 #b0bec522',
-                border: darkMode ? undefined : '1.5px solid #b0bec5',
-                p: 2,
-                mb: 3,
-                pt: 3,
-                pb: 3,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-              }}
-            >
-              <Typography variant="h5" sx={{ mb: 2 }}>Y Task Assignment</Typography>
-              <LocalizationProvider dateAdapter={AdapterDateFns}>
-                <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                  <DatePicker
-                    label="Start Date"
-                    value={startDate}
-                    onChange={(date: Date | null) => setStartDate(date)}
-                    format="dd/MM/yyyy"
-                    slotProps={{ textField: { sx: { minWidth: 180 } } }}
-                  />
-                  <DatePicker
-                    label="End Date"
-                    value={endDate}
-                    onChange={(date: Date | null) => setEndDate(date)}
-                    format="dd/MM/yyyy"
-                    slotProps={{ textField: { sx: { minWidth: 180 } } }}
-                  />
-                </Box>
-              </LocalizationProvider>
-              <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-                <Button variant={mode === 'auto' ? 'contained' : 'outlined'} onClick={() => { setMode('auto'); handleGenerate(); }} disabled={!startDate || !endDate || loading}>Automatic</Button>
-                <Button
-                  variant={mode === 'hybrid' ? 'contained' : 'outlined'}
-                  onClick={() => {
-                    setMode('hybrid');
-                    if (startDate && endDate) {
-                      const start = startDate;
-                      const end = endDate;
-                      const days = [];
-                      let d = new Date(start);
-                      while (d <= end) {
-                        days.push(d.toLocaleDateString('en-GB').split('/').map(x => x.padStart(2, '0')).join('/'));
-                        d.setDate(d.getDate() + 1);
-                      }
-                      setDates(days);
-                      setGrid(Array(Y_TASKS.length).fill(0).map(() => Array(days.length).fill('')));
-                      setWarnings([]);
-                    }
-                  }}
-                  disabled={!startDate || !endDate || loading}
-                >
-                  Set Preferences
-                </Button>
-                <Button variant={mode === 'manual' ? 'contained' : 'outlined'} sx={{ display: 'none' }}>Manual</Button>
-                <Button variant={mode === 'hybrid' ? 'contained' : 'outlined'} disabled sx={{ display: 'none' }}>Hybrid</Button>
+      </Box>
+      {/* Delete confirmation dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Delete Schedule</DialogTitle>
+        <DialogContent>
+          <Typography color="error" sx={{ mb: 2 }}>
+            Warning: This will permanently delete the selected Y task schedule CSV file and remove it from the list. This action cannot be undone.
+          </Typography>
+          <Typography>
+            Are you sure you want to delete the schedule for <b>{scheduleToDelete && formatDateDMY(scheduleToDelete.start)} to {scheduleToDelete && formatDateDMY(scheduleToDelete.end)}</b>?
+          </Typography>
+          {deleteError && <MuiAlert severity="error" sx={{ mt: 2 }}>{deleteError}</MuiAlert>}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button color="error" onClick={handleDeleteSchedule}>Delete</Button>
+        </DialogActions>
+      </Dialog>
+      <Box sx={{ width: '100%', overflowX: 'auto' }}>
+        <Box sx={{ minWidth: tableWidth, width: '100%' }}>
+          <Box
+            sx={{
+              minWidth: tableWidth,
+              width: '100%',
+              background: tableDarkMode ? '#1a2233' : '#eaf1fa',
+              borderRadius: 3,
+              boxShadow: tableDarkMode ? '0 6px 32px 0 rgba(30,58,92,0.13)' : '0 2px 12px 0 #b0bec522',
+              border: tableDarkMode ? undefined : '1.5px solid #b0bec5',
+              p: 2,
+              mb: 3,
+              pt: 3,
+              pb: 3,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+            }}
+          >
+            <Typography variant="h5" sx={{ mb: 2, color: tableDarkMode ? '#fff' : '#1976d2' }}>Y Task Assignment</Typography>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                <DatePicker
+                  label="Start Date"
+                  value={startDate}
+                  onChange={(date: Date | null) => setStartDate(date)}
+                  format="dd/MM/yyyy"
+                  slotProps={{ textField: { sx: { minWidth: 180, bgcolor: tableDarkMode ? '#232a36' : '#fff', color: tableDarkMode ? '#fff' : '#222', '& .MuiInputBase-input': { color: tableDarkMode ? '#fff' : '#222' }, '& .MuiInputLabel-root': { color: tableDarkMode ? '#fff' : '#1976d2' } } } }}
+                />
+                <DatePicker
+                  label="End Date"
+                  value={endDate}
+                  onChange={(date: Date | null) => setEndDate(date)}
+                  format="dd/MM/yyyy"
+                  slotProps={{ textField: { sx: { minWidth: 180, bgcolor: tableDarkMode ? '#232a36' : '#fff', color: tableDarkMode ? '#fff' : '#222', '& .MuiInputBase-input': { color: tableDarkMode ? '#fff' : '#222' }, '& .MuiInputLabel-root': { color: tableDarkMode ? '#fff' : '#1976d2' } } } }}
+                />
               </Box>
+            </LocalizationProvider>
+            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+              <Button variant={mode === 'auto' ? 'contained' : 'outlined'} onClick={() => { setMode('auto'); handleGenerate(); }} disabled={!startDate || !endDate || loading}>Automatic</Button>
+              <Button
+                variant={mode === 'hybrid' ? 'contained' : 'outlined'}
+                onClick={() => {
+                  setMode('hybrid');
+                  if (startDate && endDate) {
+                    const start = startDate;
+                    const end = endDate;
+                    const days = [];
+                    let d = new Date(start);
+                    while (d <= end) {
+                      days.push(d.toLocaleDateString('en-GB').split('/').map(x => x.padStart(2, '0')).join('/'));
+                      d.setDate(d.getDate() + 1);
+                    }
+                    setDates(days);
+                    setGrid(Array(Y_TASKS.length).fill(0).map(() => Array(days.length).fill('')));
+                    setWarnings([]);
+                  }
+                }}
+                disabled={!startDate || !endDate || loading}
+              >
+                Set Preferences
+              </Button>
+              <Button 
+                variant="outlined" 
+                color="info" 
+                onClick={handleGetInsufficientWorkersReport}
+                disabled={!startDate || !endDate}
+              >
+                Worker Report
+              </Button>
+              <Button variant={mode === 'manual' ? 'contained' : 'outlined'} sx={{ display: 'none' }}>Manual</Button>
+              <Button variant={mode === 'hybrid' ? 'contained' : 'outlined'} disabled sx={{ display: 'none' }}>Hybrid</Button>
             </Box>
-            {warnings.length > 0 && (
-              <MuiAlert severity="warning" sx={{ mb: 2 }}>
-                <ul style={{ margin: 0, paddingLeft: 20 }}>
-                  {warnings.map((w: string, i: number) => <li key={i}>{w}</li>)}
-                </ul>
-              </MuiAlert>
-            )}
-            {grid.length > 0 && (
-              <TableContainer>
-                <Box
-                  component="table"
-                  sx={{
-                    minWidth: tableWidth,
-                    width: '100%',
-                    borderCollapse: 'separate',
-                    borderSpacing: 0,
-                    background: darkMode ? '#1a2233' : '#eaf1fa',
-                    borderRadius: 4,
-                    boxShadow: darkMode ? '0 6px 32px 0 rgba(30,58,92,0.13)' : '0 2px 12px 0 #b0bec522',
-                    border: darkMode ? undefined : '1.5px solid #b0bec5',
-                    overflow: 'hidden',
-                    pt: 2,
-                    pb: 2,
-                  }}
-                >
-                  <thead>
-                    <tr>
+            {/* Action buttons directly above the table, right-aligned */}
+            <Box sx={{ width: '100%', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2, mb: 1 }}>
+              <Fab
+                color="info"
+                onClick={handleHybridGenerate}
+                disabled={loading}
+                sx={{ width: 60, height: 60, boxShadow: 6, borderRadius: '50%', fontWeight: 700 }}
+                aria-label="generate-rest"
+              >
+                <AutoFixHighIcon sx={{ fontSize: 28, color: '#fff' }} />
+              </Fab>
+              <Fab
+                color="primary"
+                onClick={handleSave}
+                disabled={saving || grid.length === 0}
+                sx={{ width: 60, height: 60, boxShadow: 6, borderRadius: '50%', fontWeight: 700 }}
+                aria-label="save"
+              >
+                <SaveIcon sx={{ fontSize: 28, color: '#fff' }} />
+              </Fab>
+              <Button variant="outlined" color="error" onClick={() => setClearDialogOpen(true)} sx={{ height: 60 }}>Clear</Button>
+            </Box>
+          </Box>
+          {warnings.length > 0 && (
+            <MuiAlert severity="warning" sx={{ mb: 2 }}>
+              <ul style={{ margin: 0, paddingLeft: 20 }}>
+                {warnings.map((w: string, i: number) => <li key={i}>{w}</li>)}
+              </ul>
+            </MuiAlert>
+          )}
+          {grid.length > 0 && (
+            <TableContainer>
+              <Box
+                component="table"
+                sx={{
+                  minWidth: tableWidth,
+                  width: '100%',
+                  borderCollapse: 'separate',
+                  borderSpacing: 0,
+                  background: tableDarkMode ? '#1a2233' : '#eaf1fa',
+                  borderRadius: 4,
+                  boxShadow: tableDarkMode ? '0 6px 32px 0 rgba(30,58,92,0.13)' : '0 2px 12px 0 #b0bec522',
+                  border: tableDarkMode ? undefined : '1.5px solid #b0bec5',
+                  overflow: 'hidden',
+                  pt: 2,
+                  pb: 2,
+                }}
+              >
+                <thead>
+                  <tr>
+                    <th
+                      style={{
+                        minWidth: 160,
+                        background: tableDarkMode ? '#22304a' : '#f0f8ff',
+                        color: tableDarkMode ? '#fff' : '#1976d2',
+                        fontWeight: 700,
+                        fontSize: 18,
+                        position: 'sticky',
+                        left: 0,
+                        zIndex: 2,
+                        boxShadow: '0 2px 8px rgba(30,58,92,0.08)',
+                        borderBottom: '3px solid #ff9800',
+                        borderRight: tableDarkMode ? '2px solid #b0bec5' : '2px solid #888',
+                        height: 60,
+                        letterSpacing: 1,
+                      }}
+                    >
+                      שם
+                    </th>
+                    {dates.map((date: string, i: number) => (
                       <th
+                        key={i}
                         style={{
-                          minWidth: 160,
-                          background: darkMode ? '#22304a' : '#e3f2fd',
-                          color: darkMode ? '#fff' : '#1e3a5c',
+                          minWidth: 120,
+                          background: tableDarkMode ? '#1e3a5c' : '#1e3a5c',
+                          color: '#fff',
                           fontWeight: 700,
-                          fontSize: 18,
-                          position: 'sticky',
-                          left: 0,
-                          zIndex: 2,
-                          boxShadow: '0 2px 8px rgba(30,58,92,0.08)',
+                          fontSize: 16,
                           borderBottom: '3px solid #ff9800',
-                          borderRight: darkMode ? '2px solid #b0bec5' : '2px solid #888',
                           height: 60,
-                          letterSpacing: 1,
+                          boxShadow: '0 2px 8px rgba(30,58,92,0.06)',
+                          borderRight: tableDarkMode ? '2px solid #b0bec5' : '2px solid #888',
                         }}
                       >
-                        שם
+                        {formatDateDMY(date)}
                       </th>
-                      {dates.map((date: string, i: number) => (
-                        <th
-                          key={i}
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {Y_TASKS.map((yTask: string, rIdx: number) => (
+                    <tr key={rIdx} style={{ background: rIdx % 2 === 0 ? (tableDarkMode ? '#232a36' : '#f9fafb') : (tableDarkMode ? '#181c23' : '#fff') }}>
+                      <td
+                        style={{
+                          background: tableDarkMode ? '#22304a' : '#f0f8ff',
+                          color: tableDarkMode ? '#fff' : '#1976d2',
+                          fontWeight: 600,
+                          position: 'sticky',
+                          left: 0,
+                          zIndex: 1,
+                          fontSize: 18,
+                          borderRight: tableDarkMode ? '3.5px solid #b0bec5' : '3.5px solid #666',
+                          borderBottom: tableDarkMode ? '2px solid #b0bec5' : '2px solid #888',
+                          height: 56,
+                          paddingLeft: 32,
+                          paddingRight: 16,
+                          minWidth: 180,
+                          boxShadow: tableDarkMode ? undefined : '2px 0 8px -4px #8882',
+                        }}
+                      >
+                        {yTask}
+                      </td>
+                      {grid[rIdx]?.map((soldier: string, cIdx: number) => (
+                        <td
+                          key={cIdx}
+                          id={`ycell-${rIdx}-${cIdx}`}
                           style={{
-                            minWidth: 120,
-                            background: darkMode ? '#1e3a5c' : '#1e3a5c',
+                            background: soldier
+                              ? (Y_TASK_COLORS[yTask]?.[tableDarkMode ? 'dark' : 'light'] || (tableDarkMode ? '#333' : '#f7f9fb'))
+                              : (tableDarkMode ? '#1a2233' : '#fafbfc'),
                             color: '#fff',
-                            fontWeight: 700,
-                            fontSize: 16,
-                            borderBottom: '3px solid #ff9800',
-                            height: 60,
-                            boxShadow: '0 2px 8px rgba(30,58,92,0.06)',
-                            borderRight: darkMode ? '2px solid #b0bec5' : '2px solid #888',
+                            textShadow: '0 1px 4px #000a',
+                            textAlign: 'center',
+                            fontWeight: 600,
+                            minWidth: 120,
+                            border: tableDarkMode ? '2px solid #b0bec5' : '2px solid #888',
+                            borderRadius: 8,
+                            fontSize: 18,
+                            height: 56,
+                            boxSizing: 'border-box',
+                            transition: 'background 0.2s',
+                            cursor: 'pointer',
+                            boxShadow: soldier ? '0 1px 4px rgba(30,58,92,0.06)' : undefined,
+                            opacity: soldier ? 1 : 0.6,
+                            outline: highlightCell && highlightCell.row === rIdx && highlightCell.col === cIdx ? '4px solid #ff1744' : undefined,
+                            animation: highlightCell && highlightCell.row === rIdx && highlightCell.col === cIdx ? 'blink-border 0.7s alternate infinite' : undefined,
                           }}
+                          onClick={() => handleCellClick(rIdx, cIdx)}
+                          onMouseOver={e => { (e.currentTarget as HTMLElement).style.background = '#ffe082'; }}
+                          onMouseOut={e => { (e.currentTarget as HTMLElement).style.background = soldier
+                            ? (Y_TASK_COLORS[yTask]?.[tableDarkMode ? 'dark' : 'light'] || (tableDarkMode ? '#333' : '#f7f9fb'))
+                            : (tableDarkMode ? '#1a2233' : '#fafbfc'); }}
                         >
-                          {formatDateDMY(date)}
-                        </th>
+                          {soldier}
+                        </td>
                       ))}
                     </tr>
-                  </thead>
-                  <tbody>
-                    {Y_TASKS.map((yTask: string, rIdx: number) => (
-                      <tr key={rIdx} style={{ background: rIdx % 2 === 0 ? (darkMode ? '#232a36' : '#f9fafb') : (darkMode ? '#181c23' : '#fff') }}>
-                        <td
-                          style={{
-                            background: darkMode ? '#22304a' : '#dbeafe',
-                            color: darkMode ? '#fff' : '#1e3a5c',
-                            fontWeight: 600,
-                            position: 'sticky',
-                            left: 0,
-                            zIndex: 1,
-                            fontSize: 18,
-                            borderRight: darkMode ? '3.5px solid #b0bec5' : '3.5px solid #666',
-                            borderBottom: darkMode ? '2px solid #b0bec5' : '2px solid #888',
-                            height: 56,
-                            paddingLeft: 32,
-                            paddingRight: 16,
-                            minWidth: 180,
-                            boxShadow: darkMode ? undefined : '2px 0 8px -4px #8882',
-                          }}
-                        >
-                          {yTask}
-                        </td>
-                        {grid[rIdx]?.map((soldier: string, cIdx: number) => (
-                          <td
-                            key={cIdx}
-                            id={`ycell-${rIdx}-${cIdx}`}
-                            style={{
-                              background: soldier
-                                ? (Y_TASK_COLORS[yTask]?.[darkMode ? 'dark' : 'light'] || (darkMode ? '#333' : '#f7f9fb'))
-                                : (darkMode ? '#1a2233' : '#f7f9fb'),
-                              color: '#fff',
-                              textShadow: '0 1px 4px #000a',
-                              textAlign: 'center',
-                              fontWeight: 600,
-                              minWidth: 120,
-                              border: darkMode ? '2px solid #b0bec5' : '2px solid #888',
-                              borderRadius: 8,
-                              fontSize: 18,
-                              height: 56,
-                              boxSizing: 'border-box',
-                              transition: 'background 0.2s',
-                              cursor: 'pointer',
-                              boxShadow: soldier ? '0 1px 4px rgba(30,58,92,0.06)' : undefined,
-                              opacity: soldier ? 1 : 0.6,
-                              outline: highlightCell && highlightCell.row === rIdx && highlightCell.col === cIdx ? '4px solid #ff1744' : undefined,
-                              animation: highlightCell && highlightCell.row === rIdx && highlightCell.col === cIdx ? 'blink-border 0.7s alternate infinite' : undefined,
-                            }}
-                            onClick={() => handleCellClick(rIdx, cIdx)}
-                            onMouseOver={e => { (e.currentTarget as HTMLElement).style.background = '#ffe082'; }}
-                            onMouseOut={e => { (e.currentTarget as HTMLElement).style.background = soldier
-                              ? (Y_TASK_COLORS[yTask]?.[darkMode ? 'dark' : 'light'] || (darkMode ? '#333' : '#f7f9fb'))
-                              : (darkMode ? '#1a2233' : '#f7f9fb'); }}
-                          >
-                            {soldier}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </Box>
-                <Dialog open={pickerOpen} onClose={() => setPickerOpen(false)}>
-                  <DialogTitle>Assign Soldier</DialogTitle>
-                  <DialogContent>
-                    {pickerLoading ? <CircularProgress /> : (
-                      <List>
-                        {availableSoldiers.map(s => (
-                          <ListItemButton key={s.id} onClick={() => {
-                            setGrid(prev => {
-                              const copy = prev.map(r => [...r]);
-                              if (pickerCell) copy[pickerCell.y][pickerCell.d] = s.name;
-                              return copy;
-                            });
-                            setPickerOpen(false);
-                          }}>
-                            <ListItemText primary={s.name} />
-                          </ListItemButton>
-                        ))}
-                        {availableSoldiers.length === 0 && <Typography>No available soldiers</Typography>}
-                        {pickerCell && grid[pickerCell.y][pickerCell.d] && (
-                          <ListItemButton onClick={handleRemoveYAssignment} sx={{ color: 'error.main', mt: 1 }}>
-                            <DeleteIcon sx={{ mr: 1 }} />
-                            <ListItemText primary="Remove Assignment" />
-                          </ListItemButton>
-                        )}
-                      </List>
-                    )}
-                  </DialogContent>
-                  <DialogActions>
-                    <Button onClick={() => setPickerOpen(false)}>Cancel</Button>
-                  </DialogActions>
-                </Dialog>
-              </TableContainer>
-            )}
-          </Box>
+                  ))}
+                </tbody>
+              </Box>
+              <Dialog open={pickerOpen} onClose={() => setPickerOpen(false)}>
+                <DialogTitle>Assign Soldier</DialogTitle>
+                <DialogContent>
+                  {pickerLoading ? <CircularProgress /> : (
+                    <List>
+                      {availableSoldiers.map(s => (
+                        <ListItemButton key={s.id} onClick={() => {
+                          setGrid(prev => {
+                            const copy = prev.map(r => [...r]);
+                            if (pickerCell) copy[pickerCell.y][pickerCell.d] = s.name;
+                            return copy;
+                          });
+                          setPickerOpen(false);
+                        }}>
+                          <ListItemText primary={s.name} />
+                        </ListItemButton>
+                      ))}
+                      {availableSoldiers.length === 0 && <Typography>No available soldiers</Typography>}
+                      {pickerCell && grid[pickerCell.y][pickerCell.d] && (
+                        <ListItemButton onClick={handleRemoveYAssignment} sx={{ color: 'error.main', mt: 1 }}>
+                          <DeleteIcon sx={{ mr: 1 }} />
+                          <ListItemText primary="Remove Assignment" />
+                        </ListItemButton>
+                      )}
+                    </List>
+                  )}
+                </DialogContent>
+                <DialogActions>
+                  <Button onClick={() => setPickerOpen(false)}>Cancel</Button>
+                </DialogActions>
+              </Dialog>
+            </TableContainer>
+          )}
         </Box>
-        <Snackbar open={saveSuccess} autoHideDuration={3000} onClose={() => setSaveSuccess(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-          <MuiAlert onClose={() => setSaveSuccess(false)} severity="success" sx={{ width: '100%' }}>
-            Y tasks saved successfully!
-          </MuiAlert>
-        </Snackbar>
-        <Snackbar open={!!saveError} autoHideDuration={4000} onClose={() => setSaveError(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-          <MuiAlert onClose={() => setSaveError(null)} severity="error" sx={{ width: '100%' }}>
-            {saveError}
-          </MuiAlert>
-        </Snackbar>
-        <Snackbar open={showResolveWarning} autoHideDuration={10000} onClose={handleResolveWarningClose} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
-          <MuiAlert onClose={handleResolveWarningClose} severity="warning" sx={{ width: '100%' }} icon={<WarningAmberIcon />}>
-            <strong>Conflict: X/Y Task Overlap</strong><br />
-            {resolveConflictInfo && (
-              <>
-                <b>{resolveConflictInfo.soldier}</b> is assigned to <b>Y: {resolveConflictInfo.yTask}</b> and <b>X: {resolveConflictInfo.xTask}</b> on <b>{resolveConflictInfo.date}</b>.<br />
-                Please update the highlighted cell in the Y schedule for <b>{resolveConflictInfo.date}</b>.
-              </>
-            )}
-          </MuiAlert>
-        </Snackbar>
       </Box>
+      <Snackbar open={saveSuccess} autoHideDuration={3000} onClose={() => setSaveSuccess(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <MuiAlert onClose={() => setSaveSuccess(false)} severity="success" sx={{ width: '100%' }}>
+          Y tasks saved successfully!
+        </MuiAlert>
+      </Snackbar>
+      <Snackbar open={!!saveError} autoHideDuration={4000} onClose={() => setSaveError(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <MuiAlert onClose={() => setSaveError(null)} severity="error" sx={{ width: '100%' }}>
+          {saveError}
+        </MuiAlert>
+      </Snackbar>
+      <Snackbar open={showResolveWarning} autoHideDuration={10000} onClose={handleResolveWarningClose} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+        <MuiAlert onClose={handleResolveWarningClose} severity="warning" sx={{ width: '100%' }} icon={<WarningAmberIcon />}>
+          <strong>Conflict: X/Y Task Overlap</strong><br />
+          {resolveConflictInfo && (
+            <>
+              <b>{resolveConflictInfo.soldier}</b> is assigned to <b>Y: {resolveConflictInfo.yTask}</b> and <b>X: {resolveConflictInfo.xTask}</b> on <b>{resolveConflictInfo.date}</b>.<br />
+              Please update the highlighted cell in the Y schedule for <b>{resolveConflictInfo.date}</b>.
+            </>
+          )}
+        </MuiAlert>
+      </Snackbar>
+      
+      {/* Insufficient Workers Report Dialog */}
+      <Dialog 
+        open={showInsufficientReport} 
+        onClose={() => setShowInsufficientReport(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Typography variant="h6" color="primary">
+            Insufficient Workers Report
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          {insufficientWorkersReport && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                <strong>Period:</strong> {insufficientWorkersReport.period}
+              </Typography>
+              <Typography variant="subtitle1" gutterBottom>
+                <strong>Total Workers:</strong> {insufficientWorkersReport.total_workers}
+              </Typography>
+              
+              {insufficientWorkersReport.weekend_closing_issues && insufficientWorkersReport.weekend_closing_issues.length > 0 && (
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="h6" color="error" gutterBottom>
+                    Weekend Closing Issues ({insufficientWorkersReport.weekend_closing_issues.length})
+                  </Typography>
+                  <List dense>
+                    {insufficientWorkersReport.weekend_closing_issues.map((issue: any, index: number) => (
+                      <ListItem key={index}>
+                        <ListItemText 
+                          primary={`Weekend ${issue.weekend}`}
+                          secondary={issue.issue}
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Box>
+              )}
+              
+              {insufficientWorkersReport.y_task_issues && insufficientWorkersReport.y_task_issues.length > 0 && (
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="h6" color="warning.main" gutterBottom>
+                    Y Task Issues ({insufficientWorkersReport.y_task_issues.length})
+                  </Typography>
+                  <List dense>
+                    {insufficientWorkersReport.y_task_issues.map((issue: any, index: number) => (
+                      <ListItem key={index}>
+                        <ListItemText 
+                          primary={`Week ${issue.week}, ${issue.task}`}
+                          secondary={issue.issue}
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Box>
+              )}
+              
+              {insufficientWorkersReport.recommendations && insufficientWorkersReport.recommendations.length > 0 && (
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="h6" color="info.main" gutterBottom>
+                    Recommendations
+                  </Typography>
+                  <List dense>
+                    {insufficientWorkersReport.recommendations.map((rec: string, index: number) => (
+                      <ListItem key={index}>
+                        <ListItemText primary={rec} />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Box>
+              )}
+              
+              {(!insufficientWorkersReport.weekend_closing_issues || insufficientWorkersReport.weekend_closing_issues.length === 0) &&
+               (!insufficientWorkersReport.y_task_issues || insufficientWorkersReport.y_task_issues.length === 0) && (
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="h6" color="success.main">
+                    ✅ No Issues Found
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    All tasks have sufficient qualified workers available.
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowInsufficientReport(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+      
       <Footer />
     </PageContainer>
   );

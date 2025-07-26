@@ -266,4 +266,417 @@ Lidar Pinker,Kitchen,,,,,,,Kitchen,,,,,,,,,,,,,,,,,,RASAR
 Tehila Turner,,,,,,,,,,,,,,,,,,,,,,,,,,
 Rabecca Arvigner,,,,,,RASAR,,,,,,,,,,,,,,,,,,,,
 
-
+[
+  {
+    "id": "9597864",
+    "name": "יעל ויינשטיין",
+    "start_date": null,
+    "qualifications": [
+      "Southern Driver",
+      "C&N Driver",
+      "C&N Escort"
+    ],
+    "closing_interval": 0,
+    "x_tasks": {},
+    "y_tasks": {},
+    "closing_history": [],
+    "officer": false,
+    "seniority": null,
+    "score": 0,
+    "long_timer": false
+  },
+  {
+    "id": "9168925",
+    "name": "דימה חלסטוב",
+    "start_date": null,
+    "qualifications": [
+      "Southern Driver",
+      "C&N Driver",
+      "C&N Escort",
+      "Southern Escort"
+    ],
+    "closing_interval": 3,
+    "x_tasks": {},
+    "y_tasks": {},
+    "closing_history": [
+      "2025-01-30",
+      "2025-03-22",
+      "2025-05-01"
+    ],
+    "officer": false,
+    "seniority": null,
+    "score": 0,
+    "long_timer": false
+  },
+  {
+    "id": "9356189",
+    "name": "אנגלינה פרידלין",
+    "start_date": null,
+    "qualifications": [
+      "Southern Driver",
+      "C&N Driver",
+      "C&N Escort",
+      "Southern Escort"
+    ],
+    "closing_interval": 4,
+    "x_tasks": {},
+    "y_tasks": {},
+    "closing_history": [
+      "2025-03-20",
+      "2025-03-20",
+      "2025-05-01",
+      "2025-05-08"
+    ],
+    "officer": false,
+    "seniority": null,
+    "score": 0,
+    "long_timer": false
+  },
+  {
+    "id": "9051978",
+    "name": "ניקיטה סידורוביץ",
+    "start_date": null,
+    "qualifications": [
+      "C&N Driver",
+      "Supervisor"
+    ],
+    "closing_interval": 0,
+    "x_tasks": {},
+    "y_tasks": {},
+    "closing_history": [],
+    "officer": false,
+    "seniority": null,
+    "score": 0,
+    "long_timer": false
+  },
+  {
+    "id": "9631934",
+    "name": "אושר טייב",
+    "start_date": null,
+    "qualifications": [
+      "Southern Escort"
+    ],
+    "closing_interval": 0,
+    "x_tasks": {},
+    "y_tasks": {},
+    "closing_history": [],
+    "officer": false,
+    "seniority": null,
+    "score": 0,
+    "long_timer": false
+  },
+  {
+    "id": "8837802",
+    "name": "איילה אפריים",
+    "start_date": null,
+    "qualifications": [
+      "Southern Driver",
+      "C&N Driver",
+      "Southern Escort",
+      "C&N Escort"
+    ],
+    "closing_interval": 4,
+    "x_tasks": {},
+    "y_tasks": {},
+    "closing_history": [
+      "2025-04-12",
+      "2025-06-05",
+      "2025-06-07",
+      "2025-06-20",
+      "2025-06-26"
+    ],
+    "officer": false,
+    "seniority": null,
+    "score": 0,
+    "long_timer": false
+  },
+  {
+    "id": "9386605",
+    "name": "נועה דרעי",
+    "start_date": null,
+    "qualifications": [
+      "Southern Driver",
+      "C&N Driver",
+      "C&N Escort"
+    ],
+    "closing_interval": 3,
+    "x_tasks": {},
+    "y_tasks": {},
+    "closing_history": [
+      "2025-03-08",
+      "2025-03-13",
+      "2025-05-03",
+      "2025-06-12"
+    ],
+    "officer": false,
+    "seniority": null,
+    "score": 0,
+    "long_timer": false
+  },
+  {
+    "id": "9570530",
+    "name": "רואי כוכבי",
+    "start_date": null,
+    "qualifications": [
+      "Southern Driver",
+      "C&N Driver",
+      "C&N Escort"
+    ],
+    "closing_interval": 5,
+    "x_tasks": {},
+    "y_tasks": {},
+    "closing_history": [
+      "2025-03-20",
+      "2025-06-05"
+    ],
+    "officer": false,
+    "seniority": null,
+    "score": 0,
+    "long_timer": false
+  },
+  {
+    "id": "9241047",
+    "name": "נתנאל פרסבורגר",
+    "start_date": null,
+    "qualifications": [
+      "Southern Driver",
+      "C&N Driver",
+      "C&N Escort"
+    ],
+    "closing_interval": 3,
+    "x_tasks": {},
+    "y_tasks": {},
+    "closing_history": [
+      "2025-02-06",
+      "2025-03-29"
+    ],
+    "officer": false,
+    "seniority": null,
+    "score": 0,
+    "long_timer": false
+  },
+  {
+    "id": "9150226",
+    "name": "קארינה פפרליצה",
+    "start_date": null,
+    "qualifications": [
+      "C&N Driver",
+      "Southern Escort",
+      "C&N Escort",
+      "Supervisor"
+    ],
+    "closing_interval": 4,
+    "x_tasks": {},
+    "y_tasks": {},
+    "closing_history": [
+      "2025-02-06",
+      "2025-04-10",
+      "2025-05-31"
+    ],
+    "officer": false,
+    "seniority": null,
+    "score": 0,
+    "long_timer": false
+  },
+  {
+    "id": "9053378",
+    "name": "לינוי מונרדוס",
+    "start_date": null,
+    "qualifications": [
+      "Southern Driver",
+      "C&N Driver",
+      "Supervisor"
+    ],
+    "closing_interval": 0,
+    "x_tasks": {},
+    "y_tasks": {},
+    "closing_history": [],
+    "officer": false,
+    "seniority": null,
+    "score": 0,
+    "long_timer": false
+  },
+  {
+    "id": "9617384",
+    "name": "אלין אלון",
+    "start_date": null,
+    "qualifications": [
+      "Southern Escort"
+    ],
+    "closing_interval": 0,
+    "x_tasks": {},
+    "y_tasks": {},
+    "closing_history": [],
+    "officer": false,
+    "seniority": null,
+    "score": 0,
+    "long_timer": false
+  },
+  {
+    "id": "9434252",
+    "name": "דניאל פטקוב",
+    "start_date": null,
+    "qualifications": [
+      "Southern Driver",
+      "C&N Driver",
+      "Southern Escort",
+      "C&N Escort"
+    ],
+    "closing_interval": 5,
+    "x_tasks": {},
+    "y_tasks": {},
+    "closing_history": [
+      "2025-01-30",
+      "2025-05-29"
+    ],
+    "officer": false,
+    "seniority": null,
+    "score": 0,
+    "long_timer": false
+  },
+  {
+    "id": "9175557",
+    "name": "אייל נחושתן",
+    "start_date": null,
+    "qualifications": [
+      "Southern Driver",
+      "C&N Driver",
+      "Supervisor"
+    ],
+    "closing_interval": 0,
+    "x_tasks": {},
+    "y_tasks": {},
+    "closing_history": [],
+    "officer": false,
+    "seniority": null,
+    "score": 0,
+    "long_timer": false
+  },
+  {
+    "id": "9053851",
+    "name": "חן אטדגי",
+    "start_date": null,
+    "qualifications": [
+      "C&N Escort",
+      "Southern Escort"
+    ],
+    "closing_interval": 4,
+    "x_tasks": {},
+    "y_tasks": {},
+    "closing_history": [
+      "2025-02-06",
+      "2025-04-24"
+    ],
+    "officer": false,
+    "seniority": null,
+    "score": 0,
+    "long_timer": false
+  },
+  {
+    "id": "9127472",
+    "name": "רומן נפטלייב",
+    "start_date": null,
+    "qualifications": [
+      "C&N Escort",
+      "Southern Escort"
+    ],
+    "closing_interval": 5,
+    "x_tasks": {},
+    "y_tasks": {},
+    "closing_history": [
+      "2025-04-03",
+      "2025-04-03",
+      "2025-04-24",
+      "2025-04-24",
+      "2025-06-13"
+    ],
+    "officer": false,
+    "seniority": null,
+    "score": 0,
+    "long_timer": false
+  },
+  {
+    "id": "9437517",
+    "name": "מליסה רופה",
+    "start_date": null,
+    "qualifications": [
+      "C&N Escort",
+      "Southern Escort"
+    ],
+    "closing_interval": 3,
+    "x_tasks": {},
+    "y_tasks": {},
+    "closing_history": [
+      "2025-03-20",
+      "2025-04-17"
+    ],
+    "officer": false,
+    "seniority": null,
+    "score": 0,
+    "long_timer": false
+  },
+  {
+    "id": "8837884",
+    "name": "לידר פנקר",
+    "start_date": null,
+    "qualifications": [
+      "Southern Driver",
+      "C&N Driver",
+      "Supervisor"
+    ],
+    "closing_interval": 4,
+    "x_tasks": {},
+    "y_tasks": {},
+    "closing_history": [
+      "2025-03-06",
+      "2025-04-03",
+      "2025-05-15",
+      "2025-05-15",
+      "2025-05-30"
+    ],
+    "officer": false,
+    "seniority": null,
+    "score": 0,
+    "long_timer": false
+  },
+  {
+    "id": "9518772",
+    "name": "תהילה טרנר",
+    "start_date": null,
+    "qualifications": [
+      "Southern Escort"
+    ],
+    "closing_interval": 6,
+    "x_tasks": {},
+    "y_tasks": {},
+    "closing_history": [
+      "2025-02-27",
+      "2025-03-06",
+      "2025-03-08",
+      "2025-04-03"
+    ],
+    "officer": false,
+    "seniority": null,
+    "score": 0,
+    "long_timer": false
+  },
+  {
+    "id": "9517593",
+    "name": "רבקה ארבינצר",
+    "start_date": null,
+    "qualifications": [
+      "Southern Escort"
+    ],
+    "closing_interval": 3,
+    "x_tasks": {},
+    "y_tasks": {},
+    "closing_history": [
+      "2025-02-20",
+      "2025-05-15"
+    ],
+    "officer": false,
+    "seniority": null,
+    "score": 0,
+    "long_timer": false
+  }
+]

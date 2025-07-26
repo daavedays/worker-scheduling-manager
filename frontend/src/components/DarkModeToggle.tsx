@@ -14,16 +14,12 @@ const DarkModeToggle: React.FC<DarkModeToggleProps> = ({ darkMode, onToggle, sx 
       <IconButton
         onClick={onToggle}
         sx={{
-          position: 'fixed',
-          top: 20,
-          right: 20,
-          zIndex: 1000,
-          bgcolor: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-          color: darkMode ? '#fff' : '#333',
-          border: `1px solid ${darkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
+          bgcolor: darkMode ? 'rgba(255,255,255,0.1)' : '#fdf6ee',
+          color: darkMode ? '#fff' : '#bfa76a',
+          border: `1px solid ${darkMode ? 'rgba(255,255,255,0.2)' : '#f3e6c4'}`,
           backdropFilter: 'blur(10px)',
           '&:hover': {
-            bgcolor: darkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+            bgcolor: darkMode ? 'rgba(255,255,255,0.2)' : '#f7e9c7',
             transform: 'scale(1.1)',
           },
           transition: 'all 0.2s ease-in-out',
