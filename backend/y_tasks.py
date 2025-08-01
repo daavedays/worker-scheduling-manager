@@ -7,7 +7,6 @@ from .worker import load_workers_from_json
 from .scheduler_engine import SchedulerEngine
 import re
 
-
 # --- Y Task Definitions ---
 Y_TASKS = ["Southern Driver", "Southern Escort", "C&N Driver", "C&N Escort", "Supervisor"]
 QUALIFICATION_MAP = {
@@ -17,10 +16,9 @@ QUALIFICATION_MAP = {
     "C&N Escort": ["C&N Escort"],
     "Supervisor": ["Supervisor"]
 }
-Y_TASK_LOOKBACK_DAYS = 3  # For fairness in rotation
-
 DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
 INDEX_PATH = os.path.join(DATA_DIR, 'y_tasks.json')
+
 
 # --- Y Task Index Management Utilities ---
 def load_y_task_index() -> Dict[str, str]:
@@ -35,6 +33,7 @@ def load_y_task_index() -> Dict[str, str]:
     with open(INDEX_PATH, 'r', encoding='utf-8') as f:
         return json.load(f)
 
+
 def save_y_task_index(index: Dict[str, str]):
     """
     Saves the Y task index to the index file.
@@ -44,6 +43,7 @@ def save_y_task_index(index: Dict[str, str]):
     """
     with open(INDEX_PATH, 'w', encoding='utf-8') as f:
         json.dump(index, f, ensure_ascii=False, indent=2)
+
 
 def add_y_task_schedule(start: str, end: str, filename: str):
     """
@@ -58,6 +58,7 @@ def add_y_task_schedule(start: str, end: str, filename: str):
     key = f"{start}_to_{end}"
     index[key] = filename
     save_y_task_index(index)
+
 
 def find_y_task_file_for_date(date: str) -> Optional[str]:
     """
@@ -82,6 +83,7 @@ def find_y_task_file_for_date(date: str) -> Optional[str]:
             continue
     return None
 
+
 def list_y_task_schedules() -> List[Tuple[str, str, str]]:
     """
     Lists all Y schedule periods and their filenames.
@@ -99,6 +101,7 @@ def list_y_task_schedules() -> List[Tuple[str, str, str]]:
             continue
     return result
 
+
 def y_schedule_path(filename: str) -> str:
     """
     Returns the full path to a Y schedule CSV file.
@@ -111,6 +114,7 @@ def y_schedule_path(filename: str) -> str:
     # Always use sanitized filenames (with - instead of /)
     return os.path.join(DATA_DIR, filename)
 
+
 # --- Utility Functions ---
 def build_qualification_map(soldiers):
     """
@@ -122,6 +126,7 @@ def build_qualification_map(soldiers):
     """
     return {s.id: s.qualifications for s in soldiers}
 
+
 def get_weekday(date_str):
     """
     Returns the weekday index for a date string.
@@ -132,6 +137,7 @@ def get_weekday(date_str):
         int: Weekday index (0=Monday, 6=Sunday).
     """
     return datetime.strptime(date_str, '%d/%m/%Y').weekday()
+
 
 def get_all_dates_from_x(csv_path, year=None):
     """
@@ -171,6 +177,7 @@ def get_all_dates_from_x(csv_path, year=None):
                 d += timedelta(days=1)
         return all_dates
 
+
 def read_x_tasks(csv_path, year=None):
     """
     Reads X task assignments from a CSV and expands them to daily assignments.
@@ -206,12 +213,15 @@ def read_x_tasks(csv_path, year=None):
                 continue  # skip invalid date strings
             period_starts.append(datetime.strptime(date_str, "%d/%m/%Y"))
         period_ends = period_starts[1:] + [period_starts[-1] + timedelta(days=7)]
+
         for row in reader:
             if not row or not row[0].strip():
                 continue
             soldier_id = row[0]  # Always use ID as key
             x_assignments[soldier_id] = {}
-            for i, task in enumerate(row[1:]):
+
+            # Skip the name column (index 1) and start from index 2
+            for i, task in enumerate(row[2:], 0):  # Start from index 2, enumerate from 0
                 if i >= len(period_starts):
                     break
                 if task.strip() and task.strip() != '-':
@@ -224,17 +234,18 @@ def read_x_tasks(csv_path, year=None):
                         d += timedelta(days=1)
     return x_assignments
 
+
 # Remove all legacy assignment and scheduling logic below
 # Only keep file I/O and API glue code as needed
 
 # Example: New Y schedule generation using SchedulerEngine
 
 def generate_y_schedule(
-    worker_json_path,
-    x_task_data,
-    start_date: date,
-    end_date: date,
-    y_task_names_by_day: dict
+        worker_json_path,
+        x_task_data,
+        start_date: date,
+        end_date: date,
+        y_task_names_by_day: dict
 ):
     workers = load_workers_from_json(worker_json_path)
     engine = SchedulerEngine(workers, start_date, end_date)
@@ -245,4 +256,4 @@ def generate_y_schedule(
     for d, tasks in engine.schedule.items():
         d_str = d.strftime('%d/%m/%Y')
         schedule_str[d_str] = tasks
-    return schedule_str 
+    return schedule_str

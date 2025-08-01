@@ -4,12 +4,13 @@ import os
 from datetime import datetime, timedelta, date
 from .worker import load_workers_from_json
 
-
 STANDARD_X_TASKS = ["Guarding Duties", "RASAR", "Kitchen"]
 
 # Custom X tasks are stored in a JSON file: { soldier: [ { "task": ..., "start": ..., "end": ... } ] }
 CUSTOM_X_TASKS_PATH = 'data/custom_x_tasks.json'
 META_PATH = 'data/x_task_meta.json'
+WORKER_DATA = 'data/worker_data.json'
+
 
 # --- Utility Functions ---
 def parse_date(s):
@@ -18,10 +19,12 @@ def parse_date(s):
         return s
     return datetime.strptime(s, '%d/%m/%Y').date()
 
+
 def date_range_overlap(start1, end1, start2, end2):
     """Return True if [start1, end1] and [start2, end2] overlap (inclusive)."""
     print(f"[DEBUG] Checking date range overlap: {start1} - {end1} and {start2} - {end2}")
     return start1 <= end2 and end1 >= start2
+
 
 # --- Custom X Task Storage ---
 def load_custom_x_tasks():
@@ -35,6 +38,7 @@ def load_custom_x_tasks():
     with open(CUSTOM_X_TASKS_PATH, 'r', encoding='utf-8') as f:
         return json.load(f)
 
+
 def save_custom_x_tasks(custom_tasks):
     """
     Saves custom X tasks to the JSON file.
@@ -45,9 +49,11 @@ def save_custom_x_tasks(custom_tasks):
     with open(CUSTOM_X_TASKS_PATH, 'w', encoding='utf-8') as f:
         json.dump(custom_tasks, f, ensure_ascii=False, indent=2)
 
+
 # --- Weekly Grid Logic ---
 def load_soldiers(json_path='data/worker_data.json', name_conv_path='data/name_conv.json'):
     return load_workers_from_json(json_path, name_conv_path)
+
 
 def get_weeks_for_period(year, half):
     """
@@ -91,6 +97,7 @@ def get_weeks_for_period(year, half):
 
     return weeks
 
+
 # --- CSV Generation ---
 def save_x_tasks_to_csv(assignments, weeks, custom_tasks, year, half, csv_path='data/x_task.csv'):
     """
@@ -114,7 +121,7 @@ def save_x_tasks_to_csv(assignments, weeks, custom_tasks, year, half, csv_path='
             for k, v in entry.items():
                 id_to_hebrew[k] = v
         # TODO: Remove this
-        print(f"[DEBUG] ID to Hebrew mapping: {id_to_hebrew}") 
+        print(f"[DEBUG] ID to Hebrew mapping: {id_to_hebrew}")
 
     else:
         id_to_hebrew = {}
@@ -143,6 +150,7 @@ def save_x_tasks_to_csv(assignments, weeks, custom_tasks, year, half, csv_path='
     with open(META_PATH, 'w', encoding='utf-8') as f:
         json.dump({'year': year, 'half': half}, f)
 
+
 def load_x_task_meta(meta_path=META_PATH):
     """
     Loads X task schedule metadata (year and half).
@@ -156,4 +164,3 @@ def load_x_task_meta(meta_path=META_PATH):
         return None
     with open(meta_path, 'r', encoding='utf-8') as f:
         return json.load(f)
-

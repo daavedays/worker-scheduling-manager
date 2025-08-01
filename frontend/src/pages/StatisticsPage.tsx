@@ -80,6 +80,8 @@ interface StatisticsData {
         seniority: string;
         closing_interval: number;
         qualifications: string[];
+        closing_count: number;
+        closing_dates: string[];
       }>;
       statistics: {
         total_workers_with_y_tasks: number;
@@ -378,7 +380,7 @@ function StatisticsPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; onT
       </Paper>
 
       {/* Y Tasks Distribution Pie Chart */}
-      <Paper sx={{ p: 3, mb: 3, height: '500px' }}>
+      <Paper sx={{ p: 3, mb: 6, height: '800px' }}>
         <Typography variant="h5" sx={{ mb: 2, textAlign: 'center' }}>
           Y Tasks Distribution Analysis (All Workers)
         </Typography>
@@ -394,7 +396,7 @@ function StatisticsPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; onT
                 cy="50%"
                 labelLine={false}
                 label={({ worker_name, y_tasks }) => `${worker_name}: ${y_tasks}`}
-                outerRadius={120}
+                outerRadius={200}
                 fill="#8884d8"
                 dataKey="y_tasks"
               >
@@ -413,7 +415,14 @@ function StatisticsPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; onT
                           Y Tasks: {data.y_tasks}<br />
                           Score: {data.score}<br />
                           Seniority: {data.seniority}<br />
-                          Closing Interval: {data.closing_interval}
+                          Closing Interval: {data.closing_interval}<br />
+                          Actual Closings: {data.closing_count || 0}<br />
+                          {data.closing_dates && data.closing_dates.length > 0 && (
+                            <>
+                              Closing Dates: {data.closing_dates.slice(0, 3).join(', ')}
+                              {data.closing_dates.length > 3 && '...'}
+                            </>
+                          )}
                         </Typography>
                       </Box>
                     );
@@ -431,7 +440,7 @@ function StatisticsPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; onT
       </Paper>
 
       {/* Y Task Statistics Summary */}
-      <Paper sx={{ p: 3, height: '700px' }}>
+      <Paper sx={{ p: 3, mb: 6, height: '900px' }}>
         <Typography variant="h5" sx={{ mb: 2, textAlign: 'center' }}>
           Y Task Statistics
         </Typography>
@@ -469,6 +478,87 @@ function StatisticsPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; onT
         ) : (
           <Box display="flex" justifyContent="center" alignItems="center" height="100%">
             <Typography color="text.secondary">No Y task statistics available</Typography>
+          </Box>
+        )}
+      </Paper>
+
+      {/* Closing Interval vs Actual Closing Delta Chart */}
+      <Paper sx={{ p: 3, mb: 6, height: '800px' }}>
+        <Typography variant="h5" sx={{ mb: 2, textAlign: 'center' }}>
+          Closing Interval Delta Analysis
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 2, textAlign: 'center', color: 'text.secondary' }}>
+          Shows the difference between target and actual closing intervals for each worker. Positive values indicate workers are closing more frequently than their target interval.
+        </Typography>
+        {data.fairness_metrics.closing_interval_analysis.worker_distribution.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={data.fairness_metrics.closing_interval_analysis.worker_distribution.map(worker => ({
+                ...worker,
+                interval_delta: worker.actual_interval - worker.closing_interval
+              }))}
+              margin={{ top: 20, right: 30, left: 100, bottom: 100 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="worker_name" 
+                label={{ value: 'Worker Name', position: 'insideBottom', offset: -10 }}
+                angle={-45}
+                textAnchor="end"
+                height={80}
+              />
+              <YAxis 
+                label={{ value: 'Interval Delta (weeks)', angle: -90, position: 'insideLeft' }}
+              />
+              <Tooltip 
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    const delta = data.actual_interval - data.closing_interval;
+                    return (
+                      <Box sx={{ bgcolor: 'background.paper', p: 2, border: 1, borderColor: 'divider' }}>
+                        <Typography variant="body2">
+                          <strong>{data.worker_name}</strong><br />
+                          Target Interval: {data.closing_interval} weeks<br />
+                          Actual Interval: {data.actual_interval} weeks<br />
+                          Delta: {delta.toFixed(1)} weeks<br />
+                          Accuracy: {data.interval_accuracy}%<br />
+                          Total Closings: {data.total_closings}<br />
+                          Total Weeks: {data.total_weeks_served}<br />
+                          Score: {data.score}
+                        </Typography>
+                      </Box>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Legend />
+              <Bar 
+                dataKey="interval_delta" 
+                fill="#82ca9d"
+                name="Interval Delta (weeks)" 
+              >
+                {data.fairness_metrics.closing_interval_analysis.worker_distribution.map((entry, index) => {
+                  const delta = entry.actual_interval - entry.closing_interval;
+                  return (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={
+                        delta <= 1 ? '#00ff00' : // Green for excellent (close to target)
+                        delta <= 3 ? '#ffff00' : // Yellow for good
+                        delta <= 5 ? '#ff8800' : // Orange for fair
+                        '#ff0000' // Red for poor
+                      } 
+                    />
+                  );
+                })}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+            <Typography color="text.secondary">No closing interval data available</Typography>
           </Box>
         )}
       </Paper>
@@ -947,37 +1037,7 @@ function StatisticsPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; onT
         )}
       </Paper>
 
-      {/* Seniority Distribution */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" sx={{ mb: 2, textAlign: 'center' }}>
-          Task Distribution by Seniority Level
-        </Typography>
-        {Object.keys(data.fairness_metrics.seniority_distribution).length > 0 ? (
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart
-              data={Object.entries(data.fairness_metrics.seniority_distribution).map(([seniority, data]) => ({
-                seniority,
-                x_tasks: data.x_tasks,
-                y_tasks: data.y_tasks,
-                workers: data.workers
-              }))}
-              margin={{ top: 20, right: 30, left: 80, bottom: 20 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="seniority" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="x_tasks" fill="#8884d8" name="X Tasks" />
-              <Bar dataKey="y_tasks" fill="#82ca9d" name="Y Tasks" />
-            </BarChart>
-          </ResponsiveContainer>
-        ) : (
-          <Box display="flex" justifyContent="center" alignItems="center" height="400px">
-            <Typography color="text.secondary">No seniority distribution data available</Typography>
-          </Box>
-        )}
-      </Paper>
+
 
       {/* Qualification Utilization */}
       <Paper sx={{ p: 3, mb: 3 }}>

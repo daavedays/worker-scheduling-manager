@@ -165,7 +165,7 @@ function LoginPage() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
   // Calculate which image to show and fade amount
-  const sectionHeight = 1000; // px per section
+  const sectionHeight = 800; // px per section
   let fade = (scrollY % sectionHeight) / sectionHeight;
   let bgIndex1 = Math.floor(scrollY / sectionHeight) % bgImages.length;
   let bgIndex2 = (bgIndex1 + 1) % bgImages.length;
@@ -309,6 +309,7 @@ function CombinedPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [tableDarkMode, setTableDarkMode] = React.useState(true); // local state
 
+
   // Load available Y schedule periods
   React.useEffect(() => {
     fetchWithAuth('http://localhost:5000/api/y-tasks/list', { credentials: 'include' })
@@ -334,6 +335,11 @@ function CombinedPage() {
       })
       .catch(() => { setError('Failed to load combined schedule'); setLoading(false); });
   }, [selectedSchedule]);
+
+  // Helper function to convert worker ID to name (now handled by backend)
+  const getWorkerName = (workerId: string): string => {
+    return workerId; // Backend now provides names directly
+  };
 
   const handleSave = async () => {
     if (!selectedSchedule) return;
@@ -447,7 +453,7 @@ function CombinedPage() {
                 <tr key={rIdx} style={{ background: rIdx % 2 === 0 ? (tableDarkMode ? '#232a36' : '#f9fafb') : (tableDarkMode ? '#181c23' : '#fff') }}>
                   <td style={{ background: tableDarkMode ? '#22304a' : '#f0f8ff', color: tableDarkMode ? '#fff' : '#1976d2', fontWeight: 600, position: 'sticky', left: 0, zIndex: 1, fontSize: 18, borderRight: tableDarkMode ? '3.5px solid #b0bec5' : '3.5px solid #666', borderBottom: tableDarkMode ? '2px solid #b0bec5' : '2px solid #888', height: 56, paddingLeft: 32, paddingRight: 16, minWidth: 180, boxShadow: tableDarkMode ? undefined : '2px 0 8px -4px #8882' }}>{task}</td>
                   {grid[rIdx]?.map((soldier: string, cIdx: number) => (
-                                                                                     <td key={cIdx} style={{ background: soldier ? getWorkerColor(soldier, tableDarkMode) : (tableDarkMode ? '#1a2233' : '#fafbfc'), color: tableDarkMode ? '#fff' : '#1e3a5c', textAlign: 'center', fontWeight: 600, minWidth: 120, border: tableDarkMode ? '2px solid #b0bec5' : '2px solid #888', borderRadius: 8, fontSize: 18, height: 56, boxSizing: 'border-box', transition: 'background 0.2s', opacity: soldier ? 1 : 0.6, boxShadow: soldier ? '0 1px 4px rgba(30,58,92,0.06)' : undefined }}>{soldier}</td>
+                    <td key={cIdx} style={{ background: soldier ? getWorkerColor(soldier, tableDarkMode) : (tableDarkMode ? '#1a2233' : '#fafbfc'), color: tableDarkMode ? '#fff' : '#1e3a5c', textAlign: 'center', fontWeight: 600, minWidth: 120, border: tableDarkMode ? '2px solid #b0bec5' : '2px solid #888', borderRadius: 8, fontSize: 18, height: 56, boxSizing: 'border-box', transition: 'background 0.2s', opacity: soldier ? 1 : 0.6, boxShadow: soldier ? '0 1px 4px rgba(30,58,92,0.06)' : undefined }}>{soldier ? getWorkerName(soldier) : ''}</td>
                   ))}
                 </tr>
               ))}

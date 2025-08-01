@@ -502,8 +502,16 @@ function YTaskPage() {
               <Button variant={mode === 'manual' ? 'contained' : 'outlined'} sx={{ display: 'none' }}>Manual</Button>
               <Button variant={mode === 'hybrid' ? 'contained' : 'outlined'} disabled sx={{ display: 'none' }}>Hybrid</Button>
             </Box>
-            {/* Action buttons directly above the table, right-aligned */}
-            <Box sx={{ width: '100%', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2, mb: 1 }}>
+            {/* Action buttons in a fixed position */}
+            <Box sx={{ 
+              position: 'fixed', 
+              top: 100, 
+              right: 32, 
+              zIndex: 1200, 
+              display: 'flex', 
+              gap: 2,
+              flexDirection: 'column'
+            }}>
               <Fab
                 color="info"
                 onClick={handleHybridGenerate}
@@ -522,7 +530,14 @@ function YTaskPage() {
               >
                 <SaveIcon sx={{ fontSize: 28, color: '#fff' }} />
               </Fab>
-              <Button variant="outlined" color="error" onClick={() => setClearDialogOpen(true)} sx={{ height: 60 }}>Clear</Button>
+              <Fab
+                color="error"
+                onClick={() => setClearDialogOpen(true)}
+                sx={{ width: 60, height: 60, boxShadow: 6, borderRadius: '50%', fontWeight: 700 }}
+                aria-label="clear"
+              >
+                <DeleteIcon sx={{ fontSize: 28, color: '#fff' }} />
+              </Fab>
             </Box>
           </Box>
           {warnings.length > 0 && (

@@ -369,23 +369,46 @@ def generate_y_tasks_api():
     # Load X task assignments for the period
     x_assignments = {}
     try:
-        # Try to find existing X task file for this period
-        year = d0.year
-        period = 1 if d0.month <= 6 else 2
-        x_csv = os.path.join(DATA_DIR, f"x_tasks_{year}_{period}.csv")
-        if os.path.exists(x_csv):
-            from . import y_tasks as y_tasks_module
-            x_assignments = y_tasks_module.read_x_tasks(x_csv)
-            
-            # Load X assignments into workers
-            for worker in workers:
-                if worker.id in x_assignments:
-                    for date_str, task_name in x_assignments[worker.id].items():
-                        try:
-                            date_obj = datetime.strptime(date_str, '%d/%m/%Y').date()
-                            worker.x_tasks[date_obj] = True
-                        except:
-                            pass
+        # Check if date range spans across the transition period (June to July)
+        start_period = 1 if d0.month <= 6 else 2
+        end_period = 1 if d1.month <= 6 else 2
+        
+        # Load X task files for all periods that overlap with the date range
+        periods_to_load = set()
+        periods_to_load.add(start_period)
+        periods_to_load.add(end_period)
+        
+        # If the range spans across the transition, we need both periods
+        if start_period != end_period:
+            periods_to_load.add(1)
+            periods_to_load.add(2)
+        
+        print(f"Loading X task files for periods: {periods_to_load}")
+        
+        for period in periods_to_load:
+            x_csv = os.path.join(DATA_DIR, f"x_tasks_{d0.year}_{period}.csv")
+            if os.path.exists(x_csv):
+                print(f"Loading X task file: {x_csv}")
+                from . import y_tasks as y_tasks_module
+                period_assignments = y_tasks_module.read_x_tasks(x_csv)
+                
+                # Merge assignments from this period
+                for worker_id, assignments in period_assignments.items():
+                    if worker_id not in x_assignments:
+                        x_assignments[worker_id] = {}
+                    x_assignments[worker_id].update(assignments)
+            else:
+                print(f"X task file not found: {x_csv}")
+        
+        # Load X assignments into workers
+        for worker in workers:
+            if worker.id in x_assignments:
+                for date_str, task_name in x_assignments[worker.id].items():
+                    try:
+                        date_obj = datetime.strptime(date_str, '%d/%m/%Y').date()
+                        worker.x_tasks[date_obj] = task_name
+                    except Exception as e:
+                        print(f"Error parsing date {date_str}: {e}")
     except Exception as e:
         print(f"Warning: Could not load X task data: {e}")
     
@@ -409,14 +432,18 @@ def generate_y_tasks_api():
                                 pass
                             break
     
-    # Generate schedule using new engine
+    # Generate schedule using new engine (for all modes)
     try:
         # Assign Y tasks (including weekend assignments)
         engine.assign_y_tasks(d0, d1)
         
+        # Save updated worker scores after Y task generation
+        from .worker import save_workers_to_json
+        save_workers_to_json(workers, os.path.join(DATA_DIR, 'worker_data.json'))
+        
         # Get complete schedule
         schedule = engine.get_schedule()
-        
+    
         # Build grid for response
         Y_TASKS_ORDER = ["Supervisor", "C&N Driver", "C&N Escort", "Southern Driver", "Southern Escort"]
         all_dates = [(d0 + timedelta(days=i)) for i in range((d1-d0).days+1)]
@@ -486,7 +513,7 @@ def available_soldiers_for_y_task():
         date_obj = datetime.strptime(date, '%d/%m/%Y').date()
         
         # Load workers
-        workers = load_workers_from_json(os.path.join(DATA_DIR, 'worker_data.json'), os.path.join(DATA_DIR, 'name_conv.json'))
+        workers = load_workers_from_json(os.path.join(DATA_DIR, 'worker_data.json'))
         
         # Load X task assignments
         year = date_obj.year
@@ -501,7 +528,7 @@ def available_soldiers_for_y_task():
                     for date_str, task_name in x_assignments[worker.id].items():
                         try:
                             x_date_obj = datetime.strptime(date_str, '%d/%m/%Y').date()
-                            worker.x_tasks[x_date_obj] = True
+                            worker.assign_x_task(x_date_obj, task_name)
                         except:
                             pass
         
@@ -517,23 +544,23 @@ def available_soldiers_for_y_task():
                             except:
                                 pass
         
-        # Filter qualified workers
-        qualified = [w for w in workers if task in w.qualifications]
-        
-        # Filter available workers (no X task on this date, no Y task on this date)
+        # Use the same logic as the scheduler engine
         available = []
-        for worker in qualified:
-            # Skip if has X task on this date (except Rituk)
-            if date_obj in worker.x_tasks:
-                # Check if it's Rituk - if so, allow assignment
-                if not worker.has_specific_x_task(date_obj - timedelta(days=date_obj.weekday()), "Rituk"):
+        for worker in workers:
+            # Skip if worker doesn't have this qualification
+            if task not in worker.qualifications:
                     continue
             
-            # Skip if has Y task on this date
+            # Skip if worker has X task on this day (except Rituk)
+            has_rituk = worker.has_specific_x_task(date_obj, "Rituk")
+            if date_obj in worker.x_tasks and not has_rituk:
+                continue
+            
+            # Skip if worker already has Y task on this day
             if date_obj in worker.y_tasks:
                 continue
             
-            # Skip if recently finished X task (within 2 days)
+            # Skip if worker finished X task within last 2 days
             recently_finished = False
             for i in range(1, 3):  # 1 and 2 days ago
                 check_date = date_obj - timedelta(days=i)
@@ -778,22 +805,41 @@ def get_insufficient_workers_report():
         # Load X task assignments
         x_assignments = {}
         try:
-            year = d0.year
-            period = 1 if d0.month <= 6 else 2
-            x_csv = os.path.join(DATA_DIR, f"x_tasks_{year}_{period}.csv")
-            if os.path.exists(x_csv):
-                from . import y_tasks
-                x_assignments = y_tasks.read_x_tasks(x_csv)
-                
-                # Load X assignments into workers
-                for worker in workers:
-                    if worker.id in x_assignments:
-                        for date_str, task_name in x_assignments[worker.id].items():
-                            try:
-                                date_obj = datetime.strptime(date_str, '%d/%m/%Y').date()
-                                worker.x_tasks[date_obj] = True
-                            except:
-                                pass
+            # Check if date range spans across the transition period (June to July)
+            start_period = 1 if d0.month <= 6 else 2
+            end_period = 1 if d1.month <= 6 else 2
+            
+            # Load X task files for all periods that overlap with the date range
+            periods_to_load = set()
+            periods_to_load.add(start_period)
+            periods_to_load.add(end_period)
+            
+            # If the range spans across the transition, we need both periods
+            if start_period != end_period:
+                periods_to_load.add(1)
+                periods_to_load.add(2)
+            
+            for period in periods_to_load:
+                x_csv = os.path.join(DATA_DIR, f"x_tasks_{d0.year}_{period}.csv")
+                if os.path.exists(x_csv):
+                    from . import y_tasks
+                    period_assignments = y_tasks.read_x_tasks(x_csv)
+                    
+                    # Merge assignments from this period
+                    for worker_id, assignments in period_assignments.items():
+                        if worker_id not in x_assignments:
+                            x_assignments[worker_id] = {}
+                        x_assignments[worker_id].update(assignments)
+            
+            # Load X assignments into workers
+            for worker in workers:
+                if worker.id in x_assignments:
+                    for date_str, task_name in x_assignments[worker.id].items():
+                        try:
+                            date_obj = datetime.strptime(date_str, '%d/%m/%Y').date()
+                            worker.assign_x_task(date_obj, task_name)
+                        except Exception as e:
+                            print(f"Error parsing date {date_str}: {e}")
         except Exception as e:
             print(f"Warning: Could not load X task data: {e}")
         
@@ -1017,31 +1063,47 @@ def get_combined_by_range():
     if not x_files:
         x_assignments = {}
     else:
+        # Find the X tasks file that covers the date range
         def extract_year_period(fname):
             m = re.search(r'x_tasks_(\d+)_(\d+)\.csv', fname)
             if m:
                 return int(m.group(1)), int(m.group(2))
             return (0, 0)
-        x_files.sort(key=extract_year_period, reverse=True)
-        x_csv = x_files[0]
-        x_assignments = y_tasks.read_x_tasks(x_csv)
+        
+        # Sort files by year and period
+        x_files.sort(key=extract_year_period)
+        
+        # For now, use the first file (period 1) as it covers the first half of the year
+        # In the future, this could be enhanced to pick the correct file based on date range
+        x_csv = x_files[0] if x_files else None
+        if x_csv:
+            x_assignments = y_tasks.read_x_tasks(x_csv)
+        else:
+            x_assignments = {}
     # Collect all unique X tasks assigned for any date in the period
     x_tasks_set = set()
     for name, day_map in x_assignments.items():
         for d in dates:
             task = day_map.get(d, '-')
-            if task and task != '-':
+            if task and task != '-' and task not in ["Supervisor", "C&N Driver", "C&N Escort", "Southern Driver", "Southern Escort"]:
                 x_tasks_set.add(task)
     x_tasks_list = sorted(x_tasks_set)
     # Build X task rows: for each X task, fill with all soldier names for each date
     x_grid = []
+    # Load worker data for ID to name conversion
+    from .worker import load_workers_from_json
+    workers = load_workers_from_json(os.path.join(DATA_DIR, 'worker_data.json'))
+    worker_id_to_name = {w.id: w.name for w in workers}
+    
     for x_task in x_tasks_list:
         row = []
         for d in dates:
             found = []
             for name, day_map in x_assignments.items():
                 if day_map.get(d, '-') == x_task:
-                    found.append(name)
+                    # Convert worker ID to name
+                    worker_name = worker_id_to_name.get(name, name)
+                    found.append(worker_name)
             row.append(', '.join(found))
         x_grid.append(row)
     y_tasks_list = ["Supervisor", "C&N Driver", "C&N Escort", "Southern Driver", "Southern Escort"]
@@ -1203,6 +1265,10 @@ def get_statistics():
     try:
         # Load all available data
         workers = load_workers_from_json(WORKER_JSON_PATH)
+        
+        # Initialize closing tracking variables
+        worker_closing_counts = {}
+        worker_closing_dates = {}
         
         # Get all X task files
         x_task_files = []
@@ -1430,6 +1496,11 @@ def get_statistics():
         for worker in workers:
             y_count = all_y_tasks.get(worker.id, 0)
             if y_count > 0:
+                # Count actual closing assignments from Y task data
+                closing_count = 0
+                if worker.id in worker_closing_counts:
+                    closing_count = worker_closing_counts[worker.id]
+                
                 y_task_workers.append({
                     'worker_name': worker.name,
                     'worker_id': worker.id,
@@ -1437,7 +1508,9 @@ def get_statistics():
                     'score': int(worker.score) if worker.score is not None else 0,
                     'seniority': worker.seniority if worker.seniority and worker.seniority != 'None' else 'Unknown',
                     'closing_interval': worker.closing_interval,
-                    'qualifications': worker.qualifications
+                    'qualifications': worker.qualifications,
+                    'closing_count': closing_count,
+                    'closing_dates': worker_closing_dates.get(worker.id, [])
                 })
         
         # Sort by Y task count for better visualization
@@ -1459,9 +1532,7 @@ def get_statistics():
         # Closing Interval Analysis - Count actual closings from Y task data
         closing_workers = []
         
-        # Count weekend Y task assignments for each worker
-        worker_closing_counts = {}
-        worker_closing_dates = {}
+        # Count weekend Y task assignments for each worker (variables already initialized above)
         
         # Process Y task CSV files to count weekend assignments
         for filename in y_task_files:

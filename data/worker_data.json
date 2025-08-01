@@ -2,2964 +2,1506 @@
   {
     "id": "1000001",
     "name": "Worker 1",
-    "start_date": null,
     "qualifications": [
-      "Southern Escort",
       "Supervisor",
-      "C&N Driver"
+      "C&N Driver",
+      "C&N Escort",
+      "Southern Driver",
+      "Southern Escort"
     ],
-    "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-07-05",
-      "2023-11-28",
-      "2025-04-30",
-      "2023-12-15",
-      "2024-09-01"
-    ],
+    "closing_interval": 3,
     "officer": false,
-    "seniority": 10,
-    "score": 88,
-    "long_timer": false
+    "seniority": 0,
+    "score": 33,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-07-10": "Supervisor",
+      "2025-07-11": "Supervisor",
+      "2025-07-12": "Supervisor",
+      "2025-07-16": "Supervisor",
+      "2025-07-23": "Supervisor",
+      "2025-07-30": "Supervisor",
+      "2025-08-05": "Supervisor",
+      "2025-08-11": "Supervisor",
+      "2025-08-19": "Supervisor",
+      "2025-08-27": "Supervisor",
+      "2025-09-25": "Supervisor",
+      "2025-09-26": "Supervisor",
+      "2025-09-27": "Supervisor",
+      "2025-09-17": "Supervisor",
+      "2025-10-05": "Supervisor",
+      "2025-10-07": "Supervisor",
+      "2025-10-12": "Supervisor",
+      "2025-10-21": "Supervisor",
+      "2025-10-29": "Supervisor",
+      "2025-11-02": "Supervisor",
+      "2025-11-05": "Supervisor",
+      "2025-12-18": "Supervisor",
+      "2025-12-19": "Supervisor",
+      "2025-12-20": "Supervisor"
+    },
+    "closing_history": []
   },
   {
     "id": "1000002",
     "name": "Worker 2",
-    "start_date": null,
     "qualifications": [
       "Supervisor",
-      "Southern Driver"
+      "C&N Driver",
+      "C&N Escort",
+      "Southern Driver",
+      "Southern Escort"
     ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-03-22",
-      "2025-03-29",
-      "2024-11-26"
-    ],
+    "closing_interval": 5,
     "officer": false,
-    "seniority": 3,
-    "score": 42,
-    "long_timer": false
+    "seniority": 0,
+    "score": 33,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-07-10": "C&N Driver",
+      "2025-07-11": "C&N Driver",
+      "2025-07-12": "C&N Driver",
+      "2025-07-16": "C&N Driver",
+      "2025-07-23": "C&N Driver",
+      "2025-07-30": "C&N Driver",
+      "2025-08-05": "C&N Driver",
+      "2025-08-11": "C&N Driver",
+      "2025-08-19": "C&N Driver",
+      "2025-08-27": "C&N Driver",
+      "2025-09-25": "C&N Driver",
+      "2025-09-26": "C&N Driver",
+      "2025-09-27": "C&N Driver",
+      "2025-09-17": "C&N Driver",
+      "2025-10-05": "C&N Driver",
+      "2025-10-07": "C&N Driver",
+      "2025-10-12": "C&N Driver",
+      "2025-10-21": "C&N Driver",
+      "2025-10-29": "C&N Driver",
+      "2025-11-02": "C&N Driver",
+      "2025-11-05": "C&N Driver",
+      "2025-12-18": "C&N Driver",
+      "2025-12-19": "C&N Driver",
+      "2025-12-20": "C&N Driver"
+    },
+    "closing_history": []
   },
   {
     "id": "1000003",
     "name": "Worker 3",
-    "start_date": null,
     "qualifications": [
-      "Southern Escort",
-      "C&N Escort"
+      "Supervisor",
+      "C&N Driver",
+      "C&N Escort",
+      "Southern Driver",
+      "Southern Escort"
     ],
     "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-03-31"
-    ],
     "officer": false,
-    "seniority": 11,
-    "score": 18,
-    "long_timer": false
+    "seniority": 0,
+    "score": 33,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-07-10": "C&N Escort",
+      "2025-07-11": "C&N Escort",
+      "2025-07-12": "C&N Escort",
+      "2025-07-16": "C&N Escort",
+      "2025-07-23": "C&N Escort",
+      "2025-07-30": "C&N Escort",
+      "2025-08-05": "C&N Escort",
+      "2025-08-11": "C&N Escort",
+      "2025-08-19": "C&N Escort",
+      "2025-08-27": "C&N Escort",
+      "2025-09-25": "C&N Escort",
+      "2025-09-26": "C&N Escort",
+      "2025-09-27": "C&N Escort",
+      "2025-09-17": "C&N Escort",
+      "2025-10-05": "C&N Escort",
+      "2025-10-07": "C&N Escort",
+      "2025-10-12": "C&N Escort",
+      "2025-10-21": "C&N Escort",
+      "2025-10-29": "C&N Escort",
+      "2025-11-02": "C&N Escort",
+      "2025-11-05": "C&N Escort",
+      "2025-12-18": "C&N Escort",
+      "2025-12-19": "C&N Escort",
+      "2025-12-20": "C&N Escort"
+    },
+    "closing_history": []
   },
   {
     "id": "1000004",
     "name": "Worker 4",
-    "start_date": null,
     "qualifications": [
+      "Supervisor",
       "C&N Driver",
       "C&N Escort",
+      "Southern Driver",
       "Southern Escort"
     ],
-    "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-05-01"
-    ],
+    "closing_interval": 3,
     "officer": false,
-    "seniority": 7,
-    "score": 9,
-    "long_timer": false
+    "seniority": 0,
+    "score": 33,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-07-10": "Southern Driver",
+      "2025-07-11": "Southern Driver",
+      "2025-07-12": "Southern Driver",
+      "2025-07-16": "Southern Driver",
+      "2025-07-23": "Southern Driver",
+      "2025-07-30": "Southern Driver",
+      "2025-08-05": "Southern Driver",
+      "2025-08-11": "Southern Driver",
+      "2025-08-19": "Southern Driver",
+      "2025-08-27": "Southern Driver",
+      "2025-09-25": "Southern Driver",
+      "2025-09-26": "Southern Driver",
+      "2025-09-27": "Southern Driver",
+      "2025-09-17": "Southern Driver",
+      "2025-10-05": "Southern Driver",
+      "2025-10-07": "Southern Driver",
+      "2025-10-12": "Southern Driver",
+      "2025-10-21": "Southern Driver",
+      "2025-10-29": "Southern Driver",
+      "2025-11-02": "Southern Driver",
+      "2025-11-05": "Southern Driver",
+      "2025-12-18": "Southern Driver",
+      "2025-12-19": "Southern Driver",
+      "2025-12-20": "Southern Driver"
+    },
+    "closing_history": []
   },
   {
     "id": "1000005",
     "name": "Worker 5",
-    "start_date": null,
     "qualifications": [
-      "C&N Escort"
+      "Supervisor",
+      "C&N Driver",
+      "C&N Escort",
+      "Southern Driver",
+      "Southern Escort"
     ],
-    "closing_interval": 5,
+    "closing_interval": 4,
+    "officer": false,
+    "seniority": 0,
+    "score": 33,
+    "long_timer": false,
     "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-12-31",
-      "2024-08-02",
-      "2023-12-28"
-    ],
-    "officer": true,
-    "seniority": 10,
-    "score": 18,
-    "long_timer": true
+    "y_tasks": {
+      "2025-07-10": "Southern Escort",
+      "2025-07-11": "Southern Escort",
+      "2025-07-12": "Southern Escort",
+      "2025-07-16": "Southern Escort",
+      "2025-07-23": "Southern Escort",
+      "2025-07-30": "Southern Escort",
+      "2025-08-05": "Southern Escort",
+      "2025-08-11": "Southern Escort",
+      "2025-08-19": "Southern Escort",
+      "2025-08-27": "Southern Escort",
+      "2025-09-25": "Southern Escort",
+      "2025-09-26": "Southern Escort",
+      "2025-09-27": "Southern Escort",
+      "2025-09-17": "Southern Escort",
+      "2025-10-05": "Southern Escort",
+      "2025-10-07": "Southern Escort",
+      "2025-10-12": "Southern Escort",
+      "2025-10-21": "Southern Escort",
+      "2025-10-29": "Southern Escort",
+      "2025-11-02": "Southern Escort",
+      "2025-11-05": "Southern Escort",
+      "2025-12-18": "Southern Escort",
+      "2025-12-19": "Southern Escort",
+      "2025-12-20": "Southern Escort"
+    },
+    "closing_history": []
   },
   {
     "id": "1000006",
     "name": "Worker 6",
-    "start_date": null,
     "qualifications": [
-      "C&N Escort",
       "Supervisor",
+      "C&N Driver",
+      "C&N Escort",
       "Southern Driver",
-      "C&N Driver"
+      "Southern Escort"
     ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-12-18",
-      "2025-06-13",
-      "2024-05-12",
-      "2024-10-30",
-      "2023-10-31"
-    ],
+    "closing_interval": 5,
     "officer": false,
-    "seniority": 14,
-    "score": 75,
-    "long_timer": false
+    "seniority": 0,
+    "score": 52,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-07-17": "Supervisor",
+      "2025-07-18": "Supervisor",
+      "2025-07-19": "Supervisor",
+      "2025-07-06": "Supervisor",
+      "2025-07-07": "Supervisor",
+      "2025-07-20": "Supervisor",
+      "2025-07-21": "Supervisor",
+      "2025-07-27": "Supervisor",
+      "2025-07-28": "Supervisor",
+      "2025-08-31": "Supervisor",
+      "2025-09-01": "Supervisor",
+      "2025-09-28": "Supervisor",
+      "2025-09-29": "Supervisor",
+      "2025-11-06": "Supervisor",
+      "2025-11-07": "Supervisor",
+      "2025-11-08": "Supervisor",
+      "2025-11-20": "Supervisor",
+      "2025-11-21": "Supervisor",
+      "2025-11-22": "Supervisor",
+      "2025-11-23": "Supervisor",
+      "2025-11-26": "Supervisor",
+      "2025-12-14": "Supervisor"
+    },
+    "closing_history": []
   },
   {
     "id": "1000007",
     "name": "Worker 7",
-    "start_date": null,
     "qualifications": [
-      "Southern Escort",
-      "C&N Escort"
+      "Supervisor",
+      "C&N Driver",
+      "C&N Escort",
+      "Southern Driver",
+      "Southern Escort"
     ],
-    "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-12-06",
-      "2024-05-11",
-      "2023-08-12",
-      "2025-01-19",
-      "2024-07-21"
-    ],
+    "closing_interval": 3,
     "officer": false,
-    "seniority": 4,
-    "score": 100,
-    "long_timer": false
+    "seniority": 0,
+    "score": 52,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-07-17": "C&N Driver",
+      "2025-07-18": "C&N Driver",
+      "2025-07-19": "C&N Driver",
+      "2025-07-06": "C&N Driver",
+      "2025-07-07": "C&N Driver",
+      "2025-07-20": "C&N Driver",
+      "2025-07-21": "C&N Driver",
+      "2025-07-27": "C&N Driver",
+      "2025-07-28": "C&N Driver",
+      "2025-08-31": "C&N Driver",
+      "2025-09-01": "C&N Driver",
+      "2025-09-28": "C&N Driver",
+      "2025-09-29": "C&N Driver",
+      "2025-11-06": "C&N Driver",
+      "2025-11-07": "C&N Driver",
+      "2025-11-08": "C&N Driver",
+      "2025-11-20": "C&N Driver",
+      "2025-11-21": "C&N Driver",
+      "2025-11-22": "C&N Driver",
+      "2025-11-23": "C&N Driver",
+      "2025-11-26": "C&N Driver",
+      "2025-12-14": "C&N Driver"
+    },
+    "closing_history": []
   },
   {
     "id": "1000008",
     "name": "Worker 8",
-    "start_date": null,
     "qualifications": [
       "Supervisor",
-      "Southern Driver"
+      "C&N Driver",
+      "C&N Escort",
+      "Southern Driver",
+      "Southern Escort"
     ],
     "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2023-10-19",
-      "2025-05-03"
-    ],
     "officer": false,
-    "seniority": 3,
-    "score": 44,
-    "long_timer": false
+    "seniority": 0,
+    "score": 52,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-07-17": "C&N Escort",
+      "2025-07-18": "C&N Escort",
+      "2025-07-19": "C&N Escort",
+      "2025-07-06": "C&N Escort",
+      "2025-07-07": "C&N Escort",
+      "2025-07-20": "C&N Escort",
+      "2025-07-21": "C&N Escort",
+      "2025-07-27": "C&N Escort",
+      "2025-07-28": "C&N Escort",
+      "2025-08-31": "C&N Escort",
+      "2025-09-01": "C&N Escort",
+      "2025-09-28": "C&N Escort",
+      "2025-09-29": "C&N Escort",
+      "2025-11-06": "C&N Escort",
+      "2025-11-07": "C&N Escort",
+      "2025-11-08": "C&N Escort",
+      "2025-11-20": "C&N Escort",
+      "2025-11-21": "C&N Escort",
+      "2025-11-22": "C&N Escort",
+      "2025-11-23": "C&N Escort",
+      "2025-11-26": "C&N Escort",
+      "2025-12-14": "C&N Escort"
+    },
+    "closing_history": []
   },
   {
     "id": "1000009",
     "name": "Worker 9",
-    "start_date": null,
     "qualifications": [
-      "Southern Escort",
-      "Southern Driver",
+      "Supervisor",
       "C&N Driver",
-      "Supervisor"
+      "C&N Escort",
+      "Southern Driver",
+      "Southern Escort"
     ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-01-03",
-      "2023-08-31",
-      "2024-01-09",
-      "2025-05-16",
-      "2024-08-23"
-    ],
+    "closing_interval": 5,
     "officer": false,
-    "seniority": 19,
-    "score": 34,
-    "long_timer": false
+    "seniority": 0,
+    "score": 52,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-07-17": "Southern Driver",
+      "2025-07-18": "Southern Driver",
+      "2025-07-19": "Southern Driver",
+      "2025-07-06": "Southern Driver",
+      "2025-07-07": "Southern Driver",
+      "2025-07-20": "Southern Driver",
+      "2025-07-21": "Southern Driver",
+      "2025-07-27": "Southern Driver",
+      "2025-07-28": "Southern Driver",
+      "2025-08-31": "Southern Driver",
+      "2025-09-01": "Southern Driver",
+      "2025-09-28": "Southern Driver",
+      "2025-09-29": "Southern Driver",
+      "2025-11-06": "Southern Driver",
+      "2025-11-07": "Southern Driver",
+      "2025-11-08": "Southern Driver",
+      "2025-11-20": "Southern Driver",
+      "2025-11-21": "Southern Driver",
+      "2025-11-22": "Southern Driver",
+      "2025-11-23": "Southern Driver",
+      "2025-11-26": "Southern Driver",
+      "2025-12-14": "Southern Driver"
+    },
+    "closing_history": []
   },
   {
     "id": "1000010",
     "name": "Worker 10",
-    "start_date": null,
     "qualifications": [
-      "Southern Escort",
-      "C&N Driver"
+      "Supervisor",
+      "C&N Driver",
+      "C&N Escort",
+      "Southern Driver",
+      "Southern Escort"
     ],
     "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2023-12-21",
-      "2023-10-13",
-      "2023-08-11"
-    ],
     "officer": false,
-    "seniority": 16,
-    "score": 48,
-    "long_timer": false
+    "seniority": 0,
+    "score": 52,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-07-17": "Southern Escort",
+      "2025-07-18": "Southern Escort",
+      "2025-07-19": "Southern Escort",
+      "2025-07-06": "Southern Escort",
+      "2025-07-07": "Southern Escort",
+      "2025-07-20": "Southern Escort",
+      "2025-07-21": "Southern Escort",
+      "2025-07-27": "Southern Escort",
+      "2025-07-28": "Southern Escort",
+      "2025-08-31": "Southern Escort",
+      "2025-09-01": "Southern Escort",
+      "2025-09-28": "Southern Escort",
+      "2025-09-29": "Southern Escort",
+      "2025-11-06": "Southern Escort",
+      "2025-11-07": "Southern Escort",
+      "2025-11-08": "Southern Escort",
+      "2025-11-20": "Southern Escort",
+      "2025-11-21": "Southern Escort",
+      "2025-11-22": "Southern Escort",
+      "2025-11-23": "Southern Escort",
+      "2025-11-26": "Southern Escort",
+      "2025-12-14": "Southern Escort"
+    },
+    "closing_history": []
   },
   {
     "id": "1000011",
     "name": "Worker 11",
-    "start_date": null,
     "qualifications": [
       "Supervisor",
+      "C&N Driver",
       "C&N Escort",
-      "Southern Driver"
+      "Southern Driver",
+      "Southern Escort"
     ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-02-29"
-    ],
+    "closing_interval": 3,
     "officer": false,
-    "seniority": 14,
-    "score": 51,
-    "long_timer": false
+    "seniority": 0,
+    "score": 38,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-07-24": "Supervisor",
+      "2025-07-25": "Supervisor",
+      "2025-07-26": "Supervisor",
+      "2025-07-08": "Supervisor",
+      "2025-07-13": "Supervisor",
+      "2025-07-14": "Supervisor",
+      "2025-07-29": "Supervisor",
+      "2025-09-02": "Supervisor",
+      "2025-09-30": "Supervisor",
+      "2025-09-08": "Supervisor",
+      "2025-09-14": "Supervisor",
+      "2025-09-23": "Supervisor",
+      "2025-10-16": "Supervisor",
+      "2025-10-17": "Supervisor",
+      "2025-10-18": "Supervisor",
+      "2025-10-19": "Supervisor",
+      "2025-10-27": "Supervisor",
+      "2025-11-03": "Supervisor",
+      "2025-11-10": "Supervisor",
+      "2025-11-17": "Supervisor",
+      "2025-11-24": "Supervisor",
+      "2025-12-08": "Supervisor",
+      "2025-12-16": "Supervisor"
+    },
+    "closing_history": []
   },
   {
     "id": "1000012",
     "name": "Worker 12",
-    "start_date": null,
     "qualifications": [
-      "Southern Driver"
+      "Supervisor",
+      "C&N Driver",
+      "C&N Escort",
+      "Southern Driver",
+      "Southern Escort"
     ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-05-12",
-      "2024-06-29",
-      "2024-12-31"
-    ],
+    "closing_interval": 6,
     "officer": false,
-    "seniority": 4,
-    "score": 1,
-    "long_timer": false
+    "seniority": 0,
+    "score": 38,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-07-24": "C&N Driver",
+      "2025-07-25": "C&N Driver",
+      "2025-07-26": "C&N Driver",
+      "2025-07-08": "C&N Driver",
+      "2025-07-13": "C&N Driver",
+      "2025-07-14": "C&N Driver",
+      "2025-07-29": "C&N Driver",
+      "2025-09-02": "C&N Driver",
+      "2025-09-30": "C&N Driver",
+      "2025-09-08": "C&N Driver",
+      "2025-09-14": "C&N Driver",
+      "2025-09-23": "C&N Driver",
+      "2025-10-16": "C&N Driver",
+      "2025-10-17": "C&N Driver",
+      "2025-10-18": "C&N Driver",
+      "2025-10-19": "C&N Driver",
+      "2025-10-27": "C&N Driver",
+      "2025-11-03": "C&N Driver",
+      "2025-11-10": "C&N Driver",
+      "2025-11-17": "C&N Driver",
+      "2025-11-24": "C&N Driver",
+      "2025-12-08": "C&N Driver",
+      "2025-12-16": "C&N Driver"
+    },
+    "closing_history": []
   },
   {
     "id": "1000013",
     "name": "Worker 13",
-    "start_date": null,
     "qualifications": [
-      "Southern Driver",
-      "Southern Escort",
+      "Supervisor",
       "C&N Driver",
-      "Supervisor"
+      "C&N Escort",
+      "Southern Driver",
+      "Southern Escort"
     ],
-    "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2023-09-14",
-      "2025-01-12",
-      "2025-06-03"
-    ],
+    "closing_interval": 5,
     "officer": false,
-    "seniority": 10,
-    "score": 12,
-    "long_timer": false
+    "seniority": 0,
+    "score": 38,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-07-24": "C&N Escort",
+      "2025-07-25": "C&N Escort",
+      "2025-07-26": "C&N Escort",
+      "2025-07-08": "C&N Escort",
+      "2025-07-13": "C&N Escort",
+      "2025-07-14": "C&N Escort",
+      "2025-07-29": "C&N Escort",
+      "2025-09-02": "C&N Escort",
+      "2025-09-30": "C&N Escort",
+      "2025-09-08": "C&N Escort",
+      "2025-09-14": "C&N Escort",
+      "2025-09-23": "C&N Escort",
+      "2025-10-16": "C&N Escort",
+      "2025-10-17": "C&N Escort",
+      "2025-10-18": "C&N Escort",
+      "2025-10-19": "C&N Escort",
+      "2025-10-27": "C&N Escort",
+      "2025-11-03": "C&N Escort",
+      "2025-11-10": "C&N Escort",
+      "2025-11-17": "C&N Escort",
+      "2025-11-24": "C&N Escort",
+      "2025-12-08": "C&N Escort",
+      "2025-12-16": "C&N Escort"
+    },
+    "closing_history": []
   },
   {
     "id": "1000014",
     "name": "Worker 14",
-    "start_date": null,
     "qualifications": [
+      "Supervisor",
+      "C&N Driver",
       "C&N Escort",
       "Southern Driver",
-      "Supervisor"
+      "Southern Escort"
     ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2023-07-31",
-      "2024-03-01",
-      "2024-03-04",
-      "2024-11-11"
-    ],
+    "closing_interval": 5,
     "officer": false,
-    "seniority": 15,
-    "score": 30,
-    "long_timer": false
+    "seniority": 0,
+    "score": 38,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-07-24": "Southern Driver",
+      "2025-07-25": "Southern Driver",
+      "2025-07-26": "Southern Driver",
+      "2025-07-08": "Southern Driver",
+      "2025-07-13": "Southern Driver",
+      "2025-07-14": "Southern Driver",
+      "2025-07-29": "Southern Driver",
+      "2025-09-02": "Southern Driver",
+      "2025-09-30": "Southern Driver",
+      "2025-09-08": "Southern Driver",
+      "2025-09-14": "Southern Driver",
+      "2025-09-23": "Southern Driver",
+      "2025-10-16": "Southern Driver",
+      "2025-10-17": "Southern Driver",
+      "2025-10-18": "Southern Driver",
+      "2025-10-19": "Southern Driver",
+      "2025-10-27": "Southern Driver",
+      "2025-11-03": "Southern Driver",
+      "2025-11-10": "Southern Driver",
+      "2025-11-17": "Southern Driver",
+      "2025-11-24": "Southern Driver",
+      "2025-12-08": "Southern Driver",
+      "2025-12-16": "Southern Driver"
+    },
+    "closing_history": []
   },
   {
     "id": "1000015",
     "name": "Worker 15",
-    "start_date": null,
     "qualifications": [
+      "Supervisor",
+      "C&N Driver",
       "C&N Escort",
-      "C&N Driver"
+      "Southern Driver",
+      "Southern Escort"
     ],
     "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
     "officer": false,
-    "seniority": 11,
-    "score": 28,
-    "long_timer": false
+    "seniority": 0,
+    "score": 38,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-07-24": "Southern Escort",
+      "2025-07-25": "Southern Escort",
+      "2025-07-26": "Southern Escort",
+      "2025-07-08": "Southern Escort",
+      "2025-07-13": "Southern Escort",
+      "2025-07-14": "Southern Escort",
+      "2025-07-29": "Southern Escort",
+      "2025-09-02": "Southern Escort",
+      "2025-09-30": "Southern Escort",
+      "2025-09-08": "Southern Escort",
+      "2025-09-14": "Southern Escort",
+      "2025-09-23": "Southern Escort",
+      "2025-10-16": "Southern Escort",
+      "2025-10-17": "Southern Escort",
+      "2025-10-18": "Southern Escort",
+      "2025-10-19": "Southern Escort",
+      "2025-10-27": "Southern Escort",
+      "2025-11-03": "Southern Escort",
+      "2025-11-10": "Southern Escort",
+      "2025-11-17": "Southern Escort",
+      "2025-11-24": "Southern Escort",
+      "2025-12-08": "Southern Escort",
+      "2025-12-16": "Southern Escort"
+    },
+    "closing_history": []
   },
   {
     "id": "1000016",
     "name": "Worker 16",
-    "start_date": null,
     "qualifications": [
+      "Supervisor",
+      "C&N Driver",
       "C&N Escort",
-      "Southern Driver"
+      "Southern Driver",
+      "Southern Escort"
     ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
+    "closing_interval": 4,
     "officer": false,
-    "seniority": 13,
-    "score": 52,
-    "long_timer": false
+    "seniority": 0,
+    "score": 38,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-07-31": "Supervisor",
+      "2025-08-01": "Supervisor",
+      "2025-08-02": "Supervisor",
+      "2025-07-09": "Supervisor",
+      "2025-07-15": "Supervisor",
+      "2025-07-22": "Supervisor",
+      "2025-09-03": "Supervisor",
+      "2025-10-01": "Supervisor",
+      "2025-09-07": "Supervisor",
+      "2025-09-09": "Supervisor",
+      "2025-09-15": "Supervisor",
+      "2025-09-24": "Supervisor",
+      "2025-10-23": "Supervisor",
+      "2025-10-24": "Supervisor",
+      "2025-10-25": "Supervisor",
+      "2025-10-26": "Supervisor",
+      "2025-10-28": "Supervisor",
+      "2025-11-04": "Supervisor",
+      "2025-11-11": "Supervisor",
+      "2025-11-18": "Supervisor",
+      "2025-11-25": "Supervisor",
+      "2025-12-09": "Supervisor",
+      "2025-12-17": "Supervisor"
+    },
+    "closing_history": []
   },
   {
     "id": "1000017",
     "name": "Worker 17",
-    "start_date": null,
     "qualifications": [
-      "C&N Escort"
+      "Supervisor",
+      "C&N Driver",
+      "C&N Escort",
+      "Southern Driver",
+      "Southern Escort"
     ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-07-24",
-      "2024-01-22",
-      "2025-06-20",
-      "2024-03-12",
-      "2023-08-11"
-    ],
+    "closing_interval": 6,
     "officer": false,
-    "seniority": null,
-    "score": 97,
-    "long_timer": true
+    "seniority": 0,
+    "score": 38,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-07-31": "C&N Driver",
+      "2025-08-01": "C&N Driver",
+      "2025-08-02": "C&N Driver",
+      "2025-07-09": "C&N Driver",
+      "2025-07-15": "C&N Driver",
+      "2025-07-22": "C&N Driver",
+      "2025-09-03": "C&N Driver",
+      "2025-10-01": "C&N Driver",
+      "2025-09-07": "C&N Driver",
+      "2025-09-09": "C&N Driver",
+      "2025-09-15": "C&N Driver",
+      "2025-09-24": "C&N Driver",
+      "2025-10-23": "C&N Driver",
+      "2025-10-24": "C&N Driver",
+      "2025-10-25": "C&N Driver",
+      "2025-10-26": "C&N Driver",
+      "2025-10-28": "C&N Driver",
+      "2025-11-04": "C&N Driver",
+      "2025-11-11": "C&N Driver",
+      "2025-11-18": "C&N Driver",
+      "2025-11-25": "C&N Driver",
+      "2025-12-09": "C&N Driver",
+      "2025-12-17": "C&N Driver"
+    },
+    "closing_history": []
   },
   {
     "id": "1000018",
     "name": "Worker 18",
-    "start_date": null,
     "qualifications": [
-      "Southern Escort",
-      "C&N Driver",
       "Supervisor",
-      "Southern Driver"
+      "C&N Driver",
+      "C&N Escort",
+      "Southern Driver",
+      "Southern Escort"
     ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
+    "closing_interval": 3,
     "officer": false,
-    "seniority": null,
-    "score": 1,
-    "long_timer": false
+    "seniority": 0,
+    "score": 38,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-07-31": "C&N Escort",
+      "2025-08-01": "C&N Escort",
+      "2025-08-02": "C&N Escort",
+      "2025-07-09": "C&N Escort",
+      "2025-07-15": "C&N Escort",
+      "2025-07-22": "C&N Escort",
+      "2025-09-03": "C&N Escort",
+      "2025-10-01": "C&N Escort",
+      "2025-09-07": "C&N Escort",
+      "2025-09-09": "C&N Escort",
+      "2025-09-15": "C&N Escort",
+      "2025-09-24": "C&N Escort",
+      "2025-10-23": "C&N Escort",
+      "2025-10-24": "C&N Escort",
+      "2025-10-25": "C&N Escort",
+      "2025-10-26": "C&N Escort",
+      "2025-10-28": "C&N Escort",
+      "2025-11-04": "C&N Escort",
+      "2025-11-11": "C&N Escort",
+      "2025-11-18": "C&N Escort",
+      "2025-11-25": "C&N Escort",
+      "2025-12-09": "C&N Escort",
+      "2025-12-17": "C&N Escort"
+    },
+    "closing_history": []
   },
   {
     "id": "1000019",
     "name": "Worker 19",
-    "start_date": null,
     "qualifications": [
-      "C&N Escort",
+      "Supervisor",
       "C&N Driver",
-      "Supervisor"
+      "C&N Escort",
+      "Southern Driver",
+      "Southern Escort"
     ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2023-11-09",
-      "2024-06-30",
-      "2024-06-13",
-      "2025-01-13"
-    ],
+    "closing_interval": 6,
     "officer": false,
-    "seniority": 17,
-    "score": 68,
-    "long_timer": true
+    "seniority": 0,
+    "score": 38,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-07-31": "Southern Driver",
+      "2025-08-01": "Southern Driver",
+      "2025-08-02": "Southern Driver",
+      "2025-07-09": "Southern Driver",
+      "2025-07-15": "Southern Driver",
+      "2025-07-22": "Southern Driver",
+      "2025-09-03": "Southern Driver",
+      "2025-10-01": "Southern Driver",
+      "2025-09-07": "Southern Driver",
+      "2025-09-09": "Southern Driver",
+      "2025-09-15": "Southern Driver",
+      "2025-09-24": "Southern Driver",
+      "2025-10-23": "Southern Driver",
+      "2025-10-24": "Southern Driver",
+      "2025-10-25": "Southern Driver",
+      "2025-10-26": "Southern Driver",
+      "2025-10-28": "Southern Driver",
+      "2025-11-04": "Southern Driver",
+      "2025-11-11": "Southern Driver",
+      "2025-11-18": "Southern Driver",
+      "2025-11-25": "Southern Driver",
+      "2025-12-09": "Southern Driver",
+      "2025-12-17": "Southern Driver"
+    },
+    "closing_history": []
   },
   {
     "id": "1000020",
     "name": "Worker 20",
-    "start_date": null,
     "qualifications": [
-      "C&N Escort",
       "Supervisor",
+      "C&N Driver",
+      "C&N Escort",
+      "Southern Driver",
       "Southern Escort"
     ],
-    "closing_interval": 0,
+    "closing_interval": 6,
+    "officer": false,
+    "seniority": 0,
+    "score": 38,
+    "long_timer": false,
     "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": true,
-    "seniority": 17,
-    "score": 31,
-    "long_timer": false
+    "y_tasks": {
+      "2025-07-31": "Southern Escort",
+      "2025-08-01": "Southern Escort",
+      "2025-08-02": "Southern Escort",
+      "2025-07-09": "Southern Escort",
+      "2025-07-15": "Southern Escort",
+      "2025-07-22": "Southern Escort",
+      "2025-09-03": "Southern Escort",
+      "2025-10-01": "Southern Escort",
+      "2025-09-07": "Southern Escort",
+      "2025-09-09": "Southern Escort",
+      "2025-09-15": "Southern Escort",
+      "2025-09-24": "Southern Escort",
+      "2025-10-23": "Southern Escort",
+      "2025-10-24": "Southern Escort",
+      "2025-10-25": "Southern Escort",
+      "2025-10-26": "Southern Escort",
+      "2025-10-28": "Southern Escort",
+      "2025-11-04": "Southern Escort",
+      "2025-11-11": "Southern Escort",
+      "2025-11-18": "Southern Escort",
+      "2025-11-25": "Southern Escort",
+      "2025-12-09": "Southern Escort",
+      "2025-12-17": "Southern Escort"
+    },
+    "closing_history": []
   },
   {
     "id": "1000021",
     "name": "Worker 21",
-    "start_date": null,
     "qualifications": [
-      "Southern Driver"
+      "Supervisor",
+      "C&N Driver",
+      "C&N Escort",
+      "Southern Driver",
+      "Southern Escort"
     ],
     "closing_interval": 5,
+    "officer": false,
+    "seniority": 0,
+    "score": 37,
+    "long_timer": false,
     "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-06-26"
-    ],
-    "officer": true,
-    "seniority": 10,
-    "score": 30,
-    "long_timer": false
+    "y_tasks": {
+      "2025-08-14": "Supervisor",
+      "2025-08-15": "Supervisor",
+      "2025-08-16": "Supervisor",
+      "2025-08-03": "Supervisor",
+      "2025-08-04": "Supervisor",
+      "2025-08-17": "Supervisor",
+      "2025-08-18": "Supervisor",
+      "2025-08-24": "Supervisor",
+      "2025-08-26": "Supervisor",
+      "2025-09-11": "Supervisor",
+      "2025-09-12": "Supervisor",
+      "2025-09-13": "Supervisor",
+      "2025-09-16": "Supervisor",
+      "2025-10-30": "Supervisor",
+      "2025-10-31": "Supervisor",
+      "2025-10-08": "Supervisor",
+      "2025-10-15": "Supervisor",
+      "2025-11-09": "Supervisor",
+      "2025-11-27": "Supervisor",
+      "2025-11-28": "Supervisor",
+      "2025-11-29": "Supervisor",
+      "2025-12-10": "Supervisor"
+    },
+    "closing_history": []
   },
   {
     "id": "1000022",
     "name": "Worker 22",
-    "start_date": null,
     "qualifications": [
-      "C&N Escort",
       "Supervisor",
-      "Southern Escort",
-      "Southern Driver"
+      "C&N Driver",
+      "C&N Escort",
+      "Southern Driver",
+      "Southern Escort"
     ],
-    "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-03-07",
-      "2025-04-03",
-      "2024-12-24"
-    ],
+    "closing_interval": 6,
     "officer": false,
-    "seniority": 2,
-    "score": 81,
-    "long_timer": false
+    "seniority": 0,
+    "score": 37,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-08-14": "C&N Driver",
+      "2025-08-15": "C&N Driver",
+      "2025-08-16": "C&N Driver",
+      "2025-08-03": "C&N Driver",
+      "2025-08-04": "C&N Driver",
+      "2025-08-17": "C&N Driver",
+      "2025-08-18": "C&N Driver",
+      "2025-08-24": "C&N Driver",
+      "2025-08-26": "C&N Driver",
+      "2025-09-11": "C&N Driver",
+      "2025-09-12": "C&N Driver",
+      "2025-09-13": "C&N Driver",
+      "2025-09-16": "C&N Driver",
+      "2025-10-30": "C&N Driver",
+      "2025-10-31": "C&N Driver",
+      "2025-10-08": "C&N Driver",
+      "2025-10-15": "C&N Driver",
+      "2025-11-09": "C&N Driver",
+      "2025-11-27": "C&N Driver",
+      "2025-11-28": "C&N Driver",
+      "2025-11-29": "C&N Driver",
+      "2025-12-10": "C&N Driver"
+    },
+    "closing_history": []
   },
   {
     "id": "1000023",
     "name": "Worker 23",
-    "start_date": null,
     "qualifications": [
+      "Supervisor",
+      "C&N Driver",
       "C&N Escort",
+      "Southern Driver",
       "Southern Escort"
     ],
-    "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-11-08"
-    ],
+    "closing_interval": 4,
     "officer": false,
-    "seniority": null,
-    "score": 66,
-    "long_timer": true
+    "seniority": 0,
+    "score": 37,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-08-14": "C&N Escort",
+      "2025-08-15": "C&N Escort",
+      "2025-08-16": "C&N Escort",
+      "2025-08-03": "C&N Escort",
+      "2025-08-04": "C&N Escort",
+      "2025-08-17": "C&N Escort",
+      "2025-08-18": "C&N Escort",
+      "2025-08-24": "C&N Escort",
+      "2025-08-26": "C&N Escort",
+      "2025-09-11": "C&N Escort",
+      "2025-09-12": "C&N Escort",
+      "2025-09-13": "C&N Escort",
+      "2025-09-16": "C&N Escort",
+      "2025-10-30": "C&N Escort",
+      "2025-10-31": "C&N Escort",
+      "2025-10-08": "C&N Escort",
+      "2025-10-15": "C&N Escort",
+      "2025-11-09": "C&N Escort",
+      "2025-11-27": "C&N Escort",
+      "2025-11-28": "C&N Escort",
+      "2025-11-29": "C&N Escort",
+      "2025-12-10": "C&N Escort"
+    },
+    "closing_history": []
   },
   {
     "id": "1000024",
     "name": "Worker 24",
-    "start_date": null,
     "qualifications": [
+      "Supervisor",
+      "C&N Driver",
+      "C&N Escort",
       "Southern Driver",
       "Southern Escort"
     ],
-    "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2023-08-13"
-    ],
+    "closing_interval": 5,
     "officer": false,
-    "seniority": null,
-    "score": 6,
-    "long_timer": true
+    "seniority": 0,
+    "score": 37,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-08-14": "Southern Driver",
+      "2025-08-15": "Southern Driver",
+      "2025-08-16": "Southern Driver",
+      "2025-08-03": "Southern Driver",
+      "2025-08-04": "Southern Driver",
+      "2025-08-17": "Southern Driver",
+      "2025-08-18": "Southern Driver",
+      "2025-08-24": "Southern Driver",
+      "2025-08-26": "Southern Driver",
+      "2025-09-11": "Southern Driver",
+      "2025-09-12": "Southern Driver",
+      "2025-09-13": "Southern Driver",
+      "2025-09-16": "Southern Driver",
+      "2025-10-30": "Southern Driver",
+      "2025-10-31": "Southern Driver",
+      "2025-10-08": "Southern Driver",
+      "2025-10-15": "Southern Driver",
+      "2025-11-09": "Southern Driver",
+      "2025-11-27": "Southern Driver",
+      "2025-11-28": "Southern Driver",
+      "2025-11-29": "Southern Driver",
+      "2025-12-10": "Southern Driver"
+    },
+    "closing_history": []
   },
   {
     "id": "1000025",
     "name": "Worker 25",
-    "start_date": null,
     "qualifications": [
-      "Southern Escort",
+      "Supervisor",
+      "C&N Driver",
+      "C&N Escort",
       "Southern Driver",
-      "Supervisor"
+      "Southern Escort"
     ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-10-24",
-      "2024-11-23",
-      "2024-11-21"
-    ],
+    "closing_interval": 3,
     "officer": false,
-    "seniority": 10,
-    "score": 67,
-    "long_timer": false
+    "seniority": 0,
+    "score": 37,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-08-14": "Southern Escort",
+      "2025-08-15": "Southern Escort",
+      "2025-08-16": "Southern Escort",
+      "2025-08-03": "Southern Escort",
+      "2025-08-04": "Southern Escort",
+      "2025-08-17": "Southern Escort",
+      "2025-08-18": "Southern Escort",
+      "2025-08-24": "Southern Escort",
+      "2025-08-26": "Southern Escort",
+      "2025-09-11": "Southern Escort",
+      "2025-09-12": "Southern Escort",
+      "2025-09-13": "Southern Escort",
+      "2025-09-16": "Southern Escort",
+      "2025-10-30": "Southern Escort",
+      "2025-10-31": "Southern Escort",
+      "2025-10-08": "Southern Escort",
+      "2025-10-15": "Southern Escort",
+      "2025-11-09": "Southern Escort",
+      "2025-11-27": "Southern Escort",
+      "2025-11-28": "Southern Escort",
+      "2025-11-29": "Southern Escort",
+      "2025-12-10": "Southern Escort"
+    },
+    "closing_history": []
   },
   {
     "id": "1000026",
     "name": "Worker 26",
-    "start_date": null,
     "qualifications": [
-      "C&N Driver"
+      "Supervisor",
+      "C&N Driver",
+      "C&N Escort",
+      "Southern Driver",
+      "Southern Escort"
     ],
-    "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-05-27",
-      "2024-08-07",
-      "2023-12-01",
-      "2024-05-19"
-    ],
+    "closing_interval": 5,
     "officer": false,
-    "seniority": 17,
-    "score": 40,
-    "long_timer": false
+    "seniority": 0,
+    "score": 32,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-09-04": "Supervisor",
+      "2025-09-05": "Supervisor",
+      "2025-09-06": "Supervisor",
+      "2025-10-02": "Supervisor",
+      "2025-10-03": "Supervisor",
+      "2025-10-04": "Supervisor",
+      "2025-11-01": "Supervisor",
+      "2025-08-21": "Supervisor",
+      "2025-08-22": "Supervisor",
+      "2025-08-23": "Supervisor",
+      "2025-08-06": "Supervisor",
+      "2025-08-12": "Supervisor",
+      "2025-08-25": "Supervisor",
+      "2025-09-10": "Supervisor",
+      "2025-09-22": "Supervisor",
+      "2025-10-06": "Supervisor",
+      "2025-10-13": "Supervisor",
+      "2025-10-20": "Supervisor",
+      "2025-11-12": "Supervisor",
+      "2025-11-16": "Supervisor",
+      "2025-11-19": "Supervisor",
+      "2025-12-11": "Supervisor",
+      "2025-12-12": "Supervisor",
+      "2025-12-13": "Supervisor"
+    },
+    "closing_history": []
   },
   {
     "id": "1000027",
     "name": "Worker 27",
-    "start_date": null,
     "qualifications": [
-      "Supervisor"
+      "Supervisor",
+      "C&N Driver",
+      "C&N Escort",
+      "Southern Driver",
+      "Southern Escort"
     ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-09-03",
-      "2024-08-02",
-      "2024-11-05",
-      "2023-10-23"
-    ],
+    "closing_interval": 3,
     "officer": false,
-    "seniority": null,
-    "score": 88,
-    "long_timer": true
+    "seniority": 0,
+    "score": 32,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-09-04": "C&N Driver",
+      "2025-09-05": "C&N Driver",
+      "2025-09-06": "C&N Driver",
+      "2025-10-02": "C&N Driver",
+      "2025-10-03": "C&N Driver",
+      "2025-10-04": "C&N Driver",
+      "2025-11-01": "C&N Driver",
+      "2025-08-21": "C&N Driver",
+      "2025-08-22": "C&N Driver",
+      "2025-08-23": "C&N Driver",
+      "2025-08-06": "C&N Driver",
+      "2025-08-12": "C&N Driver",
+      "2025-08-25": "C&N Driver",
+      "2025-09-10": "C&N Driver",
+      "2025-09-22": "C&N Driver",
+      "2025-10-06": "C&N Driver",
+      "2025-10-13": "C&N Driver",
+      "2025-10-20": "C&N Driver",
+      "2025-11-12": "C&N Driver",
+      "2025-11-16": "C&N Driver",
+      "2025-11-19": "C&N Driver",
+      "2025-12-11": "C&N Driver",
+      "2025-12-12": "C&N Driver",
+      "2025-12-13": "C&N Driver"
+    },
+    "closing_history": []
   },
   {
     "id": "1000028",
     "name": "Worker 28",
-    "start_date": null,
     "qualifications": [
+      "Supervisor",
       "C&N Driver",
+      "C&N Escort",
       "Southern Driver",
-      "Supervisor"
+      "Southern Escort"
     ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
+    "closing_interval": 3,
     "officer": false,
-    "seniority": 3,
-    "score": 62,
-    "long_timer": false
+    "seniority": 0,
+    "score": 32,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-09-04": "C&N Escort",
+      "2025-09-05": "C&N Escort",
+      "2025-09-06": "C&N Escort",
+      "2025-10-02": "C&N Escort",
+      "2025-10-03": "C&N Escort",
+      "2025-10-04": "C&N Escort",
+      "2025-11-01": "C&N Escort",
+      "2025-08-21": "C&N Escort",
+      "2025-08-22": "C&N Escort",
+      "2025-08-23": "C&N Escort",
+      "2025-08-06": "C&N Escort",
+      "2025-08-12": "C&N Escort",
+      "2025-08-25": "C&N Escort",
+      "2025-09-10": "C&N Escort",
+      "2025-09-22": "C&N Escort",
+      "2025-10-06": "C&N Escort",
+      "2025-10-13": "C&N Escort",
+      "2025-10-20": "C&N Escort",
+      "2025-11-12": "C&N Escort",
+      "2025-11-16": "C&N Escort",
+      "2025-11-19": "C&N Escort",
+      "2025-12-11": "C&N Escort",
+      "2025-12-12": "C&N Escort",
+      "2025-12-13": "C&N Escort"
+    },
+    "closing_history": []
   },
   {
     "id": "1000029",
     "name": "Worker 29",
-    "start_date": null,
     "qualifications": [
-      "Southern Escort",
-      "C&N Driver"
+      "Supervisor",
+      "C&N Driver",
+      "C&N Escort",
+      "Southern Driver",
+      "Southern Escort"
     ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
+    "closing_interval": 3,
     "officer": false,
-    "seniority": null,
-    "score": 40,
-    "long_timer": false
+    "seniority": 0,
+    "score": 32,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-09-04": "Southern Driver",
+      "2025-09-05": "Southern Driver",
+      "2025-09-06": "Southern Driver",
+      "2025-10-02": "Southern Driver",
+      "2025-10-03": "Southern Driver",
+      "2025-10-04": "Southern Driver",
+      "2025-11-01": "Southern Driver",
+      "2025-08-21": "Southern Driver",
+      "2025-08-22": "Southern Driver",
+      "2025-08-23": "Southern Driver",
+      "2025-08-06": "Southern Driver",
+      "2025-08-12": "Southern Driver",
+      "2025-08-25": "Southern Driver",
+      "2025-09-10": "Southern Driver",
+      "2025-09-22": "Southern Driver",
+      "2025-10-06": "Southern Driver",
+      "2025-10-13": "Southern Driver",
+      "2025-10-20": "Southern Driver",
+      "2025-11-12": "Southern Driver",
+      "2025-11-16": "Southern Driver",
+      "2025-11-19": "Southern Driver",
+      "2025-12-11": "Southern Driver",
+      "2025-12-12": "Southern Driver",
+      "2025-12-13": "Southern Driver"
+    },
+    "closing_history": []
   },
   {
     "id": "1000030",
     "name": "Worker 30",
-    "start_date": null,
     "qualifications": [
-      "Southern Escort",
       "Supervisor",
+      "C&N Driver",
       "C&N Escort",
-      "Southern Driver"
+      "Southern Driver",
+      "Southern Escort"
     ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-07-28",
-      "2023-09-18"
-    ],
+    "closing_interval": 4,
     "officer": false,
-    "seniority": 16,
-    "score": 91,
-    "long_timer": false
+    "seniority": 0,
+    "score": 32,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-09-04": "Southern Escort",
+      "2025-09-05": "Southern Escort",
+      "2025-09-06": "Southern Escort",
+      "2025-10-02": "Southern Escort",
+      "2025-10-03": "Southern Escort",
+      "2025-10-04": "Southern Escort",
+      "2025-11-01": "Southern Escort",
+      "2025-08-21": "Southern Escort",
+      "2025-08-22": "Southern Escort",
+      "2025-08-23": "Southern Escort",
+      "2025-08-06": "Southern Escort",
+      "2025-08-12": "Southern Escort",
+      "2025-08-25": "Southern Escort",
+      "2025-09-10": "Southern Escort",
+      "2025-09-22": "Southern Escort",
+      "2025-10-06": "Southern Escort",
+      "2025-10-13": "Southern Escort",
+      "2025-10-20": "Southern Escort",
+      "2025-11-12": "Southern Escort",
+      "2025-11-16": "Southern Escort",
+      "2025-11-19": "Southern Escort",
+      "2025-12-11": "Southern Escort",
+      "2025-12-12": "Southern Escort",
+      "2025-12-13": "Southern Escort"
+    },
+    "closing_history": []
   },
   {
     "id": "1000031",
     "name": "Worker 31",
-    "start_date": null,
     "qualifications": [
-      "Supervisor"
+      "Supervisor",
+      "C&N Driver",
+      "C&N Escort",
+      "Southern Driver",
+      "Southern Escort"
     ],
-    "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-05-22",
-      "2024-04-11",
-      "2023-08-25",
-      "2023-07-31"
-    ],
+    "closing_interval": 4,
     "officer": false,
-    "seniority": null,
-    "score": 27,
-    "long_timer": false
+    "seniority": 0,
+    "score": 35,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-08-07": "Supervisor",
+      "2025-08-08": "Supervisor",
+      "2025-08-09": "Supervisor",
+      "2025-08-28": "Supervisor",
+      "2025-08-29": "Supervisor",
+      "2025-08-30": "Supervisor",
+      "2025-08-10": "Supervisor",
+      "2025-08-13": "Supervisor",
+      "2025-08-20": "Supervisor",
+      "2025-09-18": "Supervisor",
+      "2025-09-19": "Supervisor",
+      "2025-09-20": "Supervisor",
+      "2025-09-21": "Supervisor",
+      "2025-10-09": "Supervisor",
+      "2025-10-10": "Supervisor",
+      "2025-10-11": "Supervisor",
+      "2025-10-14": "Supervisor",
+      "2025-10-22": "Supervisor",
+      "2025-11-13": "Supervisor",
+      "2025-11-14": "Supervisor",
+      "2025-11-15": "Supervisor",
+      "2025-12-07": "Supervisor",
+      "2025-12-15": "Supervisor"
+    },
+    "closing_history": []
   },
   {
     "id": "1000032",
     "name": "Worker 32",
-    "start_date": null,
     "qualifications": [
+      "Supervisor",
       "C&N Driver",
-      "Southern Driver"
+      "C&N Escort",
+      "Southern Driver",
+      "Southern Escort"
     ],
     "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
     "officer": false,
-    "seniority": null,
-    "score": 86,
-    "long_timer": false
+    "seniority": 0,
+    "score": 35,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-08-07": "C&N Driver",
+      "2025-08-08": "C&N Driver",
+      "2025-08-09": "C&N Driver",
+      "2025-08-28": "C&N Driver",
+      "2025-08-29": "C&N Driver",
+      "2025-08-30": "C&N Driver",
+      "2025-08-10": "C&N Driver",
+      "2025-08-13": "C&N Driver",
+      "2025-08-20": "C&N Driver",
+      "2025-09-18": "C&N Driver",
+      "2025-09-19": "C&N Driver",
+      "2025-09-20": "C&N Driver",
+      "2025-09-21": "C&N Driver",
+      "2025-10-09": "C&N Driver",
+      "2025-10-10": "C&N Driver",
+      "2025-10-11": "C&N Driver",
+      "2025-10-14": "C&N Driver",
+      "2025-10-22": "C&N Driver",
+      "2025-11-13": "C&N Driver",
+      "2025-11-14": "C&N Driver",
+      "2025-11-15": "C&N Driver",
+      "2025-12-07": "C&N Driver",
+      "2025-12-15": "C&N Driver"
+    },
+    "closing_history": []
   },
   {
     "id": "1000033",
     "name": "Worker 33",
-    "start_date": null,
     "qualifications": [
-      "C&N Escort"
+      "Supervisor",
+      "C&N Driver",
+      "C&N Escort",
+      "Southern Driver",
+      "Southern Escort"
     ],
-    "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-05-27",
-      "2023-10-30"
-    ],
+    "closing_interval": 4,
     "officer": false,
-    "seniority": 6,
-    "score": 15,
-    "long_timer": false
+    "seniority": 0,
+    "score": 35,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-08-07": "C&N Escort",
+      "2025-08-08": "C&N Escort",
+      "2025-08-09": "C&N Escort",
+      "2025-08-28": "C&N Escort",
+      "2025-08-29": "C&N Escort",
+      "2025-08-30": "C&N Escort",
+      "2025-08-10": "C&N Escort",
+      "2025-08-13": "C&N Escort",
+      "2025-08-20": "C&N Escort",
+      "2025-09-18": "C&N Escort",
+      "2025-09-19": "C&N Escort",
+      "2025-09-20": "C&N Escort",
+      "2025-09-21": "C&N Escort",
+      "2025-10-09": "C&N Escort",
+      "2025-10-10": "C&N Escort",
+      "2025-10-11": "C&N Escort",
+      "2025-10-14": "C&N Escort",
+      "2025-10-22": "C&N Escort",
+      "2025-11-13": "C&N Escort",
+      "2025-11-14": "C&N Escort",
+      "2025-11-15": "C&N Escort",
+      "2025-12-07": "C&N Escort",
+      "2025-12-15": "C&N Escort"
+    },
+    "closing_history": []
   },
   {
     "id": "1000034",
     "name": "Worker 34",
-    "start_date": null,
     "qualifications": [
+      "Supervisor",
+      "C&N Driver",
+      "C&N Escort",
+      "Southern Driver",
       "Southern Escort"
     ],
     "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-09-10",
-      "2024-06-20"
-    ],
     "officer": false,
-    "seniority": 19,
-    "score": 5,
-    "long_timer": false
+    "seniority": 0,
+    "score": 35,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-08-07": "Southern Driver",
+      "2025-08-08": "Southern Driver",
+      "2025-08-09": "Southern Driver",
+      "2025-08-28": "Southern Driver",
+      "2025-08-29": "Southern Driver",
+      "2025-08-30": "Southern Driver",
+      "2025-08-10": "Southern Driver",
+      "2025-08-13": "Southern Driver",
+      "2025-08-20": "Southern Driver",
+      "2025-09-18": "Southern Driver",
+      "2025-09-19": "Southern Driver",
+      "2025-09-20": "Southern Driver",
+      "2025-09-21": "Southern Driver",
+      "2025-10-09": "Southern Driver",
+      "2025-10-10": "Southern Driver",
+      "2025-10-11": "Southern Driver",
+      "2025-10-14": "Southern Driver",
+      "2025-10-22": "Southern Driver",
+      "2025-11-13": "Southern Driver",
+      "2025-11-14": "Southern Driver",
+      "2025-11-15": "Southern Driver",
+      "2025-12-07": "Southern Driver",
+      "2025-12-15": "Southern Driver"
+    },
+    "closing_history": []
   },
   {
     "id": "1000035",
     "name": "Worker 35",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "Southern Escort"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 17,
-    "score": 96,
-    "long_timer": true
-  },
-  {
-    "id": "1000036",
-    "name": "Worker 36",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "Southern Escort",
-      "Supervisor",
-      "Southern Driver"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-03-18",
-      "2024-11-12",
-      "2024-08-18",
-      "2023-11-23"
-    ],
-    "officer": false,
-    "seniority": 8,
-    "score": 69,
-    "long_timer": false
-  },
-  {
-    "id": "1000037",
-    "name": "Worker 37",
-    "start_date": null,
     "qualifications": [
       "Supervisor",
-      "Southern Escort",
-      "C&N Driver",
-      "C&N Escort"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-03-03",
-      "2025-02-23",
-      "2023-10-05"
-    ],
-    "officer": false,
-    "seniority": 15,
-    "score": 61,
-    "long_timer": false
-  },
-  {
-    "id": "1000038",
-    "name": "Worker 38",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "Southern Escort",
-      "Southern Driver",
-      "C&N Driver"
-    ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-10-23",
-      "2024-04-20"
-    ],
-    "officer": false,
-    "seniority": 7,
-    "score": 31,
-    "long_timer": true
-  },
-  {
-    "id": "1000039",
-    "name": "Worker 39",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "Southern Driver",
-      "Supervisor"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": true,
-    "seniority": 3,
-    "score": 3,
-    "long_timer": false
-  },
-  {
-    "id": "1000040",
-    "name": "Worker 40",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "Supervisor",
-      "C&N Driver"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 9,
-    "score": 32,
-    "long_timer": false
-  },
-  {
-    "id": "1000041",
-    "name": "Worker 41",
-    "start_date": null,
-    "qualifications": [
-      "Southern Driver",
-      "Southern Escort",
-      "C&N Driver"
-    ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-12-13",
-      "2023-08-04"
-    ],
-    "officer": false,
-    "seniority": 8,
-    "score": 87,
-    "long_timer": true
-  },
-  {
-    "id": "1000042",
-    "name": "Worker 42",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "C&N Driver",
-      "Southern Escort",
-      "Supervisor"
-    ],
-    "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-05-02",
-      "2024-06-14",
-      "2024-06-27",
-      "2024-01-16"
-    ],
-    "officer": false,
-    "seniority": 18,
-    "score": 45,
-    "long_timer": false
-  },
-  {
-    "id": "1000043",
-    "name": "Worker 43",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort",
-      "C&N Escort"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-01-20",
-      "2024-02-09",
-      "2023-10-09"
-    ],
-    "officer": false,
-    "seniority": 19,
-    "score": 0,
-    "long_timer": false
-  },
-  {
-    "id": "1000044",
-    "name": "Worker 44",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "Southern Escort"
-    ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": null,
-    "score": 87,
-    "long_timer": false
-  },
-  {
-    "id": "1000045",
-    "name": "Worker 45",
-    "start_date": null,
-    "qualifications": [
       "C&N Driver",
       "C&N Escort",
-      "Southern Driver"
-    ],
-    "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 4,
-    "score": 89,
-    "long_timer": false
-  },
-  {
-    "id": "1000046",
-    "name": "Worker 46",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 17,
-    "score": 45,
-    "long_timer": false
-  },
-  {
-    "id": "1000047",
-    "name": "Worker 47",
-    "start_date": null,
-    "qualifications": [
-      "Supervisor",
-      "Southern Escort",
-      "C&N Driver",
-      "Southern Driver"
-    ],
-    "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 8,
-    "score": 78,
-    "long_timer": false
-  },
-  {
-    "id": "1000048",
-    "name": "Worker 48",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "Southern Escort",
-      "Southern Driver",
-      "C&N Escort"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": null,
-    "score": 69,
-    "long_timer": true
-  },
-  {
-    "id": "1000049",
-    "name": "Worker 49",
-    "start_date": null,
-    "qualifications": [
-      "Southern Driver",
-      "C&N Driver",
-      "Supervisor"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 1,
-    "score": 94,
-    "long_timer": false
-  },
-  {
-    "id": "1000050",
-    "name": "Worker 50",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort",
-      "Supervisor"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 13,
-    "score": 18,
-    "long_timer": false
-  },
-  {
-    "id": "1000051",
-    "name": "Worker 51",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver"
-    ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-05-28"
-    ],
-    "officer": false,
-    "seniority": null,
-    "score": 93,
-    "long_timer": false
-  },
-  {
-    "id": "1000052",
-    "name": "Worker 52",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "Southern Escort",
-      "C&N Driver"
-    ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2023-09-27",
-      "2025-01-07",
-      "2024-02-21",
-      "2024-09-20"
-    ],
-    "officer": false,
-    "seniority": 17,
-    "score": 88,
-    "long_timer": false
-  },
-  {
-    "id": "1000053",
-    "name": "Worker 53",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "Southern Driver"
-    ],
-    "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-01-01",
-      "2025-01-16",
-      "2024-01-15",
-      "2024-11-03"
-    ],
-    "officer": false,
-    "seniority": 10,
-    "score": 22,
-    "long_timer": false
-  },
-  {
-    "id": "1000054",
-    "name": "Worker 54",
-    "start_date": null,
-    "qualifications": [
-      "Supervisor"
-    ],
-    "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-01-12",
-      "2024-01-24"
-    ],
-    "officer": false,
-    "seniority": 15,
-    "score": 26,
-    "long_timer": true
-  },
-  {
-    "id": "1000055",
-    "name": "Worker 55",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "Southern Driver"
-    ],
-    "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 2,
-    "score": 46,
-    "long_timer": false
-  },
-  {
-    "id": "1000056",
-    "name": "Worker 56",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort"
-    ],
-    "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-06-23",
-      "2025-06-07",
-      "2024-05-09"
-    ],
-    "officer": false,
-    "seniority": 12,
-    "score": 94,
-    "long_timer": false
-  },
-  {
-    "id": "1000057",
-    "name": "Worker 57",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort"
-    ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-10-05",
-      "2023-11-10",
-      "2024-01-22"
-    ],
-    "officer": false,
-    "seniority": null,
-    "score": 57,
-    "long_timer": false
-  },
-  {
-    "id": "1000058",
-    "name": "Worker 58",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort",
-      "C&N Escort",
-      "C&N Driver"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": null,
-    "score": 23,
-    "long_timer": false
-  },
-  {
-    "id": "1000059",
-    "name": "Worker 59",
-    "start_date": null,
-    "qualifications": [
-      "Supervisor",
       "Southern Driver",
       "Southern Escort"
     ],
     "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2023-09-01",
-      "2024-12-02"
-    ],
-    "officer": false,
-    "seniority": 18,
-    "score": 87,
-    "long_timer": false
-  },
-  {
-    "id": "1000060",
-    "name": "Worker 60",
-    "start_date": null,
-    "qualifications": [
-      "Southern Driver",
-      "C&N Driver",
-      "C&N Escort"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 19,
-    "score": 83,
-    "long_timer": false
-  },
-  {
-    "id": "1000061",
-    "name": "Worker 61",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "C&N Escort"
-    ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": null,
-    "score": 14,
-    "long_timer": false
-  },
-  {
-    "id": "1000062",
-    "name": "Worker 62",
-    "start_date": null,
-    "qualifications": [
-      "Southern Driver",
-      "Southern Escort"
-    ],
-    "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-04-19",
-      "2024-06-14"
-    ],
-    "officer": false,
-    "seniority": 9,
-    "score": 19,
-    "long_timer": false
-  },
-  {
-    "id": "1000063",
-    "name": "Worker 63",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "C&N Driver",
-      "Southern Driver"
-    ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 11,
-    "score": 1,
-    "long_timer": false
-  },
-  {
-    "id": "1000064",
-    "name": "Worker 64",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort",
-      "C&N Escort"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 1,
-    "score": 62,
-    "long_timer": false
-  },
-  {
-    "id": "1000065",
-    "name": "Worker 65",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "Supervisor"
-    ],
-    "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-03-27",
-      "2025-02-03"
-    ],
-    "officer": false,
-    "seniority": null,
-    "score": 65,
-    "long_timer": false
-  },
-  {
-    "id": "1000066",
-    "name": "Worker 66",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort",
-      "C&N Escort",
-      "Supervisor",
-      "Southern Driver"
-    ],
-    "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-03-02",
-      "2024-01-19",
-      "2024-06-06",
-      "2024-12-12",
-      "2025-04-25"
-    ],
-    "officer": false,
-    "seniority": null,
-    "score": 65,
-    "long_timer": false
-  },
-  {
-    "id": "1000067",
-    "name": "Worker 67",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "Supervisor",
-      "C&N Escort",
-      "Southern Driver"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 1,
-    "score": 43,
-    "long_timer": false
-  },
-  {
-    "id": "1000068",
-    "name": "Worker 68",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "Southern Escort",
-      "Supervisor"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-06-13"
-    ],
-    "officer": false,
-    "seniority": null,
-    "score": 10,
-    "long_timer": false
-  },
-  {
-    "id": "1000069",
-    "name": "Worker 69",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": true,
-    "seniority": 11,
-    "score": 63,
-    "long_timer": false
-  },
-  {
-    "id": "1000070",
-    "name": "Worker 70",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "Southern Escort"
-    ],
-    "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-01-03",
-      "2024-05-22",
-      "2023-09-14",
-      "2023-11-29",
-      "2025-06-06"
-    ],
-    "officer": false,
-    "seniority": 8,
-    "score": 94,
-    "long_timer": false
-  },
-  {
-    "id": "1000071",
-    "name": "Worker 71",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort",
-      "C&N Driver",
-      "Supervisor"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 3,
-    "score": 41,
-    "long_timer": false
-  },
-  {
-    "id": "1000072",
-    "name": "Worker 72",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "Southern Escort",
-      "Southern Driver",
-      "C&N Escort"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 4,
-    "score": 58,
-    "long_timer": false
-  },
-  {
-    "id": "1000073",
-    "name": "Worker 73",
-    "start_date": null,
-    "qualifications": [
-      "Supervisor",
-      "C&N Escort",
-      "Southern Escort"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 16,
-    "score": 86,
-    "long_timer": false
-  },
-  {
-    "id": "1000074",
-    "name": "Worker 74",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort",
-      "Southern Driver",
-      "C&N Escort",
-      "C&N Driver"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 4,
-    "score": 37,
-    "long_timer": true
-  },
-  {
-    "id": "1000075",
-    "name": "Worker 75",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "Southern Driver"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 10,
-    "score": 40,
-    "long_timer": true
-  },
-  {
-    "id": "1000076",
-    "name": "Worker 76",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort",
-      "C&N Escort",
-      "Southern Driver",
-      "Supervisor"
-    ],
-    "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-09-28",
-      "2025-02-03",
-      "2024-04-24"
-    ],
-    "officer": false,
-    "seniority": null,
-    "score": 65,
-    "long_timer": false
-  },
-  {
-    "id": "1000077",
-    "name": "Worker 77",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort",
-      "Supervisor",
-      "Southern Driver",
-      "C&N Driver"
-    ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-05-07",
-      "2024-04-29"
-    ],
-    "officer": false,
-    "seniority": 18,
-    "score": 6,
-    "long_timer": false
-  },
-  {
-    "id": "1000078",
-    "name": "Worker 78",
-    "start_date": null,
-    "qualifications": [
-      "Supervisor",
-      "Southern Escort"
-    ],
-    "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-05-23",
-      "2025-02-09",
-      "2025-01-26",
-      "2024-11-19",
-      "2023-12-13"
-    ],
-    "officer": true,
-    "seniority": 16,
-    "score": 46,
-    "long_timer": false
-  },
-  {
-    "id": "1000079",
-    "name": "Worker 79",
-    "start_date": null,
-    "qualifications": [
-      "Supervisor"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-04-10",
-      "2023-10-04",
-      "2023-08-16",
-      "2024-01-06",
-      "2023-10-31"
-    ],
-    "officer": false,
-    "seniority": 17,
-    "score": 53,
-    "long_timer": false
-  },
-  {
-    "id": "1000080",
-    "name": "Worker 80",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver"
-    ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-05-04",
-      "2024-08-29",
-      "2024-10-12"
-    ],
-    "officer": false,
-    "seniority": 4,
-    "score": 52,
-    "long_timer": true
-  },
-  {
-    "id": "1000081",
-    "name": "Worker 81",
-    "start_date": null,
-    "qualifications": [
-      "Supervisor",
-      "C&N Escort",
-      "Southern Escort"
-    ],
-    "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-06-17"
-    ],
-    "officer": false,
-    "seniority": 11,
-    "score": 62,
-    "long_timer": false
-  },
-  {
-    "id": "1000082",
-    "name": "Worker 82",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "C&N Driver",
-      "Southern Driver",
-      "Supervisor"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-01-10",
-      "2025-01-15",
-      "2025-06-04",
-      "2023-09-12"
-    ],
-    "officer": false,
-    "seniority": null,
-    "score": 100,
-    "long_timer": false
-  },
-  {
-    "id": "1000083",
-    "name": "Worker 83",
-    "start_date": null,
-    "qualifications": [
-      "Supervisor"
-    ],
-    "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-01-05",
-      "2024-07-08"
-    ],
-    "officer": false,
-    "seniority": 14,
-    "score": 12,
-    "long_timer": false
-  },
-  {
-    "id": "1000084",
-    "name": "Worker 84",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort",
-      "C&N Driver"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": null,
-    "score": 62,
-    "long_timer": false
-  },
-  {
-    "id": "1000085",
-    "name": "Worker 85",
-    "start_date": null,
-    "qualifications": [
-      "Southern Driver",
-      "Supervisor",
-      "C&N Driver"
-    ],
-    "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-03-30",
-      "2023-12-15",
-      "2023-12-29"
-    ],
-    "officer": false,
-    "seniority": 10,
-    "score": 90,
-    "long_timer": false
-  },
-  {
-    "id": "1000086",
-    "name": "Worker 86",
-    "start_date": null,
-    "qualifications": [
-      "Southern Driver",
-      "C&N Escort",
-      "Southern Escort"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 14,
-    "score": 74,
-    "long_timer": false
-  },
-  {
-    "id": "1000087",
-    "name": "Worker 87",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort",
-      "Supervisor"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": null,
-    "score": 70,
-    "long_timer": false
-  },
-  {
-    "id": "1000088",
-    "name": "Worker 88",
-    "start_date": null,
-    "qualifications": [
-      "Southern Driver",
-      "Southern Escort"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-12-15",
-      "2023-10-06",
-      "2023-09-14",
-      "2024-09-01"
-    ],
-    "officer": false,
-    "seniority": null,
-    "score": 13,
-    "long_timer": false
-  },
-  {
-    "id": "1000089",
-    "name": "Worker 89",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver"
-    ],
-    "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2023-09-20",
-      "2023-11-30",
-      "2025-06-10",
-      "2024-11-29"
-    ],
-    "officer": false,
-    "seniority": null,
-    "score": 15,
-    "long_timer": true
-  },
-  {
-    "id": "1000090",
-    "name": "Worker 90",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": true,
-    "seniority": 20,
-    "score": 39,
-    "long_timer": false
-  },
-  {
-    "id": "1000091",
-    "name": "Worker 91",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "Southern Driver",
-      "Supervisor"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 12,
-    "score": 74,
-    "long_timer": true
-  },
-  {
-    "id": "1000092",
-    "name": "Worker 92",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "C&N Driver"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": null,
-    "score": 100,
-    "long_timer": true
-  },
-  {
-    "id": "1000093",
-    "name": "Worker 93",
-    "start_date": null,
-    "qualifications": [
-      "Southern Driver"
-    ],
-    "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-04-01",
-      "2025-01-12"
-    ],
-    "officer": true,
-    "seniority": 8,
-    "score": 68,
-    "long_timer": false
-  },
-  {
-    "id": "1000094",
-    "name": "Worker 94",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "Supervisor"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-01-26",
-      "2024-04-22",
-      "2024-04-29"
-    ],
-    "officer": true,
-    "seniority": 1,
-    "score": 8,
-    "long_timer": false
-  },
-  {
-    "id": "1000095",
-    "name": "Worker 95",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "Supervisor",
-      "Southern Escort",
-      "C&N Driver"
-    ],
-    "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 18,
-    "score": 50,
-    "long_timer": false
-  },
-  {
-    "id": "1000096",
-    "name": "Worker 96",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "Supervisor"
-    ],
-    "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 3,
-    "score": 13,
-    "long_timer": false
-  },
-  {
-    "id": "1000097",
-    "name": "Worker 97",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "Southern Driver",
-      "Supervisor",
-      "Southern Escort"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 19,
-    "score": 3,
-    "long_timer": false
-  },
-  {
-    "id": "1000098",
-    "name": "Worker 98",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": null,
-    "score": 24,
-    "long_timer": false
-  },
-  {
-    "id": "1000099",
-    "name": "Worker 99",
-    "start_date": null,
-    "qualifications": [
-      "Southern Driver",
-      "C&N Driver"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-11-01",
-      "2024-03-08"
-    ],
-    "officer": false,
-    "seniority": 12,
-    "score": 4,
-    "long_timer": false
-  },
-  {
-    "id": "1000100",
-    "name": "Worker 100",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "Southern Driver"
-    ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2023-11-10",
-      "2025-02-05",
-      "2024-04-14"
-    ],
-    "officer": false,
-    "seniority": 15,
-    "score": 100,
-    "long_timer": true
-  },
-  {
-    "id": "1000101",
-    "name": "Worker 101",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "C&N Escort",
-      "Supervisor",
-      "Southern Driver"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": true,
-    "seniority": null,
-    "score": 62,
-    "long_timer": false
-  },
-  {
-    "id": "1000102",
-    "name": "Worker 102",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "Southern Driver"
-    ],
-    "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-03-22"
-    ],
-    "officer": false,
-    "seniority": 13,
-    "score": 92,
-    "long_timer": true
-  },
-  {
-    "id": "1000103",
-    "name": "Worker 103",
-    "start_date": null,
-    "qualifications": [
-      "Supervisor",
-      "C&N Escort"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": null,
-    "score": 40,
-    "long_timer": true
-  },
-  {
-    "id": "1000104",
-    "name": "Worker 104",
-    "start_date": null,
-    "qualifications": [
-      "Southern Driver",
-      "Supervisor"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": null,
-    "score": 43,
-    "long_timer": false
-  },
-  {
-    "id": "1000105",
-    "name": "Worker 105",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "C&N Driver"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": null,
-    "score": 30,
-    "long_timer": false
-  },
-  {
-    "id": "1000106",
-    "name": "Worker 106",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "C&N Driver",
-      "Southern Escort",
-      "Southern Driver"
-    ],
-    "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 5,
-    "score": 81,
-    "long_timer": false
-  },
-  {
-    "id": "1000107",
-    "name": "Worker 107",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "C&N Driver"
-    ],
-    "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2023-10-27",
-      "2023-12-20",
-      "2023-12-03",
-      "2023-08-21"
-    ],
-    "officer": false,
-    "seniority": 8,
-    "score": 5,
-    "long_timer": true
-  },
-  {
-    "id": "1000108",
-    "name": "Worker 108",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 20,
-    "score": 18,
-    "long_timer": false
-  },
-  {
-    "id": "1000109",
-    "name": "Worker 109",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort",
-      "Southern Driver",
-      "C&N Escort",
-      "Supervisor"
-    ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2023-10-23",
-      "2023-08-18",
-      "2025-01-08",
-      "2023-12-13"
-    ],
-    "officer": false,
-    "seniority": 17,
-    "score": 2,
-    "long_timer": false
-  },
-  {
-    "id": "1000110",
-    "name": "Worker 110",
-    "start_date": null,
-    "qualifications": [
-      "Southern Driver",
-      "Southern Escort"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": null,
-    "score": 46,
-    "long_timer": false
-  },
-  {
-    "id": "1000111",
-    "name": "Worker 111",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "Supervisor",
-      "Southern Escort",
-      "Southern Driver"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 4,
-    "score": 52,
-    "long_timer": false
-  },
-  {
-    "id": "1000112",
-    "name": "Worker 112",
-    "start_date": null,
-    "qualifications": [
-      "Southern Driver"
-    ],
-    "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-01-11",
-      "2025-01-30",
-      "2025-06-21"
-    ],
-    "officer": false,
-    "seniority": 3,
-    "score": 54,
-    "long_timer": false
-  },
-  {
-    "id": "1000113",
-    "name": "Worker 113",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "Supervisor",
-      "Southern Escort",
-      "C&N Escort"
-    ],
-    "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 9,
-    "score": 15,
-    "long_timer": true
-  },
-  {
-    "id": "1000114",
-    "name": "Worker 114",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 15,
-    "score": 64,
-    "long_timer": false
-  },
-  {
-    "id": "1000115",
-    "name": "Worker 115",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort",
-      "C&N Escort",
-      "C&N Driver",
-      "Southern Driver"
-    ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": null,
-    "score": 77,
-    "long_timer": false
-  },
-  {
-    "id": "1000116",
-    "name": "Worker 116",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "Southern Escort",
-      "C&N Escort"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 10,
-    "score": 86,
-    "long_timer": false
-  },
-  {
-    "id": "1000117",
-    "name": "Worker 117",
-    "start_date": null,
-    "qualifications": [
-      "Supervisor",
-      "C&N Escort",
-      "Southern Escort"
-    ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2023-11-22",
-      "2023-09-21",
-      "2024-05-29",
-      "2025-05-07"
-    ],
-    "officer": false,
-    "seniority": 11,
-    "score": 95,
-    "long_timer": false
-  },
-  {
-    "id": "1000118",
-    "name": "Worker 118",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "Supervisor"
-    ],
-    "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-06-20",
-      "2023-08-15"
-    ],
-    "officer": false,
-    "seniority": 9,
-    "score": 57,
-    "long_timer": true
-  },
-  {
-    "id": "1000119",
-    "name": "Worker 119",
-    "start_date": null,
-    "qualifications": [
-      "Supervisor",
-      "Southern Driver",
-      "Southern Escort"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-12-05",
-      "2025-01-23",
-      "2024-07-18"
-    ],
-    "officer": false,
-    "seniority": 15,
-    "score": 49,
-    "long_timer": false
-  },
-  {
-    "id": "1000120",
-    "name": "Worker 120",
-    "start_date": null,
-    "qualifications": [
-      "Supervisor",
-      "Southern Escort"
-    ],
-    "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-01-27",
-      "2024-02-28",
-      "2024-09-20"
-    ],
-    "officer": false,
-    "seniority": null,
-    "score": 86,
-    "long_timer": false
-  },
-  {
-    "id": "1000121",
-    "name": "Worker 121",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-06-12",
-      "2023-11-14",
-      "2023-09-21",
-      "2025-03-19",
-      "2024-08-29"
-    ],
-    "officer": false,
-    "seniority": 2,
-    "score": 73,
-    "long_timer": false
-  },
-  {
-    "id": "1000122",
-    "name": "Worker 122",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort",
-      "C&N Escort",
-      "Supervisor"
-    ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-06-21",
-      "2024-05-30",
-      "2024-05-26",
-      "2024-02-12"
-    ],
-    "officer": false,
-    "seniority": 12,
-    "score": 65,
-    "long_timer": false
-  },
-  {
-    "id": "1000123",
-    "name": "Worker 123",
-    "start_date": null,
-    "qualifications": [
-      "Southern Driver",
-      "C&N Driver",
-      "Supervisor",
-      "Southern Escort"
-    ],
-    "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-11-15",
-      "2024-03-24",
-      "2025-02-19",
-      "2025-02-17",
-      "2025-03-17"
-    ],
-    "officer": false,
-    "seniority": 18,
-    "score": 64,
-    "long_timer": false
-  },
-  {
-    "id": "1000124",
-    "name": "Worker 124",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "Supervisor",
-      "Southern Driver",
-      "Southern Escort"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 13,
-    "score": 27,
-    "long_timer": false
-  },
-  {
-    "id": "1000125",
-    "name": "Worker 125",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "C&N Escort",
-      "Supervisor",
-      "Southern Escort"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-08-24"
-    ],
-    "officer": false,
-    "seniority": 5,
-    "score": 31,
-    "long_timer": false
-  },
-  {
-    "id": "1000126",
-    "name": "Worker 126",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "Southern Driver",
-      "C&N Driver"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 9,
-    "score": 15,
-    "long_timer": true
-  },
-  {
-    "id": "1000127",
-    "name": "Worker 127",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "Southern Driver"
-    ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2023-11-16",
-      "2024-08-19",
-      "2024-05-31"
-    ],
-    "officer": false,
-    "seniority": 14,
-    "score": 89,
-    "long_timer": true
-  },
-  {
-    "id": "1000128",
-    "name": "Worker 128",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort"
-    ],
-    "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-06-06",
-      "2023-09-30"
-    ],
-    "officer": false,
-    "seniority": null,
-    "score": 2,
-    "long_timer": false
-  },
-  {
-    "id": "1000129",
-    "name": "Worker 129",
-    "start_date": null,
-    "qualifications": [
-      "Southern Driver",
-      "Southern Escort",
-      "C&N Escort",
-      "C&N Driver"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": null,
-    "score": 92,
-    "long_timer": false
-  },
-  {
-    "id": "1000130",
-    "name": "Worker 130",
-    "start_date": null,
-    "qualifications": [
-      "Southern Driver",
-      "C&N Escort"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": true,
-    "seniority": 5,
-    "score": 87,
-    "long_timer": false
-  },
-  {
-    "id": "1000131",
-    "name": "Worker 131",
-    "start_date": null,
-    "qualifications": [
-      "Supervisor"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": true,
-    "seniority": 5,
-    "score": 100,
-    "long_timer": false
-  },
-  {
-    "id": "1000132",
-    "name": "Worker 132",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort",
-      "C&N Driver",
-      "C&N Escort"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-06-24",
-      "2023-08-22",
-      "2025-02-26"
-    ],
-    "officer": false,
-    "seniority": 20,
-    "score": 7,
-    "long_timer": false
-  },
-  {
-    "id": "1000133",
-    "name": "Worker 133",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "Southern Escort"
-    ],
-    "closing_interval": 5,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": true,
-    "seniority": 1,
-    "score": 6,
-    "long_timer": false
-  },
-  {
-    "id": "1000134",
-    "name": "Worker 134",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 18,
-    "score": 54,
-    "long_timer": false
-  },
-  {
-    "id": "1000135",
-    "name": "Worker 135",
-    "start_date": null,
-    "qualifications": [
-      "Southern Driver",
-      "C&N Driver",
-      "Supervisor",
-      "Southern Escort"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-01-18",
-      "2025-02-06"
-    ],
-    "officer": true,
-    "seniority": 17,
-    "score": 53,
-    "long_timer": false
-  },
-  {
-    "id": "1000136",
-    "name": "Worker 136",
-    "start_date": null,
-    "qualifications": [
-      "Southern Driver",
-      "C&N Driver",
-      "Southern Escort",
-      "Supervisor"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 11,
-    "score": 50,
-    "long_timer": false
-  },
-  {
-    "id": "1000137",
-    "name": "Worker 137",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "Supervisor"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-08-02",
-      "2024-01-19",
-      "2024-05-18",
-      "2023-10-04"
-    ],
-    "officer": false,
-    "seniority": 1,
-    "score": 62,
-    "long_timer": false
-  },
-  {
-    "id": "1000138",
-    "name": "Worker 138",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "Southern Escort",
-      "Supervisor",
-      "Southern Driver"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 8,
-    "score": 33,
-    "long_timer": false
-  },
-  {
-    "id": "1000139",
-    "name": "Worker 139",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort",
-      "C&N Escort",
-      "Southern Driver",
-      "C&N Driver"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": null,
-    "score": 70,
-    "long_timer": false
-  },
-  {
-    "id": "1000140",
-    "name": "Worker 140",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "Supervisor",
-      "Southern Escort",
-      "C&N Escort"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-02-12",
-      "2024-09-07",
-      "2024-05-02",
-      "2025-03-03",
-      "2024-07-11"
-    ],
-    "officer": false,
-    "seniority": 15,
-    "score": 74,
-    "long_timer": false
-  },
-  {
-    "id": "1000141",
-    "name": "Worker 141",
-    "start_date": null,
-    "qualifications": [
-      "Southern Driver",
-      "C&N Escort",
-      "Southern Escort",
-      "C&N Driver"
-    ],
-    "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-02-04",
-      "2024-09-02"
-    ],
-    "officer": false,
-    "seniority": 19,
-    "score": 7,
-    "long_timer": false
-  },
-  {
-    "id": "1000142",
-    "name": "Worker 142",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "Southern Escort",
-      "C&N Escort",
-      "Southern Driver"
-    ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2023-10-27"
-    ],
-    "officer": true,
-    "seniority": null,
-    "score": 94,
-    "long_timer": true
-  },
-  {
-    "id": "1000143",
-    "name": "Worker 143",
-    "start_date": null,
-    "qualifications": [
-      "Supervisor"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": null,
-    "score": 85,
-    "long_timer": false
-  },
-  {
-    "id": "1000144",
-    "name": "Worker 144",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "Supervisor",
-      "C&N Driver"
-    ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-05-25"
-    ],
-    "officer": false,
-    "seniority": 11,
-    "score": 41,
-    "long_timer": false
-  },
-  {
-    "id": "1000145",
-    "name": "Worker 145",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort",
-      "Southern Driver"
-    ],
-    "closing_interval": 6,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-08-30",
-      "2024-08-20",
-      "2024-10-25",
-      "2023-08-12"
-    ],
-    "officer": false,
-    "seniority": null,
-    "score": 78,
-    "long_timer": false
-  },
-  {
-    "id": "1000146",
-    "name": "Worker 146",
-    "start_date": null,
-    "qualifications": [
-      "C&N Driver",
-      "Southern Escort"
-    ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2024-09-03"
-    ],
-    "officer": false,
-    "seniority": 17,
-    "score": 90,
-    "long_timer": true
-  },
-  {
-    "id": "1000147",
-    "name": "Worker 147",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort"
-    ],
-    "closing_interval": 4,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": true,
-    "seniority": 7,
-    "score": 73,
-    "long_timer": true
-  },
-  {
-    "id": "1000148",
-    "name": "Worker 148",
-    "start_date": null,
-    "qualifications": [
-      "Southern Escort",
-      "Southern Driver"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 3,
-    "score": 38,
-    "long_timer": false
-  },
-  {
-    "id": "1000149",
-    "name": "Worker 149",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "Southern Driver",
-      "Southern Escort"
-    ],
-    "closing_interval": 0,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [],
-    "officer": false,
-    "seniority": 8,
-    "score": 49,
-    "long_timer": false
-  },
-  {
-    "id": "1000150",
-    "name": "Worker 150",
-    "start_date": null,
-    "qualifications": [
-      "C&N Escort",
-      "Southern Driver",
-      "C&N Driver",
-      "Supervisor"
-    ],
-    "closing_interval": 3,
-    "x_tasks": {},
-    "y_tasks": {},
-    "closing_history": [
-      "2025-04-26",
-      "2023-11-24",
-      "2025-03-27",
-      "2025-02-09"
-    ],
     "officer": false,
-    "seniority": 12,
-    "score": 15,
-    "long_timer": true
+    "seniority": 0,
+    "score": 35,
+    "long_timer": false,
+    "x_tasks": {},
+    "y_tasks": {
+      "2025-08-07": "Southern Escort",
+      "2025-08-08": "Southern Escort",
+      "2025-08-09": "Southern Escort",
+      "2025-08-28": "Southern Escort",
+      "2025-08-29": "Southern Escort",
+      "2025-08-30": "Southern Escort",
+      "2025-08-10": "Southern Escort",
+      "2025-08-13": "Southern Escort",
+      "2025-08-20": "Southern Escort",
+      "2025-09-18": "Southern Escort",
+      "2025-09-19": "Southern Escort",
+      "2025-09-20": "Southern Escort",
+      "2025-09-21": "Southern Escort",
+      "2025-10-09": "Southern Escort",
+      "2025-10-10": "Southern Escort",
+      "2025-10-11": "Southern Escort",
+      "2025-10-14": "Southern Escort",
+      "2025-10-22": "Southern Escort",
+      "2025-11-13": "Southern Escort",
+      "2025-11-14": "Southern Escort",
+      "2025-11-15": "Southern Escort",
+      "2025-12-07": "Southern Escort",
+      "2025-12-15": "Southern Escort"
+    },
+    "closing_history": []
   }
 ]

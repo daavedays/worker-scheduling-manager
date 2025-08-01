@@ -1,21 +1,28 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from typing import List
 import json
 
+
 class Worker:
-    def __init__(self, id, name, start_date, qualifications, closing_interval, officer=False, seniority=None, score=None, long_timer=False):
+    def __init__(self, id, name, start_date, qualifications, closing_interval, officer=False, seniority=None,
+                 score=None, long_timer=False):
         self.id = id
         self.name = name
         self.start_date = start_date  # datetime.date
         self.qualifications = qualifications  # List[str]
         self.closing_interval = closing_interval  # int
-        self.x_tasks = {}  # date -> True if assigned
+        self.x_tasks = {}  # date -> task_name
         self.y_tasks = {}  # date -> task name
         self.closing_history = []  # list of dates when closed weekend
-        self.officer = officer # if rank == mandatory, officer = False. 
+        self.officer = officer  # if rank == mandatory, officer = False.
         self.seniority = seniority  # Add this line
         self.score = score or 0  # how many points the worker has, default to 0
         self.long_timer = long_timer  # Add this line
+        
+        # NEW: Tally tracking for fairness
+        self.x_task_count = 0  # Total X tasks assigned
+        self.y_task_count = 0  # Total Y tasks assigned
+        self.closing_delta = 0  # How far off from ideal closing interval
 
     def is_resting_after_x(self, date):
         prev = date - timedelta(days=1)
@@ -40,13 +47,43 @@ class Worker:
 
     def assign_y_task(self, date, task_name):
         self.y_tasks[date] = task_name
+        self.y_task_count += 1  # Update tally
 
-    def assign_closing(self, date):
-        #TODO: Before publication,
-        #  ensure the closing history is updated only after soldiers' closing date is before current date.
-        # POTENTIAL BUG!: If multiple schedules are made and they are all in the future, this will cause issues, 
-        # since the soldier could be assigned for 2 weekends in a row. 
-        self.closing_history.append(date)
+    def assign_closing(self, date, development_mode=True):
+        """
+        Assign closing to a worker for a specific date.
+        
+        DEVELOPMENT MODE: Future closing assignments are immediately added to closing_history.
+        This allows the engine to consider future assignments when generating subsequent schedules.
+        
+        PRODUCTION MODE: Only past closing assignments should be added to closing_history.
+        Future assignments should be stored separately and only moved to closing_history after the date passes.
+        
+        Args:
+            date: The date for the closing assignment
+            development_mode: If True, immediately add to closing_history (for development)
+                             If False, only add if date is in the past (for production)
+        
+        TODO: BEFORE PRODUCTION - Change development_mode=False and implement proper future assignment handling!
+        """
+        if development_mode:
+            # DEVELOPMENT MODE: Immediately add to closing history
+            # This allows the engine to consider future assignments when generating subsequent schedules
+            # WARNING: This will be changed in production!
+            self.closing_history.append(date)
+        else:
+            # PRODUCTION MODE: Only add past assignments to closing history
+            # TODO: Implement proper future assignment handling for production
+            # For now, this is a placeholder - implement proper future assignment storage
+            if date <= datetime.now().date():
+                self.closing_history.append(date)
+            else:
+                # TODO: Store future assignments separately and move to closing_history when date passes
+                # This prevents double assignments when generating multiple future schedules
+                pass
+        
+        # Update closing delta calculation
+        self._update_closing_delta()
 
     def is_available_for_y_task(self, day):
         # Returns True if not already assigned a Y task on this day
@@ -64,10 +101,13 @@ class Worker:
         Check if worker has a specific X task during the specified week
         """
         week_end_date = week_start_date + timedelta(days=6)
-        # For now, we'll check if the worker has any X task during this week
-        # In the future, this could be enhanced to check specific task names
-        # when the X task system supports task names
-        return any(week_start_date <= d <= week_end_date for d in self.x_tasks)
+        # Check if the worker has the specific task during this week
+        for d in self.x_tasks:
+            if week_start_date <= d <= week_end_date:
+                # Check if the task name matches (case-insensitive)
+                if isinstance(self.x_tasks[d], str) and self.x_tasks[d].lower() == task_name.lower():
+                    return True
+        return False
 
     def had_x_task(self, week_start_date):
         """
@@ -82,6 +122,470 @@ class Worker:
         """
         week_end_date = week_start_date + timedelta(days=6)
         return any(week_start_date <= d <= week_end_date for d in self.closing_history)
+
+    def has_y_task_scheduled(self, week_start_date):
+        """
+        Check if worker has Y task scheduled during the specified week
+        """
+        week_end_date = week_start_date + timedelta(days=6)
+        return any(week_start_date <= d <= week_end_date for d in self.y_tasks)
+
+    def has_any_task_scheduled(self, week_start_date):
+        """
+        Check if worker has any task (closing or Y task) scheduled during the specified week
+        """
+        return self.has_closing_scheduled(week_start_date) or self.has_y_task_scheduled(week_start_date)
+
+    def is_due_to_close(self, date):
+        """
+        Check if worker is due to close on the given date based on their closing interval.
+        Returns True if the worker should close on this date according to their schedule.
+        
+        Args:
+            date: The date to check (should be a Friday for weekend closing)
+            
+        Returns:
+            bool: True if worker is due to close on this date, False otherwise
+        """
+        if self.closing_interval <= 0:
+            return False  # Worker doesn't participate in closing
+        
+        if not self.closing_history:
+            return True  # First time closing
+        
+        # Get the last closing date
+        last_closing = max(self.closing_history)
+        
+        # Calculate weeks since last closing
+        weeks_since_last = (date - last_closing).days // 7
+        
+        # Worker is due if weeks_since_last >= closing_interval
+        return weeks_since_last >= self.closing_interval
+
+    def is_overdue_to_close(self, date):
+        """
+        Check if worker is overdue to close on the given date.
+        Returns True if the worker should have closed before this date.
+        
+        Args:
+            date: The date to check
+            
+        Returns:
+            bool: True if worker is overdue to close, False otherwise
+        """
+        if self.closing_interval <= 0:
+            return False  # Worker doesn't participate in closing
+        
+        if not self.closing_history:
+            return True  # Never closed, so overdue
+        
+        # Get the last closing date
+        last_closing = max(self.closing_history)
+        
+        # Calculate weeks since last closing
+        weeks_since_last = (date - last_closing).days // 7
+        
+        # Worker is overdue if weeks_since_last > closing_interval
+        return weeks_since_last > self.closing_interval
+
+    def just_closed(self, date, weeks_threshold=2):
+        """
+        Check if worker just closed recently (within the specified weeks threshold).
+        
+        Args:
+            date: The date to check from
+            weeks_threshold: Number of weeks to consider "recent" (default: 2)
+            
+        Returns:
+            bool: True if worker closed within the threshold, False otherwise
+        """
+        if not self.closing_history:
+            return False
+        
+        # Get the last closing date
+        last_closing = max(self.closing_history)
+        
+        # Calculate weeks since last closing
+        weeks_since_last = (date - last_closing).days // 7
+        
+        return weeks_since_last <= weeks_threshold
+
+    def get_closing_interval(self):
+        """
+        Get the worker's closing interval.
+        
+        Returns:
+            int: The closing interval in weeks, or 0 if worker doesn't participate
+        """
+        return self.closing_interval
+
+    def had_x_task_last_week(self, date):
+        """
+        Check if worker had an X task in the previous week.
+        
+        Args:
+            date: The date to check from
+            
+        Returns:
+            bool: True if worker had X task in previous week, False otherwise
+        """
+        # Calculate the previous week's start (Monday)
+        days_since_monday = date.weekday()
+        current_week_start = date - timedelta(days=days_since_monday)
+        previous_week_start = current_week_start - timedelta(days=7)
+        previous_week_end = previous_week_start + timedelta(days=6)
+        
+        # Check if worker had any X task in the previous week
+        for x_date in self.x_tasks:
+            if previous_week_start <= x_date <= previous_week_end:
+                return True
+        return False
+
+    def is_starting_x_task_soon(self, date, context_aware=True):
+        """
+        Check if worker is starting an X task soon, with context awareness.
+        
+        Args:
+            date: The date to check from
+            context_aware: If True, considers closing interval context
+            
+        Returns:
+            bool: True if worker is starting X task soon, False otherwise
+        """
+        if not context_aware:
+            # Simple check: X task within next 2 weeks
+            future_date = date + timedelta(days=14)
+            for x_date in self.x_tasks:
+                if date <= x_date <= future_date:
+                    return True
+            return False
+        
+        # Context-aware check: Consider closing interval
+        if self.closing_interval <= 0:
+            return False  # Worker doesn't participate in closing
+        
+        # Check if worker has X task within their closing interval
+        weeks_to_check = min(self.closing_interval, 4)  # Max 4 weeks ahead
+        future_date = date + timedelta(weeks=weeks_to_check)
+        
+        for x_date in self.x_tasks:
+            if date <= x_date <= future_date:
+                return True
+        return False
+
+    def just_finished_x_task(self, date):
+        """
+        Check if worker just finished an X task recently.
+        
+        Args:
+            date: The date to check from
+            
+        Returns:
+            bool: True if worker just finished X task, False otherwise
+        """
+        # Check if worker had X task in the last 3 days
+        for x_date in self.x_tasks:
+            days_since_x = (date - x_date).days
+            if 0 <= days_since_x <= 3:  # Finished within last 3 days
+                return True
+        return False
+
+    def get_x_task_type(self, date):
+        """
+        Get the type of X task on the given date.
+        
+        Args:
+            date: The date to check
+            
+        Returns:
+            str: The X task type, or None if no X task on that date
+        """
+        return self.x_tasks.get(date)
+
+    def is_weekend_closer_with_y_tasks(self, weekend_date):
+        """
+        Check if worker is a weekend closer with Y tasks assigned.
+        
+        Args:
+            weekend_date: The Friday date of the weekend
+            
+        Returns:
+            bool: True if worker is weekend closer with Y tasks, False otherwise
+        """
+        # Check if worker is assigned to close this weekend
+        thursday = weekend_date - timedelta(days=1)
+        friday = weekend_date
+        saturday = weekend_date + timedelta(days=1)
+        sunday = weekend_date + timedelta(days=2)
+        
+        # Check if worker has closing assignment for this weekend
+        weekend_closing = any(date in self.closing_history 
+                             for date in [thursday, friday, saturday, sunday])
+        
+        if not weekend_closing:
+            return False
+        
+        # Check if worker has Y tasks assigned for this weekend
+        weekend_y_tasks = any(date in self.y_tasks 
+                             for date in [thursday, friday, saturday, sunday])
+        
+        return weekend_y_tasks
+
+    def get_days_until_x_task(self):
+        """
+        Calculate days until the next X task.
+        
+        Returns:
+            int: Days until next X task, or None if no upcoming X tasks
+        """
+        if not self.x_tasks:
+            return None
+        
+        today = date.today()
+        upcoming_x_tasks = [x_date for x_date in self.x_tasks if x_date >= today]
+        
+        if not upcoming_x_tasks:
+            return None
+        
+        next_x_task = min(upcoming_x_tasks)
+        return (next_x_task - today).days
+
+    def calculate_closing_violation_bonus(self, assigned_date):
+        """
+        ENHANCED: Calculate bonus points for closing violation (closing not on due date).
+        Context-aware: Considers X task timing and closing interval.
+        
+        Args:
+            assigned_date: The date when closing is assigned
+            
+        Returns:
+            int: Bonus points to add to worker score
+        """
+        # Check if worker has Rituk X task on the assigned date
+        if self.get_x_task_type(assigned_date) == "Rituk":
+            return 0  # No bonus for Rituk workers
+        
+        # Calculate how far off from due date
+        if not self.closing_history:
+            # Never closed before, so this is their first time
+            return 5  # Small bonus for first-time assignment
+        
+        # Find the last closing date
+        last_closing = max(self.closing_history)
+        
+        # Calculate weeks since last closing
+        weeks_since_last = (assigned_date - last_closing).days // 7
+        
+        # Calculate how many weeks off from due date
+        weeks_off = abs(weeks_since_last - self.closing_interval)
+        
+        # If weeks_off is 0, worker is exactly on schedule
+        if weeks_off == 0:
+            return 0  # No violation, no bonus
+        
+        # ENHANCED: Context-aware bonus calculation
+        base_bonus = min(weeks_off * 5, 20)
+        
+        # Additional bonus based on X task proximity
+        days_until_x_task = self.get_days_until_x_task()
+        if days_until_x_task is not None and days_until_x_task <= 14:
+            # Worker has X task within 2 weeks
+            proximity_bonus = max(0, 15 - days_until_x_task)  # Closer = higher bonus
+            base_bonus += proximity_bonus
+        
+        return base_bonus
+    
+    def get_closing_interval_context(self, target_date):
+        """
+        NEW: Get context about worker's closing interval relative to target date.
+        
+        Args:
+            target_date: The date to analyze context for
+            
+        Returns:
+            dict: Context information about closing interval
+        """
+        if self.closing_interval <= 0:
+            return {
+                'participates_in_closing': False,
+                'is_due': False,
+                'is_overdue': False,
+                'weeks_off': 0,
+                'next_due_date': None
+            }
+        
+        if not self.closing_history:
+            # Never closed before
+            return {
+                'participates_in_closing': True,
+                'is_due': True,
+                'is_overdue': True,
+                'weeks_off': self.closing_interval,
+                'next_due_date': target_date
+            }
+        
+        # Find the last closing date
+        last_closing = max(self.closing_history)
+        
+        # Calculate weeks since last closing
+        weeks_since_last = (target_date - last_closing).days // 7
+        
+        # Calculate how many weeks off from due date
+        weeks_off = weeks_since_last - self.closing_interval
+        
+        # Calculate next due date
+        next_due_date = last_closing + timedelta(weeks=self.closing_interval)
+        
+        return {
+            'participates_in_closing': True,
+            'is_due': weeks_off >= 0,
+            'is_overdue': weeks_off > 0,
+            'weeks_off': weeks_off,
+            'next_due_date': next_due_date
+        }
+    
+    def analyze_x_task_timing(self, target_date):
+        """
+        NEW: Analyze X task timing relative to target date.
+        
+        Args:
+            target_date: The date to analyze from
+            
+        Returns:
+            dict: Analysis of X task timing
+        """
+        if not self.x_tasks:
+            return {
+                'has_upcoming_x_task': False,
+                'days_until_x_task': None,
+                'x_task_type': None,
+                'x_task_date': None,
+                'conflicts_with_closing': False
+            }
+        
+        # Find next X task
+        upcoming_x_tasks = [x_date for x_date in self.x_tasks if x_date >= target_date]
+        
+        if not upcoming_x_tasks:
+            return {
+                'has_upcoming_x_task': False,
+                'days_until_x_task': None,
+                'x_task_type': None,
+                'x_task_date': None,
+                'conflicts_with_closing': False
+            }
+        
+        next_x_task_date = min(upcoming_x_tasks)
+        days_until_x_task = (next_x_task_date - target_date).days
+        x_task_type = self.x_tasks[next_x_task_date]
+        
+        # Check if X task conflicts with closing interval
+        closing_context = self.get_closing_interval_context(target_date)
+        conflicts_with_closing = False
+        
+        if closing_context['participates_in_closing']:
+            # Check if X task falls within closing interval
+            if closing_context['next_due_date']:
+                weeks_between = (next_x_task_date - closing_context['next_due_date']).days // 7
+                conflicts_with_closing = abs(weeks_between) <= 1  # Within 1 week of due date
+        
+        return {
+            'has_upcoming_x_task': True,
+            'days_until_x_task': days_until_x_task,
+            'x_task_type': x_task_type,
+            'x_task_date': next_x_task_date,
+            'conflicts_with_closing': conflicts_with_closing
+        }
+    
+    def should_warn_about_x_task_conflict(self, target_date):
+        """
+        NEW: Determine if user should be warned about X task conflict.
+        
+        Args:
+            target_date: The date to check for conflicts
+            
+        Returns:
+            dict: Warning information
+        """
+        x_task_analysis = self.analyze_x_task_timing(target_date)
+        closing_context = self.get_closing_interval_context(target_date)
+        
+        if not x_task_analysis['has_upcoming_x_task']:
+            return {
+                'should_warn': False,
+                'warning_message': None,
+                'severity': None
+            }
+        
+        # Check for high-severity conflicts
+        if x_task_analysis['days_until_x_task'] <= 7:
+            return {
+                'should_warn': True,
+                'warning_message': f"Worker has X task '{x_task_analysis['x_task_type']}' in {x_task_analysis['days_until_x_task']} days",
+                'severity': 'high'
+            }
+        
+        # Check for medium-severity conflicts
+        if x_task_analysis['days_until_x_task'] <= 14 and x_task_analysis['conflicts_with_closing']:
+            return {
+                'should_warn': True,
+                'warning_message': f"Worker has X task '{x_task_analysis['x_task_type']}' in {x_task_analysis['days_until_x_task']} days (conflicts with closing interval)",
+                'severity': 'medium'
+            }
+        
+        # Check for low-severity conflicts
+        if x_task_analysis['conflicts_with_closing']:
+            return {
+                'should_warn': True,
+                'warning_message': f"Worker has X task '{x_task_analysis['x_task_type']}' in {x_task_analysis['days_until_x_task']} days (may conflict with closing)",
+                'severity': 'low'
+            }
+        
+        return {
+            'should_warn': False,
+            'warning_message': None,
+            'severity': None
+        }
+
+    def update_score_after_assignment(self, assignment_type, date):
+        """
+        Update worker score after assignment.
+        
+        Args:
+            assignment_type: Type of assignment ("y_task", "closing", "x_task")
+            date: Date of assignment
+        """
+        if assignment_type == "y_task":
+            self.score += 1  # No cap
+        elif assignment_type == "closing":
+            # Add base closing score
+            self.score += 5
+            # Add violation bonus if applicable
+            violation_bonus = self.calculate_closing_violation_bonus(date)
+            self.score += violation_bonus
+        elif assignment_type == "x_task":
+            # X tasks don't add to score (as per requirements)
+            pass
+
+    def reverse_score_after_removal(self, assignment_type, date):
+        """
+        Reverse worker score after assignment removal.
+        
+        Args:
+            assignment_type: Type of assignment ("y_task", "closing", "x_task")
+            date: Date of assignment
+        """
+        if assignment_type == "y_task":
+            self.score = max(0, self.score - 1)  # Don't go below 0
+        elif assignment_type == "closing":
+            # Remove base closing score
+            self.score = max(0, self.score - 5)
+            # Remove violation bonus if applicable
+            violation_bonus = self.calculate_closing_violation_bonus(date)
+            self.score = max(0, self.score - violation_bonus)
+        elif assignment_type == "x_task":
+            # X tasks don't affect score
+            pass
 
     def get_last_closing_week(self):
         """
@@ -110,6 +614,42 @@ class Worker:
         today = datetime.now().date()
         days_served = (today - self.start_date).days
         return max(1, days_served // 7)  # At least 1 week
+    
+    def _update_closing_delta(self):
+        """
+        Update the closing delta - how far off from ideal closing interval
+        """
+        if not self.closing_history:
+            self.closing_delta = 0
+            return
+        
+        # Calculate expected vs actual closings
+        weeks_served = self.get_total_weeks_served()
+        expected_closings = weeks_served // self.closing_interval if self.closing_interval > 0 else 0
+        actual_closings = len(self.closing_history)
+        self.closing_delta = actual_closings - expected_closings
+    
+    def get_workload_score(self):
+        """
+        Calculate workload score based on tallies
+        Higher score = more overworked = should get fewer future tasks
+        """
+        workload_score = 0
+        
+        # X task penalty (each X task adds to workload penalty)
+        workload_score += self.x_task_count * 2  # Reduced from 10 to 2
+        
+        # Y task penalty (each Y task adds to workload penalty)
+        workload_score += self.y_task_count * 1  # Reduced from 5 to 1
+        
+        # Closing delta penalty (if behind schedule, should get priority)
+        if self.closing_delta < 0:  # Behind schedule
+            workload_score -= abs(self.closing_delta) * 20  # Priority for behind schedule
+        elif self.closing_delta > 0:  # Ahead of schedule
+            workload_score += self.closing_delta * 15  # Penalty for ahead of schedule
+        
+        return workload_score
+
 
 # UTIL to load from JSON
 
@@ -164,9 +704,9 @@ def load_workers_from_json(json_path: str, name_conv_path: str = 'data/name_conv
         )
         # Optionally load x_tasks, y_tasks, closing_history if present
         if 'x_tasks' in item:
-            for d in item['x_tasks']:
+            for d, task_name in item['x_tasks'].items():
                 try:
-                    w.x_tasks[datetime.strptime(d, '%Y-%m-%d').date()] = True
+                    w.x_tasks[datetime.strptime(d, '%Y-%m-%d').date()] = task_name
                 except Exception:
                     pass
         if 'y_tasks' in item:
@@ -182,3 +722,74 @@ def load_workers_from_json(json_path: str, name_conv_path: str = 'data/name_conv
                 w.closing_history = []
         workers.append(w)
     return workers 
+
+
+def reset_x_tasks_data():
+    """Reset x tasks data in worker_data.json file"""
+    print("=== RESETTING X TASKS ===")
+    file = "../data/x_tasks.json"
+    with open(file, 'r', encoding='utf-8') as f:
+        workers = json.load(f)
+    print(f"Loaded {len(workers)} workers")
+    # Reset x task data
+    for i, worker in enumerate(workers):
+        worker['x_tasks'] = {}
+
+
+def save_workers_to_json(workers: List[Worker], json_path: str, original_data: List[dict] = None):
+    """
+    Save workers back to JSON with updated closing history and assignments.
+    
+    DEVELOPMENT MODE: This saves all assignments including future ones to closing_history.
+    This allows subsequent schedule generations to consider previous assignments.
+    
+    PRODUCTION MODE: This should be modified to only save past assignments to closing_history.
+    
+    Args:
+        workers: List of Worker objects to save
+        json_path: Path to save the JSON file
+        original_data: Original JSON data to preserve other fields
+    
+    TODO: BEFORE PRODUCTION - Modify this function to only save past assignments to closing_history!
+    """
+    # Load original data if provided, otherwise create new structure
+    if original_data:
+        # Create a mapping of worker ID to original data
+        original_map = {str(item.get('id', '')): item for item in original_data}
+    else:
+        original_map = {}
+
+    # Convert workers to JSON format
+    json_data = []
+    for worker in workers:
+        # Start with original data if available, otherwise create new structure
+        if worker.id in original_map:
+            worker_data = original_map[worker.id].copy()
+        else:
+            worker_data = {
+                'id': worker.id,
+                'name': worker.name,
+                'qualifications': worker.qualifications,
+                'closing_interval': worker.closing_interval,
+                'officer': worker.officer,
+                'seniority': worker.seniority,
+                'score': worker.score,
+                'long_timer': worker.long_timer
+            }
+            if worker.start_date:
+                worker_data['start_date'] = worker.start_date.strftime('%Y-%m-%d')
+
+        # Update with current assignments
+        worker_data['x_tasks'] = {d.strftime('%Y-%m-%d'): task for d, task in worker.x_tasks.items()}
+        worker_data['y_tasks'] = {d.strftime('%Y-%m-%d'): task for d, task in worker.y_tasks.items()}
+        worker_data['closing_history'] = [d.strftime('%Y-%m-%d') for d in worker.closing_history]
+
+        json_data.append(worker_data)
+
+    # Save to JSON file
+    with open(json_path, 'w', encoding='utf-8') as f:
+        json.dump(json_data, f, indent=2, ensure_ascii=False)
+
+    print(f"✅ Saved {len(workers)} workers to {json_path}")
+    print("⚠️  DEVELOPMENT MODE: Future closing assignments saved to closing_history")
+    print("⚠️  TODO: BEFORE PRODUCTION - Modify to only save past assignments!")
