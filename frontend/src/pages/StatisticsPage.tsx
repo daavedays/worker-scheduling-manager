@@ -136,6 +136,55 @@ interface StatisticsData {
     x_task_files: number;
     y_task_files: number;
   };
+  // ENHANCED: New comprehensive statistics
+  y_task_bar_chart: Array<{
+    name: string;
+    y_tasks: number;
+    color: string;
+    deviation: number;
+    percentage: number;
+  }>;
+  score_vs_y_tasks: Array<{
+    name: string;
+    score: number;
+    y_tasks: number;
+    ratio: number;
+  }>;
+  closing_accuracy: Array<{
+    name: string;
+    target_interval: number;
+    actual_interval: number;
+    accuracy_percentage: number;
+    total_closings: number;
+    color: string;
+  }>;
+  qualification_analysis: Array<{
+    qualification: string;
+    qualified_workers: number;
+    total_tasks: number;
+    avg_tasks_per_worker: number;
+    utilization_rate: number;
+  }>;
+  workload_distribution: Array<{
+    name: string;
+    total_tasks: number;
+    x_tasks: number;
+    y_tasks: number;
+    x_percentage: number;
+    y_percentage: number;
+    balance_score: number;
+  }>;
+  seniority_analysis: Array<{
+    seniority: string;
+    worker_count: number;
+    total_tasks: number;
+    avg_tasks_per_worker: number;
+  }>;
+  task_timeline_analysis: Array<{
+    period: string;
+    total_tasks: number;
+  }>;
+  average_y_tasks: number;
 }
 
 // Generate colors for pie charts
@@ -161,7 +210,7 @@ function StatisticsPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; onT
       setError(null);
       
       console.log('Fetching statistics...');
-      const response = await fetch('http://localhost:5000/api/statistics', {
+      const response = await fetch('http://localhost:5001/api/statistics', {
         credentials: 'include'
       });
       
@@ -327,6 +376,79 @@ function StatisticsPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; onT
           </CardContent>
         </Card>
       </Box>
+
+      {/* Worker Task Count Bar Chart */}
+      <Paper sx={{ p: 3, mb: 3, height: '600px' }}>
+        <Typography variant="h6" sx={{ mb: 2, textAlign: 'center' }}>
+          Total Tasks per Worker
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 2, textAlign: 'center', color: 'text.secondary' }}>
+          Shows the total number of tasks (X + Y) assigned to each worker. Bar width represents the worker, height represents task count.
+        </Typography>
+        {data.fairness_metrics.worker_performance_metrics.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={data.fairness_metrics.worker_performance_metrics}
+              margin={{ top: 20, right: 30, left: 100, bottom: 100 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="worker_name" 
+                label={{ value: 'Worker Name', position: 'insideBottom', offset: -10 }}
+                angle={-45}
+                textAnchor="end"
+                height={80}
+              />
+              <YAxis 
+                label={{ value: 'Number of Tasks', angle: -90, position: 'insideLeft' }}
+              />
+              <Tooltip 
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <Box sx={{ bgcolor: 'background.paper', p: 2, border: 1, borderColor: 'divider' }}>
+                        <Typography variant="body2">
+                          <strong>{data.worker_name}</strong><br />
+                          Total Tasks: {data.total_tasks}<br />
+                          X Tasks: {data.x_tasks}<br />
+                          Y Tasks: {data.y_tasks}<br />
+                          Score: {data.score}<br />
+                          Seniority: {data.seniority}<br />
+                          Workload Deviation: {data.workload_deviation}%
+                        </Typography>
+                      </Box>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Legend />
+              <Bar 
+                dataKey="total_tasks" 
+                fill="#8884d8"
+                name="Total Tasks" 
+              >
+                {data.fairness_metrics.worker_performance_metrics.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={
+                      entry.total_tasks >= 10 ? '#ff4444' : // Red for high workload
+                      entry.total_tasks >= 5 ? '#ff8800' : // Orange for medium workload
+                      entry.total_tasks >= 2 ? '#ffff00' : // Yellow for low workload
+                      '#82ca9d' // Green for very low workload
+                    } 
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+            <Typography color="text.secondary">No worker task data available</Typography>
+          </Box>
+        )}
+      </Paper>
 
       {/* Debug Info */}
       <Paper sx={{ p: 3, mb: 3 }}>
@@ -1100,6 +1222,371 @@ function StatisticsPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; onT
             <Typography color="text.secondary">No histogram data available</Typography>
           </Box>
         )}
+      </Paper>
+
+      {/* ENHANCED: Y Task Distribution Bar Chart with Color Coding */}
+      <Paper sx={{ p: 3, mb: 3, height: '600px' }}>
+        <Typography variant="h5" sx={{ mb: 2, textAlign: 'center' }}>
+          Y Task Distribution Analysis (Color Coded)
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 2, textAlign: 'center', color: 'text.secondary' }}>
+          Red: Overworked (above average +5%), Green: Average range (±5%), Blue: Underworked (below average -5%)
+        </Typography>
+        {data.y_task_bar_chart && data.y_task_bar_chart.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={data.y_task_bar_chart}
+              margin={{ top: 20, right: 30, left: 100, bottom: 100 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="name" 
+                label={{ value: 'Worker Name', position: 'insideBottom', offset: -10 }}
+                angle={-45}
+                textAnchor="end"
+                height={80}
+              />
+              <YAxis 
+                label={{ value: 'Y Tasks', angle: -90, position: 'insideLeft' }}
+              />
+              <Tooltip 
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <Box sx={{ bgcolor: 'background.paper', p: 2, border: 1, borderColor: 'divider' }}>
+                        <Typography variant="body2">
+                          <strong>{data.name}</strong><br />
+                          Y Tasks: {data.y_tasks}<br />
+                          Deviation: {data.deviation > 0 ? '+' : ''}{data.deviation}<br />
+                          Percentage: {data.percentage}%<br />
+                          Status: {data.color === 'red' ? 'Overworked' : data.color === 'blue' ? 'Underworked' : 'Average'}
+                        </Typography>
+                      </Box>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Bar dataKey="y_tasks" fill="#8884d8">
+                {data.y_task_bar_chart.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+            <Typography color="text.secondary">No Y task distribution data available</Typography>
+          </Box>
+        )}
+      </Paper>
+
+      {/* ENHANCED: Score vs Y Tasks Correlation */}
+      <Paper sx={{ p: 3, mb: 3, height: '600px' }}>
+        <Typography variant="h5" sx={{ mb: 2, textAlign: 'center' }}>
+          Worker Score vs Y Tasks Correlation
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 2, textAlign: 'center', color: 'text.secondary' }}>
+          Shows the relationship between worker scores and Y task assignments
+        </Typography>
+        {data.score_vs_y_tasks && data.score_vs_y_tasks.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <ScatterChart
+              margin={{ top: 20, right: 30, left: 80, bottom: 80 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                type="number" 
+                dataKey="score" 
+                name="Worker Score"
+                label={{ value: 'Worker Score', position: 'insideBottom', offset: -10 }}
+              />
+              <YAxis 
+                type="number" 
+                dataKey="y_tasks" 
+                name="Y Tasks"
+                label={{ value: 'Y Tasks', angle: -90, position: 'insideLeft' }}
+              />
+              <Tooltip 
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <Box sx={{ bgcolor: 'background.paper', p: 2, border: 1, borderColor: 'divider' }}>
+                        <Typography variant="body2">
+                          <strong>{data.name}</strong><br />
+                          Score: {data.score}<br />
+                          Y Tasks: {data.y_tasks}<br />
+                          Ratio: {data.ratio}
+                        </Typography>
+                      </Box>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Scatter dataKey="y_tasks" fill="#8884d8" />
+            </ScatterChart>
+          </ResponsiveContainer>
+        ) : (
+          <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+            <Typography color="text.secondary">No score vs Y tasks data available</Typography>
+          </Box>
+        )}
+      </Paper>
+
+      {/* ENHANCED: Closing Interval Accuracy */}
+      <Paper sx={{ p: 3, mb: 3, height: '600px' }}>
+        <Typography variant="h5" sx={{ mb: 2, textAlign: 'center' }}>
+          Closing Interval Accuracy Analysis
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 2, textAlign: 'center', color: 'text.secondary' }}>
+          Green: ≥80% accuracy, Orange: 60-79% accuracy, Red: &lt;60% accuracy
+        </Typography>
+        {data.closing_accuracy && data.closing_accuracy.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={data.closing_accuracy}
+              margin={{ top: 20, right: 30, left: 100, bottom: 100 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="name" 
+                label={{ value: 'Worker Name', position: 'insideBottom', offset: -10 }}
+                angle={-45}
+                textAnchor="end"
+                height={80}
+              />
+              <YAxis 
+                label={{ value: 'Accuracy Percentage', angle: -90, position: 'insideLeft' }}
+              />
+              <Tooltip 
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <Box sx={{ bgcolor: 'background.paper', p: 2, border: 1, borderColor: 'divider' }}>
+                        <Typography variant="body2">
+                          <strong>{data.name}</strong><br />
+                          Target Interval: {data.target_interval}<br />
+                          Actual Interval: {data.actual_interval}<br />
+                          Accuracy: {data.accuracy_percentage}%<br />
+                          Total Closings: {data.total_closings}
+                        </Typography>
+                      </Box>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Bar dataKey="accuracy_percentage" fill="#8884d8">
+                {data.closing_accuracy.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+            <Typography color="text.secondary">No closing accuracy data available</Typography>
+          </Box>
+        )}
+      </Paper>
+
+      {/* ENHANCED: Qualification Analysis */}
+      <Paper sx={{ p: 3, mb: 3, height: '600px' }}>
+        <Typography variant="h5" sx={{ mb: 2, textAlign: 'center' }}>
+          Qualification Utilization Analysis
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 2, textAlign: 'center', color: 'text.secondary' }}>
+          Shows how effectively each qualification is being utilized
+        </Typography>
+        {data.qualification_analysis && data.qualification_analysis.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart
+              data={data.qualification_analysis}
+              margin={{ top: 20, right: 30, left: 80, bottom: 80 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="qualification" 
+                label={{ value: 'Qualification', position: 'insideBottom', offset: -10 }}
+                angle={-45}
+                textAnchor="end"
+                height={80}
+              />
+              <YAxis yAxisId="left" label={{ value: 'Count', angle: -90, position: 'insideLeft' }} />
+              <YAxis yAxisId="right" orientation="right" label={{ value: 'Rate (%)', angle: 90, position: 'insideRight' }} />
+              <Tooltip />
+              <Legend />
+              <Bar yAxisId="left" dataKey="qualified_workers" fill="#8884d8" name="Qualified Workers" />
+              <Bar yAxisId="left" dataKey="total_tasks" fill="#82ca9d" name="Total Tasks" />
+              <Line yAxisId="right" type="monotone" dataKey="utilization_rate" stroke="#ff7300" name="Utilization Rate (%)" />
+            </ComposedChart>
+          </ResponsiveContainer>
+        ) : (
+          <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+            <Typography color="text.secondary">No qualification analysis data available</Typography>
+          </Box>
+        )}
+      </Paper>
+
+      {/* ENHANCED: Workload Balance Analysis */}
+      <Paper sx={{ p: 3, mb: 3, height: '600px' }}>
+        <Typography variant="h5" sx={{ mb: 2, textAlign: 'center' }}>
+          X vs Y Task Balance Analysis
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 2, textAlign: 'center', color: 'text.secondary' }}>
+          Shows the balance between X and Y tasks for each worker (lower balance score = better balance)
+        </Typography>
+        {data.workload_distribution && data.workload_distribution.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={data.workload_distribution}
+              margin={{ top: 20, right: 30, left: 100, bottom: 100 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="name" 
+                label={{ value: 'Worker Name', position: 'insideBottom', offset: -10 }}
+                angle={-45}
+                textAnchor="end"
+                height={80}
+              />
+              <YAxis 
+                label={{ value: 'Balance Score', angle: -90, position: 'insideLeft' }}
+              />
+              <Tooltip 
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <Box sx={{ bgcolor: 'background.paper', p: 2, border: 1, borderColor: 'divider' }}>
+                        <Typography variant="body2">
+                          <strong>{data.name}</strong><br />
+                          Total Tasks: {data.total_tasks}<br />
+                          X Tasks: {data.x_tasks} ({data.x_percentage}%)<br />
+                          Y Tasks: {data.y_tasks} ({data.y_percentage}%)<br />
+                          Balance Score: {data.balance_score}
+                        </Typography>
+                      </Box>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Bar dataKey="balance_score" fill="#8884d8">
+                {data.workload_distribution.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.balance_score < 20 ? '#82ca9d' : '#ff7300'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+            <Typography color="text.secondary">No workload distribution data available</Typography>
+          </Box>
+        )}
+      </Paper>
+
+      {/* ENHANCED: Seniority Analysis */}
+      <Paper sx={{ p: 3, mb: 3, height: '600px' }}>
+        <Typography variant="h5" sx={{ mb: 2, textAlign: 'center' }}>
+          Seniority vs Task Distribution
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 2, textAlign: 'center', color: 'text.secondary' }}>
+          Shows how tasks are distributed across different seniority levels
+        </Typography>
+        {data.seniority_analysis && data.seniority_analysis.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart
+              data={data.seniority_analysis}
+              margin={{ top: 20, right: 30, left: 80, bottom: 80 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="seniority" 
+                label={{ value: 'Seniority', position: 'insideBottom', offset: -10 }}
+              />
+              <YAxis yAxisId="left" label={{ value: 'Count', angle: -90, position: 'insideLeft' }} />
+              <YAxis yAxisId="right" orientation="right" label={{ value: 'Avg Tasks', angle: 90, position: 'insideRight' }} />
+              <Tooltip />
+              <Legend />
+              <Bar yAxisId="left" dataKey="worker_count" fill="#8884d8" name="Worker Count" />
+              <Bar yAxisId="left" dataKey="total_tasks" fill="#82ca9d" name="Total Tasks" />
+              <Line yAxisId="right" type="monotone" dataKey="avg_tasks_per_worker" stroke="#ff7300" name="Avg Tasks/Worker" />
+            </ComposedChart>
+          </ResponsiveContainer>
+        ) : (
+          <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+            <Typography color="text.secondary">No seniority analysis data available</Typography>
+          </Box>
+        )}
+      </Paper>
+
+      {/* ENHANCED: Task Timeline Analysis */}
+      <Paper sx={{ p: 3, mb: 3, height: '600px' }}>
+        <Typography variant="h5" sx={{ mb: 2, textAlign: 'center' }}>
+          Y Task Timeline Analysis
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 2, textAlign: 'center', color: 'text.secondary' }}>
+          Shows Y task distribution over different time periods
+        </Typography>
+        {data.task_timeline_analysis && data.task_timeline_analysis.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={data.task_timeline_analysis}
+              margin={{ top: 20, right: 30, left: 80, bottom: 80 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="period" 
+                label={{ value: 'Time Period', position: 'insideBottom', offset: -10 }}
+                angle={-45}
+                textAnchor="end"
+                height={80}
+              />
+              <YAxis 
+                label={{ value: 'Total Tasks', angle: -90, position: 'insideLeft' }}
+              />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey="total_tasks" stroke="#8884d8" name="Total Y Tasks" />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+            <Typography color="text.secondary">No timeline analysis data available</Typography>
+          </Box>
+        )}
+      </Paper>
+
+      {/* Enhanced Summary Card */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" sx={{ mb: 2 }}>
+          Enhanced Statistics Summary
+        </Typography>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 2 }}>
+          <Typography variant="body2">
+            <strong>Average Y Tasks:</strong> {data.average_y_tasks}
+          </Typography>
+          <Typography variant="body2">
+            <strong>Overworked Workers:</strong> {data.y_task_bar_chart?.filter(w => w.color === 'red').length || 0}
+          </Typography>
+          <Typography variant="body2">
+            <strong>Underworked Workers:</strong> {data.y_task_bar_chart?.filter(w => w.color === 'blue').length || 0}
+          </Typography>
+          <Typography variant="body2">
+            <strong>Average Workers:</strong> {data.y_task_bar_chart?.filter(w => w.color === 'green').length || 0}
+          </Typography>
+          <Typography variant="body2">
+            <strong>High Accuracy Closings:</strong> {data.closing_accuracy?.filter(w => w.color === 'green').length || 0}
+          </Typography>
+          <Typography variant="body2">
+            <strong>Low Accuracy Closings:</strong> {data.closing_accuracy?.filter(w => w.color === 'red').length || 0}
+          </Typography>
+        </Box>
       </Paper>
 
       {/* Data Files Info */}

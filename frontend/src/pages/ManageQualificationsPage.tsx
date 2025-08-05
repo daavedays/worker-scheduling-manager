@@ -21,7 +21,7 @@ function ManageQualificationsPage() {
 
   const fetchWorkers = () => {
     setLoading(true);
-    fetch('http://localhost:5000/api/workers', { credentials: 'include' })
+    fetch('http://localhost:5001/api/workers', { credentials: 'include' })
       .then(res => res.json())
       .then(data => { setWorkers(data.workers || []); setLoading(false); })
       .catch(() => { setError('Failed to load workers'); setLoading(false); });
@@ -33,7 +33,7 @@ function ManageQualificationsPage() {
   };
 
   const handleSave = (id: string) => {
-    fetch(`http://localhost:5000/api/workers/${id}/qualifications`, {
+    fetch(`http://localhost:5001/api/workers/${id}/qualifications`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',

@@ -91,6 +91,7 @@ function YTaskPage() {
   const [tableDarkMode, setTableDarkMode] = useState(true); // local state
   const [insufficientWorkersReport, setInsufficientWorkersReport] = useState<any | null>(null);
   const [showInsufficientReport, setShowInsufficientReport] = useState(false);
+  const [generatedCsvData, setGeneratedCsvData] = useState<string | null>(null);
 
   // On mount, check for resolveConflict in localStorage
   useEffect(() => {
@@ -119,7 +120,7 @@ function YTaskPage() {
   };
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/y-tasks/list', { credentials: 'include' })
+    fetch('http://localhost:5001/api/y-tasks/list', { credentials: 'include' })
       .then(res => res.json())
       .then(data => setAvailableSchedules(data.schedules || []));
   }, []);
@@ -128,7 +129,7 @@ function YTaskPage() {
     if (!selectedSchedule) return;
     setLoading(true);
     setWarnings([]);
-    fetch(`http://localhost:5000/api/y-tasks?start=${selectedSchedule.start}&end=${selectedSchedule.end}`, { credentials: 'include' })
+    fetch(`http://localhost:5001/api/y-tasks?start=${selectedSchedule.start}&end=${selectedSchedule.end}`, { credentials: 'include' })
       .then(res => res.text())
       .then(csv => {
         const rows = csv.split('\n').filter(Boolean).map(line => line.split(','));
@@ -150,7 +151,7 @@ function YTaskPage() {
     setWarnings([]);
     const start = startDate.toLocaleDateString('en-GB').split('/').map((x: string) => x.padStart(2, '0')).join('/');
     const end = endDate.toLocaleDateString('en-GB').split('/').map((x: string) => x.padStart(2, '0')).join('/');
-    const res = await fetch('http://localhost:5000/api/y-tasks/generate', {
+    const res = await fetch('http://localhost:5001/api/y-tasks/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -161,10 +162,19 @@ function YTaskPage() {
       setGrid(data.grid);
       setDates(data.dates);
       setWarnings(data.warnings || []);
+      // Store detailed report for enhanced warning display
+      if (data.detailed_report) {
+        setInsufficientWorkersReport(data.detailed_report);
+      }
+      // Store CSV data for saving later
+      if (data.csv_data) {
+        setGeneratedCsvData(data.csv_data);
+      }
     } else {
       setWarnings([data.error || 'Failed to generate schedule']);
       setGrid([]);
       setDates([]);
+      setGeneratedCsvData(null);
     }
     setLoading(false);
   };
@@ -173,12 +183,6 @@ function YTaskPage() {
     setSaving(true);
     setSaveError(null);
     try {
-      // Save as Y tasks (rows) x dates (columns)
-      let csv = 'Y Task,' + dates.join(',') + '\n';
-      for (let y = 0; y < Y_TASKS.length; ++y) {
-        const row = [Y_TASKS[y], ...grid[y].map(s => s || '-')];
-        csv += row.join(',') + '\n';
-      }
       // Always use dd/mm/yyyy for start/end
       const getDMY = (d: Date | string | undefined | null) => {
         if (!d) return '';
@@ -188,18 +192,49 @@ function YTaskPage() {
       };
       const startDMY = getDMY(selectedSchedule?.start) || getDMY(startDate);
       const endDMY = getDMY(selectedSchedule?.end) || getDMY(endDate);
-      const res = await fetch('http://localhost:5000/api/y-tasks', {
+      
+      // Parse CSV data to get grid, dates, and y_tasks
+      let csv = generatedCsvData;
+      if (!csv) {
+        // Fallback: generate CSV from grid using state variables
+        csv = 'Y Task,' + (dates || []).join(',') + '\n';
+        for (let y = 0; y < Y_TASKS.length; ++y) {
+          const row = [Y_TASKS[y], ...(grid[y] || []).map(s => s || '-')];
+          csv += row.join(',') + '\n';
+        }
+      }
+      
+      const csvLines: string[] = csv.split('\n').filter((line: string) => line.trim());
+      const headers: string[] = csvLines[0].split(',');
+      const parsedDates: string[] = headers.slice(1); // Skip 'Y Task' column
+      const y_tasks: string[] = [];
+      const parsedGrid: string[][] = [];
+      
+      // Parse data rows
+      for (let i = 1; i < csvLines.length; i++) {
+        const row = csvLines[i].split(',');
+        if (row.length > 1) {
+          y_tasks.push(row[0]); // Y task name
+          parsedGrid.push(row.slice(1)); // Worker assignments
+        }
+      }
+      
+      const res = await fetch('http://localhost:5001/api/y-tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           start: startDMY,
           end: endDMY,
-          csv,
+          grid: parsedGrid,
+          dates: parsedDates,
+          y_tasks,
         }),
       });
       if (!res.ok) throw new Error('Save failed');
       setSaveSuccess(true);
+      // Clear the stored CSV data after successful save
+      setGeneratedCsvData(null);
     } catch (e: any) {
       setSaveError(e.message || 'Failed to save Y tasks');
     } finally {
@@ -215,13 +250,13 @@ function YTaskPage() {
   const handleClear = async () => {
     if (!selectedSchedule) return;
     setClearDialogOpen(false);
-    await fetch('http://localhost:5000/api/y-tasks/clear', {
+    await fetch('http://localhost:5001/api/y-tasks/clear', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({ start: selectedSchedule.start, end: selectedSchedule.end })
     });
-    fetch(`http://localhost:5000/api/y-tasks?start=${selectedSchedule.start}&end=${selectedSchedule.end}`, { credentials: 'include' })
+    fetch(`http://localhost:5001/api/y-tasks?start=${selectedSchedule.start}&end=${selectedSchedule.end}`, { credentials: 'include' })
       .then(res => res.text())
       .then(csv => {
         const rows = csv.split('\n').filter(Boolean).map(line => line.split(','));
@@ -236,19 +271,21 @@ function YTaskPage() {
     setPickerLoading(true);
     const current_assignments: Record<string, Record<string, string>> = {};
     for (let yy = 0; yy < Y_TASKS.length; ++yy) {
-      for (let dd = 0; dd < dates.length; ++dd) {
+      for (let dd = 0; dd < (dates?.length || 0); ++dd) {
         const s = grid[yy]?.[dd];
         if (!s) continue;
         if (!current_assignments[s]) current_assignments[s] = {};
-        current_assignments[s][dates[dd]] = Y_TASKS[yy];
+        if (dates && dates[dd]) {
+          current_assignments[s][dates[dd]] = Y_TASKS[yy];
+        }
       }
     }
-    const res = await fetch('http://localhost:5000/api/y-tasks/available-soldiers', {
+    const res = await fetch('http://localhost:5001/api/y-tasks/available-soldiers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({
-        date: dates[d],
+        date: dates && dates[d] ? dates[d] : '',
         task: Y_TASKS[y],
         current_assignments,
       }),
@@ -263,13 +300,13 @@ function YTaskPage() {
     setTimeout(() => setShowBomb(false), 1200);
     setLoading(true);
     setWarnings([]);
-    const res = await fetch('http://localhost:5000/api/y-tasks/generate', {
+    const res = await fetch('http://localhost:5001/api/y-tasks/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({
-        start: dates[0],
-        end: dates[dates.length - 1],
+        start: dates && dates.length > 0 ? dates[0] : '',
+        end: dates && dates.length > 0 ? dates[dates.length - 1] : '',
         mode: 'hybrid',
         partial_grid: grid,
         y_tasks: Y_TASKS,
@@ -301,7 +338,7 @@ function YTaskPage() {
     setDeleteDialogOpen(false);
     setDeleteError(null);
     try {
-      const res = await fetch('http://localhost:5000/api/y-tasks/delete', {
+      const res = await fetch('http://localhost:5001/api/y-tasks/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -309,7 +346,7 @@ function YTaskPage() {
       });
       if (!res.ok) throw new Error('Delete failed');
       // Refresh schedule list
-      fetch('http://localhost:5000/api/y-tasks/list', { credentials: 'include' })
+      fetch('http://localhost:5001/api/y-tasks/list', { credentials: 'include' })
         .then(res => res.json())
         .then(data => setAvailableSchedules(data.schedules || []));
       // If the deleted schedule was selected, clear selection
@@ -330,7 +367,7 @@ function YTaskPage() {
     const end = endDate.toLocaleDateString('en-GB').split('/').map((x: string) => x.padStart(2, '0')).join('/');
     
     try {
-      const res = await fetch('http://localhost:5000/api/y-tasks/insufficient-workers-report', {
+      const res = await fetch('http://localhost:5001/api/y-tasks/insufficient-workers-report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -350,7 +387,7 @@ function YTaskPage() {
     }
   };
 
-  const tableWidth = dates.length > 0 ? Math.max(900, 180 + dates.length * 120) : 900;
+  const tableWidth = dates && dates.length > 0 ? Math.max(900, 180 + dates.length * 120) : 900;
   const formattedStartDate = startDate ? formatDateDMY(startDate.toLocaleDateString('en-GB')) : '';
   const formattedEndDate = endDate ? formatDateDMY(endDate.toLocaleDateString('en-GB')) : '';
 
@@ -385,7 +422,7 @@ function YTaskPage() {
         }}>
           <Typography sx={{ color: '#fff', fontWeight: 700, mb: 1 }}>Select Y Task Schedule</Typography>
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            {availableSchedules.map((sch: any) => (
+            {availableSchedules?.map((sch: any) => (
               <Box key={sch.filename} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Button
                   variant={selectedSchedule && sch.filename === selectedSchedule.filename ? 'contained' : 'outlined'}
@@ -542,9 +579,37 @@ function YTaskPage() {
           </Box>
           {warnings.length > 0 && (
             <MuiAlert severity="warning" sx={{ mb: 2 }}>
+              <Typography variant="h6" sx={{ mb: 1, fontWeight: 'bold' }}>
+                Y Task Issues - Insufficient Qualified Workers
+              </Typography>
               <ul style={{ margin: 0, paddingLeft: 20 }}>
-                {warnings.map((w: string, i: number) => <li key={i}>{w}</li>)}
+                {warnings?.map((w: string, i: number) => <li key={i}>{w}</li>)}
               </ul>
+              {insufficientWorkersReport && insufficientWorkersReport.detailed_y_task_issues && insufficientWorkersReport.detailed_y_task_issues.length > 0 && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    Detailed Issues:
+                  </Typography>
+                  <Box sx={{ maxHeight: 200, overflowY: 'auto', border: '1px solid #ff9800', borderRadius: 1, p: 1 }}>
+                    {insufficientWorkersReport.detailed_y_task_issues.map((issue: any, idx: number) => (
+                      <Box key={idx} sx={{ mb: 1, p: 1, bgcolor: 'rgba(255, 152, 0, 0.1)', borderRadius: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                          {issue.date} - {issue.task}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#d32f2f' }}>
+                          Worker: {issue.worker_name} (ID: {issue.worker_id})
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontSize: '0.8rem', color: '#666' }}>
+                          Qualifications: {issue.worker_qualifications.join(', ')}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontSize: '0.8rem', color: '#d32f2f', fontWeight: 'bold' }}>
+                          Issue: {issue.issue}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              )}
             </MuiAlert>
           )}
           {grid.length > 0 && (
@@ -586,7 +651,7 @@ function YTaskPage() {
                     >
                       שם
                     </th>
-                    {dates.map((date: string, i: number) => (
+                    {dates?.map((date: string, i: number) => (
                       <th
                         key={i}
                         style={{
@@ -672,7 +737,7 @@ function YTaskPage() {
                 <DialogContent>
                   {pickerLoading ? <CircularProgress /> : (
                     <List>
-                      {availableSoldiers.map(s => (
+                      {availableSoldiers?.map(s => (
                         <ListItemButton key={s.id} onClick={() => {
                           setGrid(prev => {
                             const copy = prev.map(r => [...r]);
@@ -755,8 +820,8 @@ function YTaskPage() {
                     {insufficientWorkersReport.weekend_closing_issues.map((issue: any, index: number) => (
                       <ListItem key={index}>
                         <ListItemText 
-                          primary={`Weekend ${issue.weekend}`}
-                          secondary={issue.issue}
+                          primary={`Weekend ${issue.week}`}
+                          secondary={`Available: ${issue.available_candidates}, Required: ${issue.required}`}
                         />
                       </ListItem>
                     ))}
@@ -773,7 +838,7 @@ function YTaskPage() {
                     {insufficientWorkersReport.y_task_issues.map((issue: any, index: number) => (
                       <ListItem key={index}>
                         <ListItemText 
-                          primary={`Week ${issue.week}, ${issue.task}`}
+                          primary={`${issue.date}, ${issue.task}`}
                           secondary={issue.issue}
                         />
                       </ListItem>

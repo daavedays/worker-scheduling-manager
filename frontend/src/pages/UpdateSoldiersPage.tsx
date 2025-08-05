@@ -23,19 +23,19 @@ function UpdateWorkersPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; 
 
   const fetchWorkers = () => {
     setLoading(true);
-    fetch('http://localhost:5000/api/workers', { credentials: 'include' })
+    fetch('http://localhost:5001/api/workers', { credentials: 'include' })
       .then(res => res.json())
       .then(data => { setWorkers(data.workers || []); setLoading(false); });
   };
 
   const handleEdit = (worker: any) => setEditDialog({ open: true, worker: { ...worker } });
   const handleDelete = (id: string) => {
-    fetch(`http://localhost:5000/api/workers/${id}`, { method: 'DELETE', credentials: 'include' })
+    fetch(`http://localhost:5001/api/workers/${id}`, { method: 'DELETE', credentials: 'include' })
       .then(res => res.json())
       .then(() => fetchWorkers());
   };
   const handleSaveEdit = () => {
-    fetch(`http://localhost:5000/api/workers/${editDialog.worker.id}`, {
+    fetch(`http://localhost:5001/api/workers/${editDialog.worker.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -45,7 +45,7 @@ function UpdateWorkersPage({ darkMode, onToggleDarkMode }: { darkMode: boolean; 
       .then(() => { setEditDialog({ open: false, worker: null }); fetchWorkers(); });
   };
   const handleAdd = () => {
-    fetch('http://localhost:5000/api/workers', {
+    fetch('http://localhost:5001/api/workers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',

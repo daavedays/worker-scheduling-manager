@@ -3,8 +3,12 @@ import csv
 import json
 from datetime import datetime, timedelta, date
 from typing import List, Dict, Optional, Tuple
-from .worker import load_workers_from_json
-from .scheduler_engine import SchedulerEngine
+try:
+    from .worker import load_workers_from_json
+    from .scheduler_engine import SchedulerEngine
+except ImportError:
+    from worker import load_workers_from_json
+    from scheduler_engine import SchedulerEngine
 import re
 
 # --- Y Task Definitions ---
@@ -202,16 +206,19 @@ def read_x_tasks(csv_path, year=None):
             except Exception:
                 year = datetime.today().year
         period_starts = []
-        date_pattern = re.compile(r'^\d{2}/\d{2}/\d{4}$')
         for s in subheaders[1:]:
-            start_str = s.split(' - ')[0]
+            if not s.strip():  # Skip empty subheaders
+                continue
+            start_str = s.split(' - ')[0].strip()
             if len(start_str.split('/')) == 3:
                 date_str = start_str
             else:
                 date_str = f"{start_str}/{year}"
-            if not date_pattern.match(date_str):
-                continue  # skip invalid date strings
-            period_starts.append(datetime.strptime(date_str, "%d/%m/%Y"))
+            try:
+                period_starts.append(datetime.strptime(date_str, "%d/%m/%Y"))
+            except ValueError as e:
+                print(f"Warning: Could not parse date '{date_str}' from subheader '{s}': {e}")
+                continue
         period_ends = period_starts[1:] + [period_starts[-1] + timedelta(days=7)]
 
         for row in reader:

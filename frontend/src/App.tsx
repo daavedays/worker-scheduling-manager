@@ -57,6 +57,7 @@ import ManageWorkersPage from './pages/ManageWorkersPage';
 // Remove commented-out imports for unused pages
 import StatisticsPage from './pages/StatisticsPage';
 
+
 // Add a global fetch wrapper to handle 401 Unauthorized and redirect to login
 const fetchWithAuth: typeof fetch = async (...args) => {
   const res = await fetch(...args);
@@ -312,7 +313,7 @@ function CombinedPage() {
 
   // Load available Y schedule periods
   React.useEffect(() => {
-    fetchWithAuth('http://localhost:5000/api/y-tasks/list', { credentials: 'include' })
+    fetchWithAuth('http://localhost:5001/api/y-tasks/list', { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
         setAvailableSchedules(data.schedules || []);
@@ -325,7 +326,7 @@ function CombinedPage() {
   React.useEffect(() => {
     if (!selectedSchedule) return;
     setLoading(true);
-    fetchWithAuth(`http://localhost:5000/api/combined/by-range?start=${encodeURIComponent(selectedSchedule.start)}&end=${encodeURIComponent(selectedSchedule.end)}`, { credentials: 'include' })
+    fetchWithAuth(`http://localhost:5001/api/combined/by-range?start=${encodeURIComponent(selectedSchedule.start)}&end=${encodeURIComponent(selectedSchedule.end)}`, { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
         setRowLabels(data.row_labels || []);
@@ -352,7 +353,7 @@ function CombinedPage() {
         csv += row.join(',') + '\n';
       }
       const filename = `combined_${selectedSchedule.start.replace(/\//g, '-')}_${selectedSchedule.end.replace(/\//g, '-')}.csv`;
-      const res = await fetchWithAuth('http://localhost:5000/api/combined/save', {
+      const res = await fetchWithAuth('http://localhost:5001/api/combined/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -479,7 +480,7 @@ function WarningsPage() {
 
   React.useEffect(() => {
     setLoading(true);
-    fetchWithAuth('http://localhost:5000/api/warnings', { credentials: 'include' })
+    fetchWithAuth('http://localhost:5001/api/warnings', { credentials: 'include' })
       .then((res: Response) => res.json())
       .then((data: any) => {
         setWarnings(data.warnings || []);
@@ -515,7 +516,7 @@ function ResetHistoryPage() {
 
   const fetchHistory = React.useCallback(() => {
     setLoading(true);
-    fetchWithAuth('http://localhost:5000/api/history', { credentials: 'include' })
+    fetchWithAuth('http://localhost:5001/api/history', { credentials: 'include' })
       .then((res: Response) => res.json())
       .then((data: any) => {
         setHistory(data.history || []);
@@ -532,7 +533,7 @@ function ResetHistoryPage() {
     setResetting(true);
     setResetError(null);
     try {
-      const res = await fetchWithAuth('http://localhost:5000/api/reset', {
+      const res = await fetchWithAuth('http://localhost:5001/api/reset', {
         method: 'POST',
         credentials: 'include',
       });
@@ -625,7 +626,7 @@ function AppRoutes() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('http://localhost:5000/api/login', {
+      const res = await fetch('http://localhost:5001/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -652,7 +653,7 @@ function AppRoutes() {
   const logout = async () => {
     setLoading(true);
     try {
-      await fetch('http://localhost:5000/api/logout', {
+      await fetch('http://localhost:5001/api/logout', {
         method: 'POST',
         credentials: 'include',
       });
@@ -675,7 +676,7 @@ function AppRoutes() {
     (async () => {
       setLoading(true);
       try {
-        const res = await fetchWithAuth('http://localhost:5000/api/session', {
+        const res = await fetchWithAuth('http://localhost:5001/api/session', {
           credentials: 'include',
         });
         const data = await res.json();
@@ -717,6 +718,7 @@ function AppRoutes() {
         <Route path="/reset-history" element={<ProtectedRoute><ResetHistoryPage /></ProtectedRoute>} />
         <Route path="/manage-workers" element={<ProtectedRoute><ManageWorkersPage darkMode={darkMode} onToggleDarkMode={toggleDarkMode} /></ProtectedRoute>} />
         <Route path="/statistics" element={<ProtectedRoute><StatisticsPage darkMode={darkMode} onToggleDarkMode={toggleDarkMode} /></ProtectedRoute>} />
+
         {/* Remove commented-out routes for unused pages */}
         <Route path="/help" element={<ProtectedRoute><Box sx={{ p: 4 }}><Typography variant='h4'>Help (Coming Soon)</Typography></Box></ProtectedRoute>} />
         {/* No catch-all redirect; let router handle refresh and unknown routes */}

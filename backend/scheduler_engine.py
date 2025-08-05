@@ -1,7 +1,13 @@
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from typing import List, Dict, Tuple
 from collections import defaultdict
-from .worker import Worker
+import os
+try:
+    from .worker import Worker
+    from .y_task_manager import get_y_task_manager
+except ImportError:
+    from worker import Worker
+    from y_task_manager import get_y_task_manager
 
 
 class ScoreKeeper:
@@ -59,18 +65,41 @@ class ScoreKeeper:
         Higher score = more overworked = should get fewer future tasks
         Lower score = less overworked = should get more future tasks
         """
+        # Safety check: ensure we have workers
+        if not self.workers:
+            return 0
+        
+        # ENHANCED: Use CSV-based Y task counts if available
+        try:
+            # Try to get Y task counts from CSV (if scheduler engine is available)
+            if hasattr(self, 'scheduler_engine') and self.scheduler_engine:
+                y_task_counts = [self.scheduler_engine._get_worker_y_task_count(w) for w in self.workers]
+                worker_y_tasks = self.scheduler_engine._get_worker_y_task_count(worker)
+            else:
+                # Fallback to JSON
+                y_task_counts = [len(w.y_tasks) for w in self.workers]
+                worker_y_tasks = len(worker.y_tasks)
+        except Exception:
+            # Fallback to JSON
+            y_task_counts = [len(w.y_tasks) for w in self.workers]
+            worker_y_tasks = len(worker.y_tasks)
+        
         # Calculate workload balance
-        avg_y_tasks = sum(len(w.y_tasks) for w in self.workers) / len(self.workers)
+        avg_y_tasks = sum(y_task_counts) / len(self.workers)
         avg_x_tasks = sum(len(w.x_tasks) for w in self.workers) / len(self.workers)
         
         # Worker's workload vs average
-        y_task_delta = len(worker.y_tasks) - avg_y_tasks
+        y_task_delta = worker_y_tasks - avg_y_tasks
         # x_task_delta = len(worker.x_tasks) - avg_x_tasks
         
         # CORRECT: Fairness adjustment (positive = overworked = penalty, negative = underworked = priority)
         # Overworked workers get higher scores (penalty), underworked workers get lower scores (priority)
         # INCREASED: Make fairness the dominant factor in scoring
         adjustment = (y_task_delta * 200)  # Increased from 50 to 200
+        
+        # Safety check: ensure adjustment is finite
+        if not (float('-inf') < adjustment < float('inf')):
+            return 0
         
         return int(adjustment)
     
@@ -79,6 +108,10 @@ class ScoreKeeper:
         NEW: Get qualification balancing adjustment.
         Workers with rare qualifications get priority for those tasks.
         """
+        # Safety check: ensure we have workers
+        if not self.workers:
+            return 0
+        
         # Count how many workers have this qualification
         qualified_count = sum(1 for w in self.workers if task in w.qualifications)
         total_workers = len(self.workers)
@@ -88,6 +121,10 @@ class ScoreKeeper:
         
         # Calculate scarcity (higher = more scarce)
         scarcity = total_workers / qualified_count
+        
+        # Safety check: ensure scarcity is finite
+        if not (float('-inf') < scarcity < float('inf')):
+            return 0
         
         if scarcity > 2.0:  # If qualification is scarce
             return -int(scarcity * 10)  # Priority for scarce qualifications
@@ -136,9 +173,94 @@ class SchedulerEngine:
         
         # NEW: Score keeper for tracking fairness and workload balance
         self.score_keeper = ScoreKeeper(workers)
+        # Link scheduler engine to score keeper for CSV access
+        self.score_keeper.scheduler_engine = self
         
         # NEW: Warning system for X task conflicts (user experience enhancement)
         self.x_task_warnings = []
+        
+        # ENHANCED: Initialize Y task manager for CSV-based Y task management
+        try:
+            data_dir = os.path.join(os.path.dirname(__file__), '..', 'data')
+            self.y_task_manager = get_y_task_manager(data_dir)
+        except Exception as e:
+            print(f"Warning: Could not initialize Y task manager: {e}")
+            self.y_task_manager = None
+
+    def _get_worker_y_tasks(self, worker: Worker) -> Dict[str, str]:
+        """
+        ENHANCED: Get Y tasks for a worker from CSV files instead of JSON.
+        Falls back to JSON if CSV data is not available.
+        
+        Args:
+            worker: Worker object
+            
+        Returns:
+            Dictionary of date -> task assignments (all dates as strings in dd/mm/yyyy format)
+        """
+        if self.y_task_manager:
+            try:
+                # Get Y task assignments for the scheduling period
+                start_date_str = self.start_date.strftime('%d/%m/%Y')
+                end_date_str = self.end_date.strftime('%d/%m/%Y')
+                
+                all_assignments = self.y_task_manager.get_y_task_assignments(start_date_str, end_date_str)
+                
+                # Return assignments for this specific worker
+                return all_assignments.get(str(worker.id), {})
+            except Exception as e:
+                print(f"Warning: Error getting Y tasks from CSV for worker {worker.id}: {e}")
+                # Fallback to JSON - convert datetime.date objects to strings
+                y_tasks = {}
+                for date_obj, task in worker.y_tasks.items():
+                    if isinstance(date_obj, date):
+                        date_str = date_obj.strftime('%d/%m/%Y')
+                    else:
+                        date_str = str(date_obj)
+                    y_tasks[date_str] = task
+                return y_tasks
+        else:
+            # Fallback to JSON if Y task manager is not available - convert datetime.date objects to strings
+            y_tasks = {}
+            for date_obj, task in worker.y_tasks.items():
+                if isinstance(date_obj, date):
+                    date_str = date_obj.strftime('%d/%m/%Y')
+                else:
+                    date_str = str(date_obj)
+                y_tasks[date_str] = task
+            return y_tasks
+
+    def _is_worker_available_for_y_task(self, worker: Worker, current_date: date) -> bool:
+        """
+        ENHANCED: Check if worker is available for Y task on a specific date.
+        Uses CSV data instead of JSON.
+        
+        Args:
+            worker: Worker object
+            current_date: Date to check
+            
+        Returns:
+            True if worker is available, False otherwise
+        """
+        # Get Y tasks from CSV
+        y_tasks = self._get_worker_y_tasks(worker)
+        
+        # Check if worker has Y task on this date
+        date_str = current_date.strftime('%d/%m/%Y')
+        return date_str not in y_tasks
+
+    def _get_worker_y_task_count(self, worker: Worker) -> int:
+        """
+        ENHANCED: Get total Y task count for a worker from CSV files.
+        
+        Args:
+            worker: Worker object
+            
+        Returns:
+            Total number of Y tasks assigned to this worker
+        """
+        y_tasks = self._get_worker_y_tasks(worker)
+        return len(y_tasks)
 
     def get_weekend_closing_candidates(self, workers: List[Worker], current_week: date) -> List[Worker]:
         """
@@ -180,7 +302,7 @@ class SchedulerEngine:
             score = 0
             
             # Base worker score (higher = more overworked = lower priority)
-            base_score = int(worker.score) if worker.score is not None else 0
+            base_score = int(worker.score) if worker.score is not None and float('-inf') < worker.score < float('inf') else 0
             score += base_score
             
             # ENHANCED: Workload penalty (overworked workers get higher scores = lower priority)
@@ -380,14 +502,14 @@ class SchedulerEngine:
         NEW LOGIC: Context-aware X task proximity filtering with Rituk exceptions.
         """
         available = []
-
+        
         for worker in self.workers:
             # ENHANCED: Context-aware X task proximity filtering
             if not self._is_worker_available_for_x_task_proximity(worker, current_date):
                 continue
 
-            # Skip if worker already has Y task on this day
-            if current_date in worker.y_tasks:
+            # ENHANCED: Skip if worker already has Y task on this day (using CSV data)
+            if not self._is_worker_available_for_y_task(worker, current_date):
                 continue
 
             # Skip if worker is assigned weekend closing for this week
@@ -399,22 +521,22 @@ class SchedulerEngine:
             if week_start in self.weekend_closers and self.weekend_closers[week_start] == worker:
                 continue
 
-            # Skip if worker has weekend Y task assignments for this week
+            # ENHANCED: Skip if worker has weekend Y task assignments for this week (using CSV data)
             has_weekend_y_task = False
             for i in range(4, 7):  # Thursday (4), Friday (5), Saturday (6)
                 weekend_date = week_start + timedelta(days=i)
-                if weekend_date in worker.y_tasks:
+                if not self._is_worker_available_for_y_task(worker, weekend_date):
                     has_weekend_y_task = True
                     break
             
             if has_weekend_y_task:
                 continue
 
-            # Skip if worker has been assigned Y tasks in previous days of this week
+            # ENHANCED: Skip if worker has been assigned Y tasks in previous days of this week (using CSV data)
             has_weekday_y_task_this_week = False
             for i in range(weekday):
                 previous_day = week_start + timedelta(days=i)
-                if previous_day in worker.y_tasks:
+                if not self._is_worker_available_for_y_task(worker, previous_day):
                     has_weekday_y_task_this_week = True
                     break
             
@@ -526,12 +648,12 @@ class SchedulerEngine:
             if week_start in self.weekend_closers and self.weekend_closers[week_start] == worker:
                 continue
 
-            # NEW: Skip if worker already has weekend Y task assignments for this week
+            # ENHANCED: Skip if worker already has weekend Y task assignments for this week (using CSV data)
             # Check if worker has any Y tasks during the weekend (Thursday-Saturday) of this week
             has_weekend_y_task = False
             for i in range(4, 7):  # Thursday (4), Friday (5), Saturday (6)
                 weekend_date = week_start + timedelta(days=i)
-                if weekend_date in worker.y_tasks:
+                if not self._is_worker_available_for_y_task(worker, weekend_date):
                     has_weekend_y_task = True
                     break
             
@@ -574,26 +696,16 @@ class SchedulerEngine:
 
         # Assign tasks based on scarcity (most scarce first)
         for task in y_tasks:
-            # First try to find qualified workers for this task
+            # Only assign qualified workers for this task
             qualified_workers = [w for w in available_workers
                                  if task in w.qualifications and
                                  w.id not in used_workers_today and
                                  current_date not in w.y_tasks]
 
-            # If no qualified workers, try to find any available worker
+            # If no qualified workers, leave the cell empty (don't assign unqualified workers)
             if not qualified_workers:
-                print(
-                    f"Warning: No qualified workers available for {task} on {current_date}, trying unqualified workers")
-                unqualified_workers = [w for w in available_workers
-                                                                              if w.id not in used_workers_today and
-                                       current_date not in w.y_tasks]
-
-                if not unqualified_workers:
-                    print(f"Warning: No available workers at all for {task} on {current_date}")
-                    continue
-
-                # Use unqualified workers as fallback
-                qualified_workers = unqualified_workers
+                print(f"Warning: No qualified workers available for {task} on {current_date.strftime('%d/%m/%Y')} - leaving cell empty")
+                continue
 
             # Score workers for this task
             scored_workers = []
@@ -623,7 +735,8 @@ class SchedulerEngine:
     def _assign_weekend_y_tasks_for_week_enhanced(self, week_start: date) -> List[Worker]:
         """
         ENHANCED: Assign Y tasks for the entire weekend (Thursday to Saturday).
-        NEW LOGIC: Weekend closers get priority for Y tasks.
+        NEW LOGIC: Rituk workers get top priority for Y tasks using scarcity function.
+        Weekend closers get secondary priority for Y tasks.
         One worker per Y task type, same worker does same task for entire weekend.
         """
         assigned_workers = []
@@ -635,18 +748,32 @@ class SchedulerEngine:
         # STEP 1: Get weekend closer for this week
         weekend_closer = self._get_weekend_closer_for_week(week_start)
         
-        # STEP 2: Get available workers for the weekend (excluding weekend closer)
+        # STEP 2: NEW - Assign Y-tasks to Rituk workers first (top priority)
+        thursday = week_start + timedelta(days=4)  # Thursday (Sunday + 4 days)
+        rituk_assignments = self._assign_y_tasks_to_rituk_workers(thursday, y_tasks)
+        
+        # Track which tasks and workers are already assigned from Rituk assignments
+        assigned_tasks = set()
+        assigned_workers_from_rituk = set()
+        for assignment in rituk_assignments:
+            assigned_tasks.add(assignment[1])  # task
+            assigned_workers_from_rituk.add(assignment[2])  # worker_name
+        
+        # STEP 3: Get available workers for remaining tasks (excluding Rituk workers and weekend closer)
         available_workers = self._get_available_workers_for_week(week_start)
-        if weekend_closer:
+        available_workers = [w for w in available_workers if w.name not in assigned_workers_from_rituk]
+        if weekend_closer and weekend_closer.name not in assigned_workers_from_rituk:
             available_workers = [w for w in available_workers if w != weekend_closer]
 
-        # STEP 3: Assign Y tasks with weekend closer priority
-        for task in y_tasks:
+        # STEP 4: Assign remaining Y tasks with weekend closer priority
+        remaining_tasks = [task for task in y_tasks if task not in assigned_tasks]
+        
+        for task in remaining_tasks:
             best_candidate = None
             best_score = float('inf')
 
             # PRIORITY 1: Check if weekend closer is qualified and available for this task
-            if weekend_closer and task in weekend_closer.qualifications:
+            if weekend_closer and task in weekend_closer.qualifications and weekend_closer.name not in assigned_workers_from_rituk:
                 # Weekend closer gets automatic priority for Y tasks
                 best_candidate = weekend_closer
                 best_score = -100  # Very low score to ensure priority
@@ -664,7 +791,6 @@ class SchedulerEngine:
                         continue
 
                     # Calculate score for this candidate and task
-                    thursday = week_start + timedelta(days=4)  # Thursday (Sunday + 4 days)
                     score = self._calculate_y_task_score(candidate, task, thursday, 
                                                        {"Supervisor": 1.0, "C&N Driver": 1.0, "C&N Escort": 1.0, 
                                                         "Southern Driver": 1.0, "Southern Escort": 1.0})
@@ -675,7 +801,6 @@ class SchedulerEngine:
 
             if best_candidate:
                 # Assign this worker to the task for Thursday, Friday, Saturday
-                thursday = week_start + timedelta(days=4)  # Thursday (Sunday + 4 days)
                 friday = week_start + timedelta(days=5)  # Friday (Sunday + 5 days)
                 saturday = week_start + timedelta(days=6)  # Saturday (Sunday + 6 days)
 
@@ -698,6 +823,53 @@ class SchedulerEngine:
                 print(f"Warning: No suitable candidate found for {task} on week starting {week_start}")
 
         return assigned_workers
+    
+    def _assign_y_tasks_to_rituk_workers(self, thursday_date: date, y_tasks: List[str]) -> List[Tuple[date, str, str]]:
+        """
+        NEW: Assign Y-tasks to workers with Rituk on weekends using scarcity function
+        
+        Args:
+            thursday_date: Thursday date of the weekend
+            y_tasks: List of Y-tasks to assign
+            
+        Returns:
+            List of Y-task assignments (date, task, worker_name)
+        """
+        assignments = []
+        
+        # Find workers with Rituk on this weekend
+        rituk_workers = []
+        for worker in self.workers:
+            for i in range(4):  # Thursday to Sunday
+                check_date = thursday_date + timedelta(days=i)
+                if check_date in worker.x_tasks and worker.x_tasks[check_date] == "Rituk":
+                    rituk_workers.append(worker)
+                    break
+        
+        if not rituk_workers:
+            return assignments
+        
+        # Calculate task scarcity for prioritization
+        task_scarcity = self._calculate_qualification_scarcity(self.workers, y_tasks)
+        
+        # Sort tasks by scarcity (most scarce first)
+        sorted_tasks = sorted(y_tasks, key=lambda task: task_scarcity.get(task, 1.0), reverse=True)
+        
+        # Assign tasks to Rituk workers using scarcity-based priority
+        for i, task in enumerate(sorted_tasks):
+            if i < len(rituk_workers):
+                worker = rituk_workers[i]
+                
+                # ENHANCED: Assign Y-task for Thursday-Saturday (using CSV data)
+                for j in range(3):  # Thursday, Friday, Saturday
+                    task_date = thursday_date + timedelta(days=j)
+                    if (self._is_worker_available_for_y_task(worker, task_date) and 
+                        task_date >= self.start_date and task_date <= self.end_date):
+                        worker.assign_y_task(task_date, task)
+                        worker.update_score_after_assignment("y_task", task_date)
+                        assignments.append((task_date, task, worker.name))
+        
+        return assignments
 
     def _get_weekend_closer_for_week(self, week_start: date) -> Worker:
         """
@@ -782,7 +954,7 @@ class SchedulerEngine:
         score = 0
         
         # Base worker score (higher = better worker = should get fewer tasks)
-        base_score = int(worker.score) if worker.score is not None else 0
+        base_score = int(worker.score) if worker.score is not None and float('-inf') < worker.score < float('inf') else 0
         score += base_score
         
         # ENHANCED: Qualification-based compensation
@@ -813,9 +985,17 @@ class SchedulerEngine:
         if worker.had_x_task(current_week - timedelta(days=7)):
             score += 15  # Penalty for recent X task
         
-        # Recent Y task penalty (last 14 days)
-        recent_y_tasks = sum(1 for task_date in worker.y_tasks
-                             if (week_start - task_date).days <= 14)
+        # ENHANCED: Recent Y task penalty (last 14 days) using CSV data
+        y_tasks = self._get_worker_y_tasks(worker)
+        recent_y_tasks = 0
+        for task_date_str in y_tasks:
+            if task_date_str and '/' in task_date_str:
+                try:
+                    task_date = datetime.strptime(task_date_str, '%d/%m/%Y').date()
+                    if (week_start - task_date).days <= 14:
+                        recent_y_tasks += 1
+                except ValueError:
+                    pass
         score += recent_y_tasks * 10  # Penalty for recent Y tasks
 
         return score
@@ -883,7 +1063,7 @@ class SchedulerEngine:
         
         # PERSISTENT SCORE: Add worker's persistent score (higher score = more overworked = lower priority)
         # Workers who have done more work get higher scores (penalty for future tasks)
-        score += int(worker.score) if worker.score is not None else 0
+        score += int(worker.score) if worker.score is not None and float('-inf') < worker.score < float('inf') else 0
         
         # QUALIFICATION PENALTY: Workers with more qualifications should get fewer tasks (higher scores)
         # This prevents overloading workers with many skills
@@ -909,19 +1089,34 @@ class SchedulerEngine:
         
         # Qualification scarcity (workers with scarce qualifications get priority)
         scarcity_score = qualification_scarcity.get(task, 1.0)
-        if scarcity_score > 2.0:  # If qualification is scarce
+        if scarcity_score > 2.0 and float('-inf') < scarcity_score < float('inf'):  # If qualification is scarce
             score -= int(scarcity_score * 5)  # Priority for scarce qualifications
         
-        # Recent Y task penalties (small penalties to prevent overloading in short periods)
+        # ENHANCED: Recent Y task penalties (small penalties to prevent overloading in short periods) using CSV data
+        y_tasks = self._get_worker_y_tasks(worker)
         week_start = current_date - timedelta(days=current_date.weekday())
         week_end = week_start + timedelta(days=6)
-        y_tasks_this_week = sum(1 for task_date in worker.y_tasks
-                                if week_start <= task_date <= week_end)
+        y_tasks_this_week = 0
+        for task_date_str in y_tasks:
+            if task_date_str and '/' in task_date_str:
+                try:
+                    task_date = datetime.strptime(task_date_str, '%d/%m/%Y').date()
+                    if week_start <= task_date <= week_end:
+                        y_tasks_this_week += 1
+                except ValueError:
+                    pass
         score += y_tasks_this_week * 2  # Small penalty for Y tasks this week
         
-        # Recent Y task penalty (last 14 days)
-        recent_y_tasks = sum(1 for task_date in worker.y_tasks
-                             if (current_date - task_date).days <= 14)
+        # ENHANCED: Recent Y task penalty (last 14 days) using CSV data
+        recent_y_tasks = 0
+        for task_date_str in y_tasks:
+            if task_date_str and '/' in task_date_str:
+                try:
+                    task_date = datetime.strptime(task_date_str, '%d/%m/%Y').date()
+                    if (current_date - task_date).days <= 14:
+                        recent_y_tasks += 1
+                except ValueError:
+                    pass
         score += recent_y_tasks * 1  # Small penalty for recent Y tasks
         
         # ENHANCED: X task proximity penalties with context awareness
@@ -947,9 +1142,8 @@ class SchedulerEngine:
 
     def assign_weekend_closers(self, start_date: date, end_date: date) -> Dict[date, Worker]:
         """
-        Assign weekend closers for the specified date range.
-        Uses the new scoring system from get_weekend_closing_candidates.
-        Handles cases where there are insufficient workers.
+        ENHANCED: Assign weekend closers for the specified date range.
+        Uses the new enhanced closer assignment algorithm with X-task proximity rules.
         
         Args:
             start_date: Start date for weekend closing assignments
@@ -967,46 +1161,24 @@ class SchedulerEngine:
             worker.closing_history = [date for date in worker.closing_history
                                       if date < start_date or date > end_date]
 
-        current_date = start_date
-
-        while current_date <= end_date:
-            # Find Friday (weekend start)
-            if current_date.weekday() == 4:  # Friday
-                weekend_start = current_date
-
-                # Get candidates for this weekend
-                candidates = self.get_weekend_closing_candidates(self.workers, weekend_start - timedelta(
-                    days=4))  # Monday of this week
-
-                # Assign the highest scoring candidate
-                if candidates:
-                    chosen_worker = candidates[0]
-                    self.weekend_closers[weekend_start] = chosen_worker
-
-                    # Assign closing for Thursday, Friday, Saturday, Sunday
-                    thursday = weekend_start - timedelta(days=1)  # Thursday
-                    friday = weekend_start  # Friday
-                    saturday = weekend_start + timedelta(days=1)  # Saturday
-                    sunday = weekend_start + timedelta(days=2)  # Sunday
-
-                    chosen_worker.assign_closing(thursday)
-                    chosen_worker.assign_closing(friday)
-                    chosen_worker.assign_closing(saturday)
-                    chosen_worker.assign_closing(sunday)
-                    
-                    # Update score keeper for closing assignments
-                    self.score_keeper.update_worker_score(chosen_worker, "closing", thursday)
-                    self.score_keeper.update_worker_score(chosen_worker, "closing", friday)
-                    self.score_keeper.update_worker_score(chosen_worker, "closing", saturday)
-                    self.score_keeper.update_worker_score(chosen_worker, "closing", sunday)
-                else:
-                    # Handle case where no candidates are available
-                    print(f"Warning: No weekend closing candidates available for {weekend_start}")
-                    # Could implement fallback logic here (e.g., force assign someone)
-
-                current_date += timedelta(days=7)  # Move to next Friday
-            else:
-                current_date += timedelta(days=1)
+        # ENHANCED: Use the new closer assignment algorithm
+        from .schedule_engine.assign_closers import CloserScheduler
+        closer_scheduler = CloserScheduler(self.workers)
+        
+        # Get closer assignments
+        closer_assignments = closer_scheduler.assign_closers(start_date, end_date)
+        
+        # Update weekend_closers tracking and worker closing history
+        for assignment_date, worker_name in closer_assignments:
+            # Find the worker
+            worker = next((w for w in self.workers if w.name == worker_name), None)
+            if worker:
+                # Update weekend_closers tracking (group by week)
+                week_start = assignment_date - timedelta(days=assignment_date.weekday() + 1)  # Go back to Sunday
+                self.weekend_closers[week_start] = worker
+                
+                # Update score keeper for closing assignments
+                self.score_keeper.update_worker_score(worker, "closing", assignment_date)
 
         return self.weekend_closers
 
@@ -1016,7 +1188,28 @@ class SchedulerEngine:
         """
         schedule = {}
 
-        # Add Y task assignments
+        # ENHANCED: Add Y task assignments from CSV data
+        if self.y_task_manager:
+            try:
+                start_date_str = self.start_date.strftime('%d/%m/%Y')
+                end_date_str = self.end_date.strftime('%d/%m/%Y')
+                all_assignments = self.y_task_manager.get_y_task_assignments(start_date_str, end_date_str)
+                
+                for worker_id, date_assignments in all_assignments.items():
+                    worker = next((w for w in self.workers if str(w.id) == worker_id), None)
+                    if worker:
+                        for date_str, task_name in date_assignments.items():
+                            try:
+                                task_date = datetime.strptime(date_str, '%d/%m/%Y').date()
+                                if task_date not in schedule:
+                                    schedule[task_date] = {}
+                                schedule[task_date][task_name] = worker.name
+                            except ValueError:
+                                pass
+            except Exception as e:
+                print(f"Warning: Error getting Y tasks from CSV for schedule: {e}")
+        
+        # CRITICAL FIX: Always check current worker.y_tasks assignments (from current generation)
         for worker in self.workers:
             for task_date, task_name in worker.y_tasks.items():
                 if task_date not in schedule:
@@ -1059,7 +1252,7 @@ class SchedulerEngine:
                 delta = (current_week - last_closing_week).days // 7
                 overdue = delta - worker.closing_interval
 
-            score = int(worker.score) if worker.score is not None else 0
+            score = int(worker.score) if worker.score is not None and float('-inf') < worker.score < float('inf') else 0
 
             # Skip if overdue < 0 (not due yet) - but allow workers to be reassigned even if they have future closing dates
             # Only exclude if they are truly not due yet (last closing in past and not overdue)
@@ -1137,18 +1330,19 @@ class SchedulerEngine:
 
     def get_insufficient_workers_report(self, start_date: date, end_date: date) -> Dict:
         """
-        Generate a report of insufficient workers for the specified date range.
+        Generate a detailed report of insufficient workers for the specified date range.
         
         Args:
             start_date: Start date for the report
             end_date: End date for the report
             
         Returns:
-            Dictionary containing reports of insufficient workers
+            Dictionary containing detailed reports of insufficient workers
         """
         report = {
             'weekend_closing_issues': [],
-            'y_task_issues': []
+            'y_task_issues': [],
+            'detailed_y_task_issues': []
         }
 
         current_date = start_date
@@ -1168,19 +1362,46 @@ class SchedulerEngine:
             if current_date.weekday() in [6, 0, 1, 2]:  # Sunday to Wednesday
                 available_workers = self._get_available_workers_for_day(current_date)
                 qualified_counts = {}
+                unqualified_assignments = []
+                
                 for task in ["Supervisor", "C&N Driver", "C&N Escort", "Southern Driver", "Southern Escort"]:
-                    qualified_count = sum(1 for w in available_workers if task in w.qualifications)
+                    qualified_workers = [w for w in available_workers if task in w.qualifications]
+                    qualified_count = len(qualified_workers)
                     qualified_counts[task] = qualified_count
 
-                # Check if any task has insufficient qualified workers
-                for task, count in qualified_counts.items():
-                    if count == 0:
-                        report['y_task_issues'].append({
-                            'date': current_date.strftime('%Y-%m-%d'),
-                            'task': task,
-                            'qualified_workers': count,
-                            'required': 1
-                        })
+                    # ENHANCED: Check if any unqualified workers are assigned to this task (using CSV data)
+                    if qualified_count == 0:
+                        # Find any workers assigned to this task (even if unqualified)
+                        assigned_workers = []
+                        for w in available_workers:
+                            y_tasks = self._get_worker_y_tasks(w)
+                            date_str = current_date.strftime('%d/%m/%Y')
+                            if date_str in y_tasks and y_tasks[date_str] == task:
+                                assigned_workers.append(w)
+                        
+                        if assigned_workers:
+                            for worker in assigned_workers:
+                                unqualified_assignments.append({
+                                    'date': current_date.strftime('%d/%m/%Y'),
+                                    'task': task,
+                                    'worker_id': worker.id,
+                                    'worker_name': worker.name,
+                                    'worker_qualifications': worker.qualifications,
+                                    'issue': 'Unqualified worker assigned'
+                                })
+                        else:
+                            # No workers assigned at all
+                            report['y_task_issues'].append({
+                                'date': current_date.strftime('%d/%m/%Y'),
+                                'task': task,
+                                'qualified_workers': qualified_count,
+                                'required': 1,
+                                'issue': 'No qualified workers available'
+                            })
+
+                # Add detailed issues
+                if unqualified_assignments:
+                    report['detailed_y_task_issues'].extend(unqualified_assignments)
 
             current_date += timedelta(days=1)
 

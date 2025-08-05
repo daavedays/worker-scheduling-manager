@@ -12,6 +12,7 @@ interface HeaderProps {
   showBackButton?: boolean;
   showHomeButton?: boolean;
   showMenuButton?: boolean;
+  showDarkModeToggle?: boolean;
   title?: string;
   onBackClick?: () => void;
   onHomeClick?: () => void;
@@ -24,6 +25,7 @@ const Header: React.FC<HeaderProps> = ({
   showBackButton = false,
   showHomeButton = false,
   showMenuButton = false,
+  showDarkModeToggle = true,
   title = "Worker Scheduling Manager",
   onBackClick,
   onHomeClick,
@@ -165,7 +167,9 @@ const Header: React.FC<HeaderProps> = ({
 
       {/* Right side - Action Buttons and Dark Mode Toggle */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <DarkModeToggle darkMode={darkMode} onToggle={onToggleDarkMode} sx={{ position: 'static', top: 'unset', right: 'unset', zIndex: 1, ml: 1 }} />
+        {showDarkModeToggle && (
+          <DarkModeToggle darkMode={darkMode} onToggle={onToggleDarkMode} sx={{ position: 'static', top: 'unset', right: 'unset', zIndex: 1, ml: 1 }} />
+        )}
         {showBackButton && (
           <IconButton
             onClick={handleBackClick}

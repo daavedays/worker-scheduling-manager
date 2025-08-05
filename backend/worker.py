@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, date
 from typing import List
 import json
+import os
 
 
 class Worker:
@@ -11,7 +12,7 @@ class Worker:
         self.start_date = start_date  # datetime.date
         self.qualifications = qualifications  # List[str]
         self.closing_interval = closing_interval  # int
-        self.x_tasks = {}  # date -> task_name
+        self.x_tasks = {}  # This will be populated from CSV files
         self.y_tasks = {}  # date -> task name
         self.closing_history = []  # list of dates when closed weekend
         self.officer = officer  # if rank == mandatory, officer = False.
@@ -92,29 +93,61 @@ class Worker:
     def has_x_task(self, week_start_date):
         """
         Check if worker has X task during the specified week (week_start_date to week_start_date + 6 days)
+        Uses cached X-task data from CSV files
         """
         week_end_date = week_start_date + timedelta(days=6)
-        return any(week_start_date <= d <= week_end_date for d in self.x_tasks)
+        
+        # Check if any date in the week has an X-task
+        for task_date_str in self.x_tasks.keys():
+            try:
+                task_date = datetime.strptime(task_date_str, '%d/%m/%Y').date()
+                if week_start_date <= task_date <= week_end_date:
+                    return True
+            except ValueError:
+                # Skip invalid date formats
+                continue
+        
+        return False
 
     def has_specific_x_task(self, week_start_date, task_name):
         """
         Check if worker has a specific X task during the specified week
+        Uses cached X-task data from CSV files
         """
         week_end_date = week_start_date + timedelta(days=6)
+        
         # Check if the worker has the specific task during this week
-        for d in self.x_tasks:
-            if week_start_date <= d <= week_end_date:
-                # Check if the task name matches (case-insensitive)
-                if isinstance(self.x_tasks[d], str) and self.x_tasks[d].lower() == task_name.lower():
-                    return True
+        for task_date_str, task in self.x_tasks.items():
+            try:
+                task_date = datetime.strptime(task_date_str, '%d/%m/%Y').date()
+                if week_start_date <= task_date <= week_end_date:
+                    # Check if the task name matches (case-insensitive)
+                    if isinstance(task, str) and task.lower() == task_name.lower():
+                        return True
+            except ValueError:
+                # Skip invalid date formats
+                continue
+        
         return False
 
     def had_x_task(self, week_start_date):
         """
         Check if worker had X task during the specified week (week_start_date to week_start_date + 6 days)
+        Uses cached X-task data from CSV files
         """
         week_end_date = week_start_date + timedelta(days=6)
-        return any(week_start_date <= d <= week_end_date for d in self.x_tasks)
+        
+        # Check if any date in the week has an X-task
+        for task_date_str in self.x_tasks.keys():
+            try:
+                task_date = datetime.strptime(task_date_str, '%d/%m/%Y').date()
+                if week_start_date <= task_date <= week_end_date:
+                    return True
+            except ValueError:
+                # Skip invalid date formats
+                continue
+        
+        return False
 
     def has_closing_scheduled(self, week_start_date):
         """
@@ -236,9 +269,13 @@ class Worker:
         previous_week_end = previous_week_start + timedelta(days=6)
         
         # Check if worker had any X task in the previous week
-        for x_date in self.x_tasks:
-            if previous_week_start <= x_date <= previous_week_end:
-                return True
+        for x_date_str in self.x_tasks.keys():
+            try:
+                x_date = datetime.strptime(x_date_str, '%d/%m/%Y').date()
+                if previous_week_start <= x_date <= previous_week_end:
+                    return True
+            except ValueError:
+                continue
         return False
 
     def is_starting_x_task_soon(self, date, context_aware=True):
@@ -255,9 +292,13 @@ class Worker:
         if not context_aware:
             # Simple check: X task within next 2 weeks
             future_date = date + timedelta(days=14)
-            for x_date in self.x_tasks:
-                if date <= x_date <= future_date:
-                    return True
+            for x_date_str in self.x_tasks.keys():
+                try:
+                    x_date = datetime.strptime(x_date_str, '%d/%m/%Y').date()
+                    if date <= x_date <= future_date:
+                        return True
+                except ValueError:
+                    continue
             return False
         
         # Context-aware check: Consider closing interval
@@ -268,9 +309,13 @@ class Worker:
         weeks_to_check = min(self.closing_interval, 4)  # Max 4 weeks ahead
         future_date = date + timedelta(weeks=weeks_to_check)
         
-        for x_date in self.x_tasks:
-            if date <= x_date <= future_date:
-                return True
+        for x_date_str in self.x_tasks.keys():
+            try:
+                x_date = datetime.strptime(x_date_str, '%d/%m/%Y').date()
+                if date <= x_date <= future_date:
+                    return True
+            except ValueError:
+                continue
         return False
 
     def just_finished_x_task(self, date):
@@ -284,10 +329,14 @@ class Worker:
             bool: True if worker just finished X task, False otherwise
         """
         # Check if worker had X task in the last 3 days
-        for x_date in self.x_tasks:
-            days_since_x = (date - x_date).days
-            if 0 <= days_since_x <= 3:  # Finished within last 3 days
-                return True
+        for x_date_str in self.x_tasks.keys():
+            try:
+                x_date = datetime.strptime(x_date_str, '%d/%m/%Y').date()
+                days_since_x = (date - x_date).days
+                if 0 <= days_since_x <= 3:  # Finished within last 3 days
+                    return True
+            except ValueError:
+                continue
         return False
 
     def get_x_task_type(self, date):
@@ -300,7 +349,12 @@ class Worker:
         Returns:
             str: The X task type, or None if no X task on that date
         """
-        return self.x_tasks.get(date)
+        # Convert date to string format for lookup
+        if hasattr(date, 'strftime'):
+            date_str = date.strftime('%d/%m/%Y')
+        else:
+            date_str = str(date)
+        return self.x_tasks.get(date_str)
 
     def is_weekend_closer_with_y_tasks(self, weekend_date):
         """
@@ -342,7 +396,15 @@ class Worker:
             return None
         
         today = date.today()
-        upcoming_x_tasks = [x_date for x_date in self.x_tasks if x_date >= today]
+        upcoming_x_tasks = []
+        
+        for x_date_str in self.x_tasks.keys():
+            try:
+                x_date = datetime.strptime(x_date_str, '%d/%m/%Y').date()
+                if x_date >= today:
+                    upcoming_x_tasks.append(x_date)
+            except ValueError:
+                continue
         
         if not upcoming_x_tasks:
             return None
@@ -464,7 +526,15 @@ class Worker:
             }
         
         # Find next X task
-        upcoming_x_tasks = [x_date for x_date in self.x_tasks if x_date >= target_date]
+        upcoming_x_tasks = []
+        
+        for x_date_str in self.x_tasks.keys():
+            try:
+                x_date = datetime.strptime(x_date_str, '%d/%m/%Y').date()
+                if x_date >= target_date:
+                    upcoming_x_tasks.append(x_date)
+            except ValueError:
+                continue
         
         if not upcoming_x_tasks:
             return {
@@ -477,7 +547,7 @@ class Worker:
         
         next_x_task_date = min(upcoming_x_tasks)
         days_until_x_task = (next_x_task_date - target_date).days
-        x_task_type = self.x_tasks[next_x_task_date]
+        x_task_type = self.x_tasks[next_x_task_date.strftime('%d/%m/%Y')]
         
         # Check if X task conflicts with closing interval
         closing_context = self.get_closing_interval_context(target_date)
@@ -666,6 +736,25 @@ def load_workers_from_json(json_path: str, name_conv_path: str = 'data/name_conv
                 id_to_hebrew[k] = v
     except Exception:
         id_to_hebrew = {}
+    
+    # Load X-task data from CSV files using cache manager
+    try:
+        from .cache_manager import CacheManager
+        cache_manager = CacheManager()
+        data_dir = os.path.dirname(json_path)
+        
+        # Load X-tasks for all periods (2025_1, 2025_2, 2026_1, 2026_2)
+        all_x_tasks = {}
+        for year in [2025, 2026]:
+            for period in [1, 2]:
+                x_task_data = cache_manager.get_x_task_data(period, year, data_dir)
+                all_x_tasks.update(x_task_data)
+        
+        print(f"✅ Loaded X-tasks from CSV files for {len(all_x_tasks)} workers")
+    except Exception as e:
+        print(f"⚠️  Warning: Could not load X-tasks from CSV files: {e}")
+        all_x_tasks = {}
+    
     workers = []
     for item in raw:
         sid = str(item.get('id', ''))
@@ -702,13 +791,16 @@ def load_workers_from_json(json_path: str, name_conv_path: str = 'data/name_conv
             score=item.get('score'),
             long_timer=long_timer
         )
-        # Optionally load x_tasks, y_tasks, closing_history if present
-        if 'x_tasks' in item:
-            for d, task_name in item['x_tasks'].items():
-                try:
-                    w.x_tasks[datetime.strptime(d, '%Y-%m-%d').date()] = task_name
-                except Exception:
-                    pass
+        
+        # Load X-tasks from CSV data (not from worker_data.json)
+        if sid in all_x_tasks:
+            w.x_tasks = all_x_tasks[sid]
+            print(f"   ✅ Loaded {len(w.x_tasks)} X-tasks for {w.name}")
+        else:
+            w.x_tasks = {}
+            print(f"   🚫 No X-tasks found for {w.name}")
+        
+        # Load Y-tasks and closing history from worker_data.json (these stay the same)
         if 'y_tasks' in item:
             for d, t in item['y_tasks'].items():
                 try:
@@ -721,7 +813,7 @@ def load_workers_from_json(json_path: str, name_conv_path: str = 'data/name_conv
             except Exception:
                 w.closing_history = []
         workers.append(w)
-    return workers 
+    return workers
 
 
 def reset_x_tasks_data():
@@ -777,12 +869,29 @@ def save_workers_to_json(workers: List[Worker], json_path: str, original_data: L
                 'long_timer': worker.long_timer
             }
             if worker.start_date:
-                worker_data['start_date'] = worker.start_date.strftime('%Y-%m-%d')
+                worker_data['start_date'] = worker.start_date.strftime('%d/%m/%Y')
 
         # Update with current assignments
-        worker_data['x_tasks'] = {d.strftime('%Y-%m-%d'): task for d, task in worker.x_tasks.items()}
-        worker_data['y_tasks'] = {d.strftime('%Y-%m-%d'): task for d, task in worker.y_tasks.items()}
-        worker_data['closing_history'] = [d.strftime('%Y-%m-%d') for d in worker.closing_history]
+        # Handle both string keys and datetime.date objects for x_tasks and y_tasks
+        x_tasks_dict = {}
+        for d, task in worker.x_tasks.items():
+            if hasattr(d, 'strftime'):
+                x_tasks_dict[d.strftime('%d/%m/%Y')] = task
+            else:
+                # Keep dd/mm/yyyy format as requested
+                x_tasks_dict[str(d)] = task
+        
+        y_tasks_dict = {}
+        for d, task in worker.y_tasks.items():
+            if hasattr(d, 'strftime'):
+                y_tasks_dict[d.strftime('%d/%m/%Y')] = task
+            else:
+                # Keep dd/mm/yyyy format as requested
+                y_tasks_dict[str(d)] = task
+        
+        worker_data['x_tasks'] = x_tasks_dict
+        worker_data['y_tasks'] = y_tasks_dict
+        worker_data['closing_history'] = [d.strftime('%d/%m/%Y') for d in worker.closing_history]
 
         json_data.append(worker_data)
 

@@ -2,7 +2,10 @@ import csv
 import json
 import os
 from datetime import datetime, timedelta, date
-from .worker import load_workers_from_json
+try:
+    from .worker import load_workers_from_json
+except ImportError:
+    from worker import load_workers_from_json
 
 STANDARD_X_TASKS = ["Guarding Duties", "RASAR", "Kitchen"]
 

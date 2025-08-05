@@ -208,7 +208,7 @@ function XTaskPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`http://localhost:5000/api/x-tasks?year=${yearParam}&period=${periodParam}`, { credentials: 'include' })
+    fetch(`http://localhost:5001/api/x-tasks?year=${yearParam}&period=${periodParam}`, { credentials: 'include' })
       .then(res => res.json())
       .then(({ csv, custom_tasks }) => {
         const parsed = Papa.parse<string[]>(csv, { skipEmptyLines: false });
@@ -224,7 +224,7 @@ function XTaskPage() {
   }, [yearParam, periodParam]);
 
   const fetchConflicts = useCallback(() => {
-    return fetch(`http://localhost:5000/api/x-tasks/conflicts?year=${yearParam}&period=${periodParam}`, { credentials: 'include' })
+    return fetch(`http://localhost:5001/api/x-tasks/conflicts?year=${yearParam}&period=${periodParam}`, { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
         const map: {[key: string]: {x_task: string, y_task: string}} = {};
@@ -377,13 +377,13 @@ function XTaskPage() {
       return yTasksCache;
     }
     
-    const yIndexRes = await fetch('http://localhost:5000/data/y_tasks.json', { credentials: 'include' });
+    const yIndexRes = await fetch('http://localhost:5001/data/y_tasks.json', { credentials: 'include' });
     const yIndex = await yIndexRes.json();
     
     // Load all Y schedule CSVs
     const ySchedules: any = {};
     for (const key in yIndex) {
-      const yCsvRes = await fetch(`http://localhost:5000/data/${yIndex[key]}`, { credentials: 'include' });
+      const yCsvRes = await fetch(`http://localhost:5001/data/${yIndex[key]}`, { credentials: 'include' });
       const yCsv = await yCsvRes.text();
       const rows = yCsv.split('\n').filter(Boolean).map(line => line.split(','));
       ySchedules[key] = {
@@ -445,7 +445,7 @@ function XTaskPage() {
     setPendingConflict(null);
     try {
       const csv = Papa.unparse([headers, subheaders, ...editData]);
-      const res = await fetch('http://localhost:5000/api/x-tasks', {
+      const res = await fetch('http://localhost:5001/api/x-tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -483,7 +483,7 @@ function XTaskPage() {
         setPendingConflict(null);
       }
       // Fetch conflicts for highlighting
-      fetch(`http://localhost:5000/api/x-tasks/conflicts?year=${yearParam}&period=${periodParam}`, { credentials: 'include' })
+      fetch(`http://localhost:5001/api/x-tasks/conflicts?year=${yearParam}&period=${periodParam}`, { credentials: 'include' })
         .then(res => res.json())
         .then(data => {
           const map: {[key: string]: {x_task: string, y_task: string}} = {};

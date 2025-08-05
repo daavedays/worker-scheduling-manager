@@ -6,24 +6,24 @@
  */
 
 /**
- * Formats a date string as dd-mm-yyyy for display or filenames.
+ * Formats a date string as dd/mm/yyyy for display.
  * Accepts input in either 'dd/mm/yyyy' or 'yyyy-mm-dd' format.
  *
  * @param {string} date - The date string to format.
- * @returns {string} The formatted date as 'dd-mm-yyyy'.
+ * @returns {string} The formatted date as 'dd/mm/yyyy'.
  *
  * Example:
- *   formatDateDMY('12/01/2025') => '12-01-2025'
- *   formatDateDMY('2025-01-12') => '12-01-2025'
+ *   formatDateDMY('12/01/2025') => '12/01/2025'
+ *   formatDateDMY('2025-01-12') => '12/01/2025'
  */
 export function formatDateDMY(date: string) {
   // Accepts dd/mm/yyyy or yyyy-mm-dd
   if (date.includes('/')) {
     const [d, m, y] = date.split('/');
-    return `${d.padStart(2, '0')}-${m.padStart(2, '0')}-${y}`;
+    return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
   } else if (date.includes('-')) {
     const [y, m, d] = date.split('-');
-    return `${d.padStart(2, '0')}-${m.padStart(2, '0')}-${y}`;
+    return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
   }
   return date;
 }
