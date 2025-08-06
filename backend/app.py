@@ -544,36 +544,91 @@ def get_history():
 def list_y_task_schedules():
     if not is_logged_in():
         return require_login()
-    schedules = y_tasks.list_y_task_schedules()
-    # Return as list of dicts for frontend
-    return jsonify({'schedules': [
-        {'start': s, 'end': e, 'filename': f} for s, e, f in schedules
-    ]})
+    
+    # Get Y task manager
+    try:
+        from .y_task_manager import get_y_task_manager
+        y_task_manager = get_y_task_manager(DATA_DIR)
+    except ImportError:
+        try:
+            from y_task_manager import get_y_task_manager
+            y_task_manager = get_y_task_manager(DATA_DIR)
+        except ImportError:
+            return jsonify({'error': 'Y task manager not available'}), 500
+    
+    # Get all Y task periods using the new manager
+    periods = y_task_manager.list_y_task_periods()
+    
+    # Convert to the format expected by frontend
+    schedules = []
+    for period in periods:
+        schedules.append({
+            'start': period['start_date'],
+            'end': period['end_date'],
+            'filename': period['filename']
+        })
+    
+    return jsonify({'schedules': schedules})
 
 @app.route('/api/y-tasks', methods=['GET'])
 def get_y_tasks():
     if not is_logged_in():
         return require_login()
+    
+    # Get Y task manager
+    try:
+        from .y_task_manager import get_y_task_manager
+        y_task_manager = get_y_task_manager(DATA_DIR)
+    except ImportError:
+        try:
+            from y_task_manager import get_y_task_manager
+            y_task_manager = get_y_task_manager(DATA_DIR)
+        except ImportError:
+            return jsonify({'error': 'Y task manager not available'}), 500
+    
     # Accept ?date=dd/mm/yyyy or ?start=dd/mm/yyyy&end=dd/mm/yyyy
     date = request.args.get('date')
     start = request.args.get('start')
     end = request.args.get('end')
     filename = None
+    
     if date:
-        filename = y_tasks.find_y_task_file_for_date(date)
+        # Find file for specific date
+        periods = y_task_manager.list_y_task_periods()
+        for period in periods:
+            try:
+                d = datetime.strptime(date, '%d/%m/%Y').date()
+                s = datetime.strptime(period['start_date'], '%d/%m/%Y').date()
+                e = datetime.strptime(period['end_date'], '%d/%m/%Y').date()
+                if s <= d <= e:
+                    filename = period['filename']
+                    break
+            except Exception:
+                continue
     elif start and end:
-        key = f"{start}_to_{end}"
-        index = y_tasks.load_y_task_index()
-        filename = index.get(key)
+        # Find file for date range
+        periods = y_task_manager.list_y_task_periods()
+        for period in periods:
+            if period['start_date'] == start and period['end_date'] == end:
+                filename = period['filename']
+                break
+    
     # If not found, return list of available schedules
     if not filename:
-        schedules = y_tasks.list_y_task_schedules()
-        return jsonify({'error': 'No Y task schedule found for given date/range.', 'available': [
-            {'start': s, 'end': e, 'filename': f} for s, e, f in schedules
-        ]}), 404
+        periods = y_task_manager.list_y_task_periods()
+        available = []
+        for period in periods:
+            available.append({
+                'start': period['start_date'],
+                'end': period['end_date'],
+                'filename': period['filename']
+            })
+        return jsonify({'error': 'No Y task schedule found for given date/range.', 'available': available}), 404
+    
     path = os.path.join(DATA_DIR, filename)
     if not os.path.exists(path):
         return jsonify({'error': 'Y task CSV file missing.'}), 404
+    
     with open(path, 'r', encoding='utf-8') as f:
         return f.read(), 200, {'Content-Type': 'text/csv'}
 
