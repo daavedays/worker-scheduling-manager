@@ -485,7 +485,10 @@ def get_warnings():
         x_path = os.path.join(DATA_DIR, 'x_task.csv')
         if os.path.exists(x_path) and os.path.exists(y_path):
             import csv
-            from . import y_tasks
+            try:
+                from . import y_tasks
+            except ImportError:
+                import y_tasks
             x_assignments = y_tasks.read_x_tasks(x_path)
             with open(y_path, 'r', encoding='utf-8') as f:
                 reader = list(csv.reader(f))
@@ -544,6 +547,9 @@ def get_history():
 def list_y_task_schedules():
     if not is_logged_in():
         return require_login()
+    
+    # Clean up orphaned index entries first
+    cleanup_y_task_index()
     
     # Get Y task manager
     try:
@@ -666,7 +672,40 @@ def save_y_tasks():
         # Save to CSV using Y task manager
         filename = y_task_manager.save_y_tasks_to_csv(start_date, end_date, grid_data, dates, y_tasks)
         
-        log_history(f'Saved Y tasks for {start_date} to {end_date}')
+        # Update worker scores based on Y task assignments
+        from worker import load_workers_from_json, save_workers_to_json
+        import json
+        
+        # Load current workers
+        workers = load_workers_from_json(os.path.join(DATA_DIR, 'worker_data.json'))
+        
+        # Load current worker data to preserve other fields
+        try:
+            with open(os.path.join(DATA_DIR, 'worker_data.json'), 'r', encoding='utf-8') as f:
+                original_data = json.load(f)
+        except Exception:
+            original_data = []
+        
+        # Count Y task assignments per worker and update scores
+        worker_assignments = {}
+        for i, y_task in enumerate(y_tasks):
+            for j, date_str in enumerate(dates):
+                if j < len(grid_data[i]) and grid_data[i][j]:  # If there's an assignment
+                    worker_name = grid_data[i][j]
+                    if worker_name not in worker_assignments:
+                        worker_assignments[worker_name] = 0
+                    worker_assignments[worker_name] += 1
+        
+        # Update worker scores
+        for worker in workers:
+            if worker.name in worker_assignments:
+                # Add 1 point per Y task assignment
+                worker.score += worker_assignments[worker.name]
+        
+        # Save updated workers
+        save_workers_to_json(workers, os.path.join(DATA_DIR, 'worker_data.json'), original_data)
+        
+        log_history(f'Saved Y tasks for {start_date} to {end_date} and updated {len(worker_assignments)} worker scores')
         return jsonify({'success': True, 'filename': filename})
         
     except Exception as e:
@@ -694,17 +733,8 @@ def generate_y_tasks_api():
     # Load workers and X task data
     workers = load_workers_from_json(os.path.join(DATA_DIR, 'worker_data.json'))
     
-    # ENHANCED: Use cache manager for X task data loading
+    # Load X task data directly from CSV files
     try:
-        from .cache_manager import cache_manager
-    except ImportError:
-        try:
-            from cache_manager import cache_manager
-        except ImportError:
-            cache_manager = None
-            print("Warning: Could not import cache manager")
-    
-    if cache_manager:
         # Check if date range spans across the transition period (June to July)
         start_period = 1 if d0.month <= 6 else 2
         end_period = 1 if d1.month <= 6 else 2
@@ -721,17 +751,27 @@ def generate_y_tasks_api():
         
         print(f"Loading X task files for periods: {periods_to_load}")
         
-        # ENHANCED: Use cache manager for X task data
+        # Load X task data directly from CSV files
         x_assignments = {}
         for period in periods_to_load:
-            # Use cache manager to get X task data (with caching)
-            period_assignments = cache_manager.get_x_task_data(period, d0.year, DATA_DIR)
-            
-            # Merge assignments from this period
-            for worker_id, assignments in period_assignments.items():
-                if worker_id not in x_assignments:
-                    x_assignments[worker_id] = {}
-                x_assignments[worker_id].update(assignments)
+            try:
+                # Import y_tasks module for X task loading
+                from . import y_tasks as y_tasks_module
+                x_csv = os.path.join(DATA_DIR, f"x_tasks_{d0.year}_{period}.csv")
+                
+                if os.path.exists(x_csv):
+                    print(f"Loading X-task file: {x_csv}")
+                    period_assignments = y_tasks_module.read_x_tasks(x_csv)
+                    
+                    # Merge assignments from this period
+                    for worker_id, assignments in period_assignments.items():
+                        if worker_id not in x_assignments:
+                            x_assignments[worker_id] = {}
+                        x_assignments[worker_id].update(assignments)
+                else:
+                    print(f"X-task file not found: {x_csv}")
+            except Exception as e:
+                print(f"Error loading X tasks for period {period}: {e}")
         
         # Load X assignments into workers
         for worker in workers:
@@ -743,10 +783,9 @@ def generate_y_tasks_api():
                     except Exception as e:
                         print(f"Error loading X task {date_str}: {e}")
                         
-        # Print cache statistics
-        cache_manager.print_cache_stats()
-    else:
-        print("Warning: Cache manager not available, skipping X task loading")
+        print("✅ X task data loaded successfully")
+    except Exception as e:
+        print(f"Warning: Could not load X task data: {e}")
     
     # Create scheduler engine
     print(f"DEBUG: About to create SchedulerEngine with {len(workers)} workers")
@@ -777,8 +816,19 @@ def generate_y_tasks_api():
         engine.assign_y_tasks(d0, d1)
         
         # Save updated worker scores after Y task generation
+        # The scores have been updated during the assignment process, so save the workers directly
         from worker import save_workers_to_json
-        save_workers_to_json(workers, os.path.join(DATA_DIR, 'worker_data.json'))
+        import json
+        
+        # Load current worker data to preserve other fields
+        try:
+            with open(os.path.join(DATA_DIR, 'worker_data.json'), 'r', encoding='utf-8') as f:
+                original_data = json.load(f)
+        except Exception:
+            original_data = []
+        
+        # Save the workers with their updated scores (Y tasks will be saved separately to CSV)
+        save_workers_to_json(workers, os.path.join(DATA_DIR, 'worker_data.json'), original_data)
         
         # Get complete schedule
         schedule = engine.get_schedule()
@@ -790,6 +840,7 @@ def generate_y_tasks_api():
         grid = []
         warnings = []
         
+        # Always create rows for all 5 Y task types, even if some are empty
         for y_task in Y_TASKS_ORDER:
             row = []
             for d in all_dates:
@@ -833,8 +884,7 @@ def generate_y_tasks_api():
             'warnings': warnings,
             'filename': filename,
             'csv_data': csv_data,  # Include CSV data for frontend to save
-            'detailed_report': detailed_report,
-            'cache_stats': cache_manager.get_cache_stats()
+            'detailed_report': detailed_report
         })
         
     except Exception as e:
@@ -844,7 +894,10 @@ def generate_y_tasks_api():
 def available_soldiers_for_y_task():
     if not is_logged_in():
         return require_login()
-    from . import y_tasks
+    try:
+        from . import y_tasks
+    except ImportError:
+        import y_tasks
     from worker import load_workers_from_json
     data = request.get_json() or {}
     date = data.get('date')
@@ -946,7 +999,10 @@ def get_combined_grid():
     if not is_logged_in():
         return require_login()
     import csv
-    from . import y_tasks
+    try:
+        from . import y_tasks
+    except ImportError:
+        import y_tasks
     # --- 1. Determine which Y schedule period to use ---
     start = request.args.get('start')
     end = request.args.get('end')
@@ -1127,25 +1183,56 @@ def delete_y_task_schedule():
     filename = data.get('filename')
     if not filename:
         return jsonify({'error': 'Missing filename'}), 400
-    path = os.path.join(DATA_DIR, filename)
-    # Remove file if it exists
-    if os.path.exists(path):
+    
+    try:
+        # Get Y task manager
         try:
-            os.remove(path)
-        except Exception as e:
-            return jsonify({'error': f'Failed to delete file: {str(e)}'}), 500
-    # Remove from index
-    from . import y_tasks
-    index = y_tasks.load_y_task_index()
-    key_to_remove = None
-    for key, fname in index.items():
-        if fname == filename:
-            key_to_remove = key
-            break
-    if key_to_remove:
-        del index[key_to_remove]
-        y_tasks.save_y_task_index(index)
-    return jsonify({'success': True})
+            from .y_task_manager import get_y_task_manager
+            y_task_manager = get_y_task_manager(DATA_DIR)
+        except ImportError:
+            try:
+                from y_task_manager import get_y_task_manager
+                y_task_manager = get_y_task_manager(DATA_DIR)
+            except ImportError:
+                return jsonify({'error': 'Y task manager not available'}), 500
+        
+        # Find the period key for this filename
+        index_path = os.path.join(DATA_DIR, 'y_tasks_index.json')
+        if not os.path.exists(index_path):
+            return jsonify({'error': 'Y task index not found'}), 404
+        
+        with open(index_path, 'r', encoding='utf-8') as f:
+            index = json.load(f)
+        
+        # Find the period key that matches this filename
+        period_key = None
+        for key, data in index.items():
+            if data.get('filename') == filename:
+                period_key = key
+                break
+        
+        if not period_key:
+            return jsonify({'error': 'Schedule not found in index'}), 404
+        
+        # Extract start and end dates from period key
+        # Format: "start_date_to_end_date"
+        parts = period_key.split('_to_')
+        if len(parts) != 2:
+            return jsonify({'error': 'Invalid period key format'}), 400
+        
+        start_date = parts[0].replace('-', '/')
+        end_date = parts[1].replace('-', '/')
+        
+        # Use the Y task manager's deletion method
+        success = y_task_manager.delete_y_task_period(start_date, end_date)
+        
+        if success:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Failed to delete schedule'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': f'Delete failed: {str(e)}'}), 500
 
 @app.route('/api/y-tasks/insufficient-workers-report', methods=['POST'])
 def get_insufficient_workers_report():
@@ -1185,7 +1272,10 @@ def get_insufficient_workers_report():
             for period in periods_to_load:
                 x_csv = os.path.join(DATA_DIR, f"x_tasks_{d0.year}_{period}.csv")
                 if os.path.exists(x_csv):
-                    from . import y_tasks
+                    try:
+                        from . import y_tasks
+                    except ImportError:
+                        import y_tasks
                     period_assignments = y_tasks.read_x_tasks(x_csv)
                     
                     # Merge assignments from this period
@@ -1220,7 +1310,10 @@ def get_insufficient_workers_report():
 @app.route('/api/combined/available-dates', methods=['GET'])
 def get_combined_available_dates():
     # Returns all dates covered by any Y schedule
-    from . import y_tasks
+    try:
+        from . import y_tasks
+    except ImportError:
+        import y_tasks
     y_schedules = y_tasks.list_y_task_schedules()
     all_dates = set()
     for start, end, y_filename in y_schedules:
@@ -1244,7 +1337,11 @@ def get_combined_by_date():
     date = request.args.get('date')
     if not date:
         return jsonify({'error': 'Missing date'}), 400
-    from . import y_tasks, x_tasks
+    try:
+        from . import y_tasks, x_tasks
+    except ImportError:
+        import y_tasks
+        import x_tasks
     # Find Y assignments for this date
     y_schedules = y_tasks.list_y_task_schedules()
     y_assignments = {}
@@ -1313,7 +1410,10 @@ def get_combined_by_date():
 def get_combined_grid_full():
     if not is_logged_in():
         return require_login()
-    from . import y_tasks
+    try:
+        from . import y_tasks
+    except ImportError:
+        import y_tasks
     import csv
     # 1. Collect all dates from all Y schedules
     y_schedules = y_tasks.list_y_task_schedules()
@@ -1393,35 +1493,64 @@ def get_combined_by_range():
     end = request.args.get('end')
     if not start or not end:
         return jsonify({'error': 'Missing start or end date'}), 400
-    from . import y_tasks
+    
+    # Define DATA_DIR
+    DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
+    
+    # Get Y task manager
+    try:
+        from .y_task_manager import get_y_task_manager
+        y_task_manager = get_y_task_manager(DATA_DIR)
+    except ImportError:
+        try:
+            from y_task_manager import get_y_task_manager
+            y_task_manager = get_y_task_manager(DATA_DIR)
+        except ImportError:
+            return jsonify({'error': 'Y task manager not available'}), 500
+    
     import csv
     from datetime import datetime, timedelta
     # Build date list
     d0 = datetime.strptime(start, '%d/%m/%Y')
     d1 = datetime.strptime(end, '%d/%m/%Y')
     dates = [(d0 + timedelta(days=i)).strftime('%d/%m/%Y') for i in range((d1-d0).days+1)]
-    # Collect Y assignments for this period
-    y_schedules = y_tasks.list_y_task_schedules()
+    
+    # Collect Y assignments for this period using the new Y task manager
     y_data_by_date = {}
-    for s, e, y_filename in y_schedules:
-        y_path = y_tasks.y_schedule_path(y_filename)
-        if not os.path.exists(y_path):
+    periods = y_task_manager.list_y_task_periods()
+    for period in periods:
+        period_start = period['start_date']
+        period_end = period['end_date']
+        filename = period['filename']
+        
+        # Check if this period overlaps with the requested range
+        try:
+            p_start = datetime.strptime(period_start, '%d/%m/%Y').date()
+            p_end = datetime.strptime(period_end, '%d/%m/%Y').date()
+            req_start = datetime.strptime(start, '%d/%m/%Y').date()
+            req_end = datetime.strptime(end, '%d/%m/%Y').date()
+            
+            # Check for overlap
+            if p_start <= req_end and p_end >= req_start:
+                y_path = os.path.join(DATA_DIR, filename)
+                if os.path.exists(y_path):
+                    with open(y_path, 'r', encoding='utf-8') as f:
+                        reader = list(csv.reader(f))
+                        if not reader or len(reader) < 2:
+                            continue
+                        file_dates = reader[0][1:]
+                        for row in reader[1:]:
+                            y_task = row[0]
+                            for i, d in enumerate(file_dates):
+                                if d not in y_data_by_date:
+                                    y_data_by_date[d] = {}
+                                y_data_by_date[d][y_task] = row[i+1] if i+1 < len(row) else ''
+        except Exception as e:
+            print(f"Error processing Y task period {period_start} to {period_end}: {e}")
             continue
-        with open(y_path, 'r', encoding='utf-8') as f:
-            reader = list(csv.reader(f))
-            if not reader or len(reader) < 2:
-                continue
-            file_dates = reader[0][1:]
-            for row in reader[1:]:
-                y_task = row[0]
-                for i, d in enumerate(file_dates):
-                    if d not in y_data_by_date:
-                        y_data_by_date[d] = {}
-                    y_data_by_date[d][y_task] = row[i+1] if i+1 < len(row) else ''
     # Get X assignments for this period
     import glob
     import re
-    DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
     x_files = glob.glob(os.path.join(DATA_DIR, 'x_tasks_*.csv'))
     if not x_files:
         x_assignments = {}
@@ -1440,7 +1569,24 @@ def get_combined_by_range():
         # In the future, this could be enhanced to pick the correct file based on date range
         x_csv = x_files[0] if x_files else None
         if x_csv:
-            x_assignments = y_tasks.read_x_tasks(x_csv)
+            # Read X tasks CSV directly
+            x_assignments = {}
+            try:
+                with open(x_csv, 'r', encoding='utf-8') as f:
+                    reader = list(csv.reader(f))
+                    if reader and len(reader) > 1:
+                        dates = reader[0][1:]  # Skip 'Worker' column
+                        for row in reader[1:]:
+                            worker_id = row[0]
+                            for i, task in enumerate(row[1:], 1):
+                                if i <= len(dates):
+                                    date = dates[i-1]
+                                    if worker_id not in x_assignments:
+                                        x_assignments[worker_id] = {}
+                                    x_assignments[worker_id][date] = task
+            except Exception as e:
+                print(f"Error reading X tasks file {x_csv}: {e}")
+                x_assignments = {}
         else:
             x_assignments = {}
     # Collect all unique X tasks assigned for any date in the period
@@ -1682,6 +1828,10 @@ def get_statistics():
         return require_login()
     
     try:
+        # Define paths
+        DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
+        WORKER_JSON_PATH = os.path.join(DATA_DIR, 'worker_data.json')
+        
         # Load all available data
         workers = load_workers_from_json(WORKER_JSON_PATH)
         
@@ -1711,7 +1861,23 @@ def get_statistics():
                 half = int(parts[3])
                 
                 # Load X tasks from this file
-                x_data = y_tasks.read_x_tasks(file_path, year)
+                x_data = {}
+                try:
+                    import csv
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        reader = list(csv.reader(f))
+                        if reader and len(reader) > 1:
+                            dates = reader[0][1:]  # Skip 'Worker' column
+                            for row in reader[1:]:
+                                worker_id = row[0]
+                                for i, task in enumerate(row[1:], 1):
+                                    if i <= len(dates) and task and task != '-':
+                                        if worker_id not in x_data:
+                                            x_data[worker_id] = {}
+                                        x_data[worker_id][dates[i-1]] = task
+                except Exception as e:
+                    print(f"Error reading X tasks file {file_path}: {e}")
+                    x_data = {}
                 
                 # Count tasks per worker
                 for worker_id, tasks in x_data.items():
@@ -1729,7 +1895,6 @@ def get_statistics():
         
         # ENHANCED: Load Y tasks using Y task manager with caching
         all_y_tasks = {}
-        y_tasks_timeline = []
         y_task_files = []  # Initialize y_task_files list
         
         # Get Y task manager
@@ -1743,6 +1908,10 @@ def get_statistics():
             except ImportError:
                 y_task_manager = None
                 print("Warning: Y task manager not available")
+        
+        # Initialize y_tasks_timeline if not already done
+        if 'y_tasks_timeline' not in locals():
+            y_tasks_timeline = []
         
         if y_task_manager:
             # Get all Y task periods
@@ -2259,60 +2428,39 @@ def serve_react(path):
 def serve_data(filename):
     return send_from_directory(os.path.join(DATA_DIR), filename)
 
-@app.route('/api/cache/stats', methods=['GET'])
-def get_cache_stats():
-    """Get cache statistics"""
-    if not is_logged_in():
-        return require_login()
-    
-    try:
-        from .cache_manager import cache_manager
-        return jsonify(cache_manager.get_cache_stats())
-    except Exception as e:
-        return jsonify({'error': f'Failed to get cache stats: {e}'}), 500
+# Cache functionality has been removed - all data is loaded directly from files
 
-@app.route('/api/cache/clear', methods=['POST'])
-def clear_cache():
-    """Clear cache entries"""
-    if not is_logged_in():
-        return require_login()
-    
+def cleanup_y_task_index():
+    """Clean up orphaned Y task index entries (entries that reference non-existent files)"""
     try:
-        from .cache_manager import cache_manager
-        data = request.get_json() or {}
-        cache_type = data.get('type', 'all')  # 'x_tasks', 'y_tasks', 'all'
+        index_path = os.path.join(DATA_DIR, 'y_tasks_index.json')
+        if not os.path.exists(index_path):
+            return
         
-        cache_manager.invalidate_cache(cache_type)
+        with open(index_path, 'r', encoding='utf-8') as f:
+            index = json.load(f)
         
-        return jsonify({
-            'success': True,
-            'message': f'Cache cleared: {cache_type}',
-            'cache_stats': cache_manager.get_cache_stats()
-        })
+        # Check each entry and remove if file doesn't exist
+        cleaned_index = {}
+        for period_key, data in index.items():
+            filename = data.get('filename')
+            if filename:
+                filepath = os.path.join(DATA_DIR, filename)
+                if os.path.exists(filepath):
+                    cleaned_index[period_key] = data
+                else:
+                    print(f"🧹 Cleaning up orphaned index entry: {period_key} -> {filename}")
+        
+        # Save cleaned index
+        if len(cleaned_index) != len(index):
+            with open(index_path, 'w', encoding='utf-8') as f:
+                json.dump(cleaned_index, f, indent=2, ensure_ascii=False)
+            print(f"✅ Cleaned Y task index: removed {len(index) - len(cleaned_index)} orphaned entries")
+            
     except Exception as e:
-        return jsonify({'error': f'Failed to clear cache: {e}'}), 500
+        print(f"Error cleaning up Y task index: {e}")
 
-@app.route('/api/cache/status', methods=['GET'])
-def get_cache_status():
-    """Get detailed cache status"""
-    if not is_logged_in():
-        return require_login()
-    
-    try:
-        from .cache_manager import cache_manager
-        stats = cache_manager.get_cache_stats()
-        
-        return jsonify({
-            'cache_enabled': True,
-            'x_task_cache_ttl': cache_manager.x_task_cache_ttl,
-            'y_task_cache_ttl': cache_manager.y_task_cache_ttl,
-            'proximity_cache_ttl': cache_manager.proximity_cache_ttl,
-            'availability_cache_ttl': cache_manager.availability_cache_ttl,
-            'conflict_cache_ttl': cache_manager.conflict_cache_ttl,
-            'stats': stats
-        })
-    except Exception as e:
-        return jsonify({'error': f'Failed to get cache status: {e}'}), 500
+# --- Y Task API ---
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001) 

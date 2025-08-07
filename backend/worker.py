@@ -1,7 +1,13 @@
 from datetime import datetime, timedelta, date
-from typing import List
+from typing import List, Tuple
 import json
 import os
+import csv
+
+# Global score increment values (floats for easy testing)
+Y_TASK_SCORE_INCREMENT = 1.0  # Points added per Y task assignment
+OFF_INTERVAL_CLOSING_BONUS = 5.0  # Bonus for closing when not your turn
+MANUAL_CLOSING_BONUS = 3.0  # Bonus for manual off-interval closing
 
 
 class Worker:
@@ -17,7 +23,7 @@ class Worker:
         self.closing_history = []  # list of dates when closed weekend
         self.officer = officer  # if rank == mandatory, officer = False.
         self.seniority = seniority  # Add this line
-        self.score = score or 0  # how many points the worker has, default to 0
+        self.score = float(score or 0.0)  # how many points the worker has, default to 0.0
         self.long_timer = long_timer  # Add this line
         
         # NEW: Tally tracking for fairness
@@ -49,6 +55,8 @@ class Worker:
     def assign_y_task(self, date, task_name):
         self.y_tasks[date] = task_name
         self.y_task_count += 1  # Update tally
+        # Update score using global variable
+        self.score += Y_TASK_SCORE_INCREMENT
 
     def assign_closing(self, date, development_mode=True):
         """
@@ -111,8 +119,8 @@ class Worker:
 
     def has_specific_x_task(self, week_start_date, task_name):
         """
-        Check if worker has a specific X task during the specified week
-        Uses cached X-task data from CSV files
+        Check if worker has a specific X task during the specified week.
+        Reads X-task data from CSV files directly.
         """
         week_end_date = week_start_date + timedelta(days=6)
         
@@ -617,42 +625,46 @@ class Worker:
             'severity': None
         }
 
-    def update_score_after_assignment(self, assignment_type, date):
+    def update_score_after_assignment(self, assignment_type, date, is_off_interval=False, is_manual=False):
         """
         Update worker score after assignment.
         
         Args:
             assignment_type: Type of assignment ("y_task", "closing", "x_task")
             date: Date of assignment
+            is_off_interval: True if this is an off-interval closing assignment
+            is_manual: True if this is a manual assignment
         """
         if assignment_type == "y_task":
-            self.score += 1  # No cap
+            self.score += Y_TASK_SCORE_INCREMENT
         elif assignment_type == "closing":
-            # Add base closing score
-            self.score += 5
-            # Add violation bonus if applicable
-            violation_bonus = self.calculate_closing_violation_bonus(date)
-            self.score += violation_bonus
+            # Base closing score (no longer automatic points)
+            if is_off_interval:
+                self.score += OFF_INTERVAL_CLOSING_BONUS
+            if is_manual:
+                self.score += MANUAL_CLOSING_BONUS
         elif assignment_type == "x_task":
             # X tasks don't add to score (as per requirements)
             pass
 
-    def reverse_score_after_removal(self, assignment_type, date):
+    def reverse_score_after_removal(self, assignment_type, date, is_off_interval=False, is_manual=False):
         """
         Reverse worker score after assignment removal.
         
         Args:
             assignment_type: Type of assignment ("y_task", "closing", "x_task")
             date: Date of assignment
+            is_off_interval: True if this was an off-interval closing assignment
+            is_manual: True if this was a manual assignment
         """
         if assignment_type == "y_task":
-            self.score = max(0, self.score - 1)  # Don't go below 0
+            self.score = max(0.0, self.score - Y_TASK_SCORE_INCREMENT)  # Don't go below 0
         elif assignment_type == "closing":
-            # Remove base closing score
-            self.score = max(0, self.score - 5)
-            # Remove violation bonus if applicable
-            violation_bonus = self.calculate_closing_violation_bonus(date)
-            self.score = max(0, self.score - violation_bonus)
+            # Remove bonuses if applicable
+            if is_off_interval:
+                self.score = max(0.0, self.score - OFF_INTERVAL_CLOSING_BONUS)
+            if is_manual:
+                self.score = max(0.0, self.score - MANUAL_CLOSING_BONUS)
         elif assignment_type == "x_task":
             # X tasks don't affect score
             pass
@@ -719,6 +731,150 @@ class Worker:
             workload_score += self.closing_delta * 15  # Penalty for ahead of schedule
         
         return workload_score
+    
+    def is_my_turn_to_close(self, weekend_date: date) -> bool:
+        """
+        Given a weekend date (Friday), returns True if it's this worker's turn to close.
+        
+        Args:
+            weekend_date: The Friday date of the weekend to check
+            
+        Returns:
+            bool: True if it's this worker's turn to close on this weekend
+        """
+        if self.closing_interval <= 0:
+            return False  # Worker doesn't participate in closing
+        
+        if not self.closing_history:
+            return True  # First time closing, always their turn
+        
+        # Get the last closing date
+        last_closing = max(self.closing_history)
+        
+        # Calculate weeks since last closing
+        weeks_since_last = (weekend_date - last_closing).days // 7
+        
+        # It's their turn if weeks_since_last >= closing_interval
+        return weeks_since_last >= self.closing_interval
+    
+    def closing_status(self, weekend_date: date) -> Tuple[bool, int]:
+        """
+        Given a weekend date (Friday), returns (is_overdue, weeks_overdue).
+        
+        Examples:
+        - Worker interval=2, closed 3 weeks ago, should have closed 1 week ago: (True, 2)
+        - Worker interval=2, closed 1 week ago, not due yet: (False, 0)
+        
+        Args:
+            weekend_date: The Friday date of the weekend to check
+            
+        Returns:
+            Tuple[bool, int]: (is_overdue, weeks_overdue)
+                - is_overdue: True if worker is overdue for closing
+                - weeks_overdue: How many weeks overdue (0 if not overdue)
+        """
+        if self.closing_interval <= 0:
+            return (False, 0)  # Worker doesn't participate in closing
+        
+        if not self.closing_history:
+            return (False, 0)  # First time, not overdue
+        
+        # Get the last closing date
+        last_closing = max(self.closing_history)
+        
+        # Calculate weeks since last closing
+        weeks_since_last = (weekend_date - last_closing).days // 7
+        
+        # Calculate how many weeks overdue
+        if weeks_since_last > self.closing_interval:
+            weeks_overdue = weeks_since_last - self.closing_interval
+            return (True, weeks_overdue)
+        else:
+            return (False, 0)
+    
+    def check_multiple_y_tasks_per_week(self, week_start_date: date) -> int:
+        """
+        Check how many Y tasks this worker has in a specific week (excluding Thu/Fri/Sat weekend closers).
+        
+        Args:
+            week_start_date: Monday of the week to check
+            
+        Returns:
+            int: Number of Y tasks assigned in this week (excluding weekend closing tasks)
+        """
+        week_end_date = week_start_date + timedelta(days=6)
+        y_task_count = 0
+        
+        for task_date, task_name in self.y_tasks.items():
+            if isinstance(task_date, str):
+                try:
+                    task_date = datetime.strptime(task_date, '%d/%m/%Y').date()
+                except ValueError:
+                    continue
+            
+            if week_start_date <= task_date <= week_end_date:
+                # Skip weekend closing tasks (Thu/Fri/Sat)
+                if task_date.weekday() not in [3, 4, 5]:  # 3=Thu, 4=Fri, 5=Sat
+                    y_task_count += 1
+        
+        return y_task_count
+    
+    def increment_score_for_multiple_y_tasks(self, week_start_date: date):
+        """
+        Increment score if worker has more than one Y task in a week (excluding weekend closers).
+        
+        Args:
+            week_start_date: Monday of the week to check
+        """
+        y_task_count = self.check_multiple_y_tasks_per_week(week_start_date)
+        
+        if y_task_count > 1:
+            # Worker has multiple Y tasks in one week, increment score
+            bonus_tasks = y_task_count - 1  # First task is normal, rest are bonus
+            self.score += bonus_tasks * Y_TASK_SCORE_INCREMENT
+    
+    def load_y_tasks_from_csv(self, start_date: date, end_date: date, data_dir: str):
+        """
+        Load Y-task assignments from CSV files for a specific date range.
+        This updates the worker's y_tasks dictionary.
+        
+        Args:
+            start_date: Start date for loading Y tasks
+            end_date: End date for loading Y tasks
+            data_dir: Directory containing Y task CSV files
+        """
+        y_task_data = load_y_tasks_for_worker(self.id, self.name, start_date, end_date, data_dir)
+        
+        # Convert string dates to date objects and update y_tasks
+        for date_str, task_name in y_task_data.items():
+            try:
+                task_date = datetime.strptime(date_str, '%d/%m/%Y').date()
+                self.y_tasks[task_date] = task_name
+            except ValueError:
+                continue
+                
+        # Update tally count
+        self.y_task_count = len(self.y_tasks)
+    
+    def load_x_tasks_from_csv(self, data_dir: str):
+        """
+        Load X-task assignments from CSV files.
+        This updates the worker's x_tasks dictionary.
+        
+        Args:
+            data_dir: Directory containing X task CSV files
+        """
+        # Load X-tasks for all periods
+        for year in [2025, 2026]:
+            for period in [1, 2]:
+                x_csv = os.path.join(data_dir, f"x_tasks_{year}_{period}.csv")
+                if os.path.exists(x_csv):
+                    x_task_data = read_x_tasks_from_csv(x_csv)
+                    if self.id in x_task_data:
+                        self.x_tasks.update(x_task_data[self.id])
+        
+        # Update tally count
+        self.x_task_count = len(self.x_tasks)
 
 
 # UTIL to load from JSON
@@ -737,18 +893,23 @@ def load_workers_from_json(json_path: str, name_conv_path: str = 'data/name_conv
     except Exception:
         id_to_hebrew = {}
     
-    # Load X-task data from CSV files using cache manager
+    # Load X-task data directly from CSV files
     try:
-        from .cache_manager import CacheManager
-        cache_manager = CacheManager()
         data_dir = os.path.dirname(json_path)
         
         # Load X-tasks for all periods (2025_1, 2025_2, 2026_1, 2026_2)
         all_x_tasks = {}
         for year in [2025, 2026]:
             for period in [1, 2]:
-                x_task_data = cache_manager.get_x_task_data(period, year, data_dir)
-                all_x_tasks.update(x_task_data)
+                try:
+                    x_csv = os.path.join(data_dir, f"x_tasks_{year}_{period}.csv")
+                    
+                    if os.path.exists(x_csv):
+                        # Read X-tasks directly from CSV without relative imports
+                        x_task_data = read_x_tasks_from_csv(x_csv)
+                        all_x_tasks.update(x_task_data)
+                except Exception as e:
+                    print(f"Warning: Could not load X-tasks for {year}_{period}: {e}")
         
         print(f"✅ Loaded X-tasks from CSV files for {len(all_x_tasks)} workers")
     except Exception as e:
@@ -780,6 +941,15 @@ def load_workers_from_json(json_path: str, name_conv_path: str = 'data/name_conv
         long_timer = item.get('long_timer', False)
         if not long_timer and 'rank' in item:
             long_timer = str(item['rank']).lower() == 'long'
+        raw_score = item.get('score')
+        # Ensure score is a float
+        if raw_score is not None:
+            try:
+                score = float(raw_score)
+            except (ValueError, TypeError):
+                score = 0.0
+        else:
+            score = 0.0
         w = Worker(
             id=sid,
             name=hebrew_name,
@@ -788,7 +958,7 @@ def load_workers_from_json(json_path: str, name_conv_path: str = 'data/name_conv
             closing_interval=closing_interval,
             officer=item.get('officer', False),
             seniority=item.get('seniority'),
-            score=item.get('score'),
+            score=score,
             long_timer=long_timer
         )
         
@@ -800,18 +970,27 @@ def load_workers_from_json(json_path: str, name_conv_path: str = 'data/name_conv
             w.x_tasks = {}
             print(f"   🚫 No X-tasks found for {w.name}")
         
-        # Load Y-tasks and closing history from worker_data.json (these stay the same)
-        if 'y_tasks' in item:
-            for d, t in item['y_tasks'].items():
-                try:
-                    w.y_tasks[datetime.strptime(d, '%Y-%m-%d').date()] = t
-                except Exception:
-                    pass
-        if 'closing_history' in item:
-            try:
-                w.closing_history = [datetime.strptime(d, '%Y-%m-%d').date() for d in item['closing_history']]
-            except Exception:
+        # Load Y-tasks from CSV files (no longer from JSON)
+        # Y-tasks will be loaded separately by date range when needed
+        
+        # Load closing history from dedicated CSV file
+        closing_csv_path = os.path.join(data_dir, 'closing_history.csv')
+        if os.path.exists(closing_csv_path):
+            closing_data = read_closing_history_from_csv(closing_csv_path)
+            if sid in closing_data:
+                w.closing_history = closing_data[sid]
+            else:
                 w.closing_history = []
+        else:
+            # Fallback: Load from JSON if CSV doesn't exist yet
+            if 'closing_history' in item:
+                try:
+                    w.closing_history = [datetime.strptime(d, '%d/%m/%Y').date() for d in item['closing_history']]
+                except Exception:
+                    w.closing_history = []
+            else:
+                w.closing_history = []
+        
         workers.append(w)
     return workers
 
@@ -902,3 +1081,219 @@ def save_workers_to_json(workers: List[Worker], json_path: str, original_data: L
     print(f"✅ Saved {len(workers)} workers to {json_path}")
     print("⚠️  DEVELOPMENT MODE: Future closing assignments saved to closing_history")
     print("⚠️  TODO: BEFORE PRODUCTION - Modify to only save past assignments!")
+
+
+def read_x_tasks_from_csv(csv_path: str) -> dict:
+    """
+    Read X-task assignments from CSV file.
+    
+    Args:
+        csv_path: Path to the X-tasks CSV file
+        
+    Returns:
+        Dictionary mapping worker_id -> {date_str: task_name}
+    """
+    x_task_data = {}
+    
+    try:
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            
+            # Read header row (dates)
+            header = next(reader)
+            dates = header[1:]  # Skip first column (worker name/id)
+            
+            # Read data rows
+            for row in reader:
+                if len(row) < 2:
+                    continue
+                    
+                worker_id = row[0]
+                assignments = row[1:]
+                
+                # Parse assignments for this worker
+                worker_tasks = {}
+                for i, assignment in enumerate(assignments):
+                    if i < len(dates) and assignment and assignment != '-':
+                        date_str = dates[i]
+                        worker_tasks[date_str] = assignment
+                
+                if worker_tasks:
+                    x_task_data[worker_id] = worker_tasks
+                    
+    except Exception as e:
+        print(f"Error reading X-tasks from {csv_path}: {e}")
+    
+    return x_task_data
+
+
+def read_y_tasks_from_csv(csv_path: str) -> dict:
+    """
+    Read Y-task assignments from CSV file.
+    
+    Args:
+        csv_path: Path to the Y-tasks CSV file
+        
+    Returns:
+        Dictionary mapping worker_name -> {date_str: task_name}
+    """
+    y_task_data = {}
+    
+    try:
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            
+            # Read header row (dates)
+            header = next(reader)
+            dates = header[1:]  # Skip first column (Y task type)
+            
+            # Read data rows (Y task types)
+            for row in reader:
+                if len(row) < 2:
+                    continue
+                    
+                y_task_type = row[0]
+                assignments = row[1:]
+                
+                # Parse assignments for this Y task type
+                for i, worker_name in enumerate(assignments):
+                    if i < len(dates) and worker_name and worker_name != '-':
+                        date_str = dates[i]
+                        
+                        if worker_name not in y_task_data:
+                            y_task_data[worker_name] = {}
+                        
+                        y_task_data[worker_name][date_str] = y_task_type
+                        
+    except Exception as e:
+        print(f"Error reading Y-tasks from {csv_path}: {e}")
+    
+    return y_task_data
+
+
+def read_closing_history_from_csv(csv_path: str) -> dict:
+    """
+    Read closing history from dedicated CSV file.
+    
+    Args:
+        csv_path: Path to the closing history CSV file
+        
+    Returns:
+        Dictionary mapping worker_id -> list of closing dates
+    """
+    closing_data = {}
+    
+    try:
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            
+            for row in reader:
+                worker_id = row.get('worker_id', '')
+                date_range = row.get('date_ranges', '')
+                
+                if worker_id and date_range:
+                    if worker_id not in closing_data:
+                        closing_data[worker_id] = []
+                    
+                    # Parse date range (assuming format like "03/08/2025-09/08/2025")
+                    try:
+                        start_date_str, end_date_str = date_range.split('-')
+                        start_date = datetime.strptime(start_date_str, '%d/%m/%Y').date()
+                        # For closing history, we store the Friday of the closing week
+                        # Find the Friday in that week
+                        friday_date = start_date + timedelta(days=(4 - start_date.weekday()) % 7)
+                        closing_data[worker_id].append(friday_date)
+                    except Exception as e:
+                        print(f"Error parsing date range {date_range}: {e}")
+                        
+    except Exception as e:
+        print(f"Error reading closing history from {csv_path}: {e}")
+    
+    return closing_data
+
+
+def save_closing_history_to_csv(csv_path: str, workers: List[Worker]):
+    """
+    Save closing history to dedicated CSV file.
+    
+    Args:
+        csv_path: Path to save the closing history CSV file
+        workers: List of Worker objects with closing history
+    """
+    try:
+        with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            
+            # Write header
+            writer.writerow(['worker_id', 'name', 'date_ranges', 'week_number', 'part_of_year'])
+            
+            # Write closing history for each worker
+            for worker in workers:
+                if worker.closing_history:
+                    for closing_date in worker.closing_history:
+                        # Calculate week number and part of year
+                        week_number = closing_date.isocalendar()[1]
+                        part_of_year = f"{closing_date.year}_{1 if closing_date.month <= 6 else 2}"
+                        
+                        # Create date range (Friday to following Friday)
+                        week_start = closing_date - timedelta(days=closing_date.weekday() + 3)  # Go to Monday
+                        week_end = week_start + timedelta(days=6)  # Sunday
+                        date_range = f"{week_start.strftime('%d/%m/%Y')}-{week_end.strftime('%d/%m/%Y')}"
+                        
+                        writer.writerow([
+                            worker.id,
+                            worker.name,
+                            date_range,
+                            week_number,
+                            part_of_year
+                        ])
+                        
+    except Exception as e:
+        print(f"Error saving closing history to {csv_path}: {e}")
+
+
+def load_y_tasks_for_worker(worker_id: str, worker_name: str, start_date: date, end_date: date, data_dir: str) -> dict:
+    """
+    Load Y-task assignments for a specific worker within a date range.
+    
+    Args:
+        worker_id: Worker's ID
+        worker_name: Worker's name
+        start_date: Start date for loading Y tasks
+        end_date: End date for loading Y tasks
+        data_dir: Directory containing Y task CSV files
+        
+    Returns:
+        Dictionary mapping date_str -> task_name for this worker
+    """
+    y_tasks = {}
+    
+    try:
+        # Find all Y task CSV files in the date range
+        y_task_files = []
+        for filename in os.listdir(data_dir):
+            if filename.startswith('y_tasks_') and filename.endswith('.csv'):
+                y_task_files.append(filename)
+        
+        for filename in y_task_files:
+            filepath = os.path.join(data_dir, filename)
+            y_task_data = read_y_tasks_from_csv(filepath)
+            
+            # Get assignments for this worker (try both ID and name)
+            worker_assignments = y_task_data.get(worker_name, {})
+            if not worker_assignments and worker_id in y_task_data:
+                worker_assignments = y_task_data.get(worker_id, {})
+            
+            # Filter by date range
+            for date_str, task_name in worker_assignments.items():
+                try:
+                    task_date = datetime.strptime(date_str, '%d/%m/%Y').date()
+                    if start_date <= task_date <= end_date:
+                        y_tasks[date_str] = task_name
+                except ValueError:
+                    continue
+                    
+    except Exception as e:
+        print(f"Error loading Y tasks for worker {worker_name}: {e}")
+    
+    return y_tasks

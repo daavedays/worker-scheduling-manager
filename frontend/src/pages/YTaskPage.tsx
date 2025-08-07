@@ -46,6 +46,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import DeleteIcon from '@mui/icons-material/Delete';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { formatDateDMY, shortWeekRange } from '../components/utils';
 import { getWorkerColor, Y_TASK_COLORS } from '../components/colors';
 import FadingBackground from '../components/FadingBackground';
@@ -119,10 +120,23 @@ function YTaskPage() {
     localStorage.removeItem('resolveConflict');
   };
 
+  const refreshScheduleList = async () => {
+    try {
+      const res = await fetch('http://localhost:5001/api/y-tasks/list', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableSchedules(data.schedules || []);
+        console.log('Schedule list loaded:', data.schedules);
+      } else {
+        console.error('Failed to load schedule list');
+      }
+    } catch (error) {
+      console.error('Error loading schedule list:', error);
+    }
+  };
+
   useEffect(() => {
-    fetch('http://localhost:5001/api/y-tasks/list', { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => setAvailableSchedules(data.schedules || []));
+    refreshScheduleList();
   }, []);
 
   useEffect(() => {
@@ -132,7 +146,38 @@ function YTaskPage() {
     fetch(`http://localhost:5001/api/y-tasks?start=${selectedSchedule.start}&end=${selectedSchedule.end}`, { credentials: 'include' })
       .then(res => res.text())
       .then(csv => {
-        const rows = csv.split('\n').filter(Boolean).map(line => line.split(','));
+        // Parse CSV properly handling quoted fields
+        const parseCSV = (csvText: string) => {
+          const lines = csvText.split('\n').filter(Boolean);
+          const rows: string[][] = [];
+          
+          for (const line of lines) {
+            const row: string[] = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+              const char = line[i];
+              
+              if (char === '"') {
+                inQuotes = !inQuotes;
+              } else if (char === ',' && !inQuotes) {
+                row.push(current.trim());
+                current = '';
+              } else {
+                current += char;
+              }
+            }
+            
+            // Add the last field
+            row.push(current.trim());
+            rows.push(row);
+          }
+          
+          return rows;
+        };
+        
+        const rows = parseCSV(csv);
         setDates(rows[0].slice(1));
         // Patch: replace all '-' with '' in the grid
         setGrid(
@@ -204,15 +249,46 @@ function YTaskPage() {
         }
       }
       
-      const csvLines: string[] = csv.split('\n').filter((line: string) => line.trim());
-      const headers: string[] = csvLines[0].split(',');
+      // Parse CSV properly handling quoted fields
+      const parseCSV = (csvText: string) => {
+        const lines = csvText.split('\n').filter((line: string) => line.trim());
+        const rows: string[][] = [];
+        
+        for (const line of lines) {
+          const row: string[] = [];
+          let current = '';
+          let inQuotes = false;
+          
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              row.push(current.trim());
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          
+          // Add the last field
+          row.push(current.trim());
+          rows.push(row);
+        }
+        
+        return rows;
+      };
+      
+      const csvLines = parseCSV(csv);
+      const headers: string[] = csvLines[0];
       const parsedDates: string[] = headers.slice(1); // Skip 'Y Task' column
       const y_tasks: string[] = [];
       const parsedGrid: string[][] = [];
       
       // Parse data rows
       for (let i = 1; i < csvLines.length; i++) {
-        const row = csvLines[i].split(',');
+        const row = csvLines[i];
         if (row.length > 1) {
           y_tasks.push(row[0]); // Y task name
           parsedGrid.push(row.slice(1)); // Worker assignments
@@ -259,7 +335,38 @@ function YTaskPage() {
     fetch(`http://localhost:5001/api/y-tasks?start=${selectedSchedule.start}&end=${selectedSchedule.end}`, { credentials: 'include' })
       .then(res => res.text())
       .then(csv => {
-        const rows = csv.split('\n').filter(Boolean).map(line => line.split(','));
+        // Parse CSV properly handling quoted fields
+        const parseCSV = (csvText: string) => {
+          const lines = csvText.split('\n').filter(Boolean);
+          const rows: string[][] = [];
+          
+          for (const line of lines) {
+            const row: string[] = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+              const char = line[i];
+              
+              if (char === '"') {
+                inQuotes = !inQuotes;
+              } else if (char === ',' && !inQuotes) {
+                row.push(current.trim());
+                current = '';
+              } else {
+                current += char;
+              }
+            }
+            
+            // Add the last field
+            row.push(current.trim());
+            rows.push(row);
+          }
+          
+          return rows;
+        };
+        
+        const rows = parseCSV(csv);
         setDates(rows[0].slice(1));
         setGrid(rows.slice(1).map(r => r.slice(1)));
       });
@@ -345,18 +452,22 @@ function YTaskPage() {
         body: JSON.stringify({ filename: scheduleToDelete.filename })
       });
       if (!res.ok) throw new Error('Delete failed');
-      // Refresh schedule list
-      fetch('http://localhost:5001/api/y-tasks/list', { credentials: 'include' })
-        .then(res => res.json())
-        .then(data => setAvailableSchedules(data.schedules || []));
-      // If the deleted schedule was selected, clear selection
+      
+      // If the deleted schedule was selected, clear selection first
       if (selectedSchedule && selectedSchedule.filename === scheduleToDelete.filename) {
         setSelectedSchedule(null);
         setGrid([]);
         setDates([]);
       }
+      
+      // Refresh schedule list with proper error handling
+      await refreshScheduleList();
+      
+      // Clear the schedule to delete
+      setScheduleToDelete(null);
     } catch (e: any) {
       setDeleteError(e.message || 'Failed to delete schedule');
+      console.error('Delete error:', e);
     }
   };
 
@@ -420,7 +531,17 @@ function YTaskPage() {
           flexDirection: 'column',
           gap: 2,
         }}>
-          <Typography sx={{ color: '#fff', fontWeight: 700, mb: 1 }}>Select Y Task Schedule</Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+            <Typography sx={{ color: '#fff', fontWeight: 700 }}>Select Y Task Schedule</Typography>
+            <IconButton
+              size="small"
+              onClick={refreshScheduleList}
+              sx={{ color: '#fff' }}
+              aria-label="Refresh schedule list"
+            >
+              <RefreshIcon fontSize="small" />
+            </IconButton>
+          </Box>
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
             {availableSchedules?.map((sch: any) => (
               <Box key={sch.filename} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -797,7 +918,7 @@ function YTaskPage() {
         fullWidth
       >
         <DialogTitle>
-          <Typography variant="h6" color="primary">
+          <Typography variant="body1" color="primary" sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
             Insufficient Workers Report
           </Typography>
         </DialogTitle>

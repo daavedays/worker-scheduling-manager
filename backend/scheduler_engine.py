@@ -179,7 +179,7 @@ class SchedulerEngine:
         # NEW: Warning system for X task conflicts (user experience enhancement)
         self.x_task_warnings = []
         
-        # ENHANCED: Initialize Y task manager for CSV-based Y task management
+        # Initialize Y task manager for CSV-based Y task management
         try:
             data_dir = os.path.join(os.path.dirname(__file__), '..', 'data')
             self.y_task_manager = get_y_task_manager(data_dir)
@@ -1424,6 +1424,7 @@ class SchedulerEngine:
         """
         from worker import save_workers_to_json
 
+        # Only save if explicitly called, not automatically
         save_workers_to_json(self.workers, json_path, original_data)
 
         print("⚠️  DEVELOPMENT MODE: Future closing assignments saved to closing_history")

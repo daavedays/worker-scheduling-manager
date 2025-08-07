@@ -14,24 +14,12 @@ from pathlib import Path
 
 class YTaskManager:
     """
-    Manages Y-task assignments using CSV files with caching.
-    Prevents JSON file bloat and provides fast access to Y-task data.
+    Manages Y-task assignments using CSV files.
+    Prevents JSON file bloat and provides direct access to Y-task data.
     """
     
     def __init__(self, data_dir: str):
         self.data_dir = data_dir
-        self.cache_manager = None
-        
-        # Try to import cache manager
-        try:
-            from .cache_manager import cache_manager
-            self.cache_manager = cache_manager
-        except ImportError:
-            try:
-                from cache_manager import cache_manager
-                self.cache_manager = cache_manager
-            except ImportError:
-                print("Warning: Cache manager not available")
     
     def save_y_tasks_to_csv(self, start_date: str, end_date: str, grid_data: List[List[str]], 
                            dates: List[str], y_tasks: List[str]) -> str:
@@ -69,10 +57,6 @@ class YTaskManager:
         
         # Update index file
         self._update_y_task_index(start_date, end_date, filename)
-        
-        # Invalidate cache
-        if self.cache_manager:
-            self.cache_manager.invalidate_cache('y_tasks')
         
         print(f"✅ Y tasks saved to {filename}")
         return filename
@@ -122,13 +106,6 @@ class YTaskManager:
         Returns:
             Dictionary of worker_id -> date -> task assignments
         """
-        # Check cache first
-        cache_key = f"y_tasks_{start_date}_{end_date}"
-        if self.cache_manager:
-            cached_data = self.cache_manager.y_task_cache.get(cache_key)
-            if cached_data:
-                return cached_data
-        
         # Load from CSV files
         assignments = {}
         
@@ -152,11 +129,6 @@ class YTaskManager:
                                 assignments[worker_id][date_str] = y_task
             except Exception as e:
                 print(f"Error loading Y tasks from {filename}: {e}")
-        
-        # Cache the result
-        if self.cache_manager:
-            self.cache_manager.y_task_cache[cache_key] = assignments
-            self.cache_manager.y_task_cache_time[cache_key] = datetime.now().timestamp()
         
         return assignments
     
@@ -283,10 +255,6 @@ class YTaskManager:
                 # Save updated index
                 with open(index_path, 'w', encoding='utf-8') as f:
                     json.dump(index, f, indent=2, ensure_ascii=False)
-                
-                # Invalidate cache
-                if self.cache_manager:
-                    self.cache_manager.invalidate_cache('y_tasks')
                 
                 return True
             else:

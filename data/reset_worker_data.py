@@ -16,6 +16,7 @@ WORKER_JSON_PATH = DATA_DIR / "worker_data.json"
 def reset_all_worker_data():
     """
     Reset all worker data: x_tasks, y_tasks, closing_history, and scores
+    Also clears Y task CSV files and index
     """
     print("🔄 Starting comprehensive worker data reset...")
     
@@ -38,10 +39,6 @@ def reset_all_worker_data():
     reset_count = 0
     for worker in workers_data:
         # Reset all assignments
-        worker['x_tasks'] = {}
-        worker['y_tasks'] = {}
-        worker['closing_history'] = []
-        
         # Reset scores
         worker['score'] = 0
         
@@ -66,6 +63,41 @@ def reset_all_worker_data():
         print(f"❌ Error saving reset data: {e}")
         return False
     
+    # Clear Y task CSV files and index
+    print("\n🗑️  Clearing Y task CSV files and index...")
+    
+    # Clear Y task CSV files
+    y_task_files = list(DATA_DIR.glob("y_tasks_*.csv"))
+    for y_file in y_task_files:
+        try:
+            y_file.unlink()
+            print(f"   ✅ Deleted: {y_file.name}")
+        except Exception as e:
+            print(f"   ❌ Error deleting {y_file.name}: {e}")
+    
+    # Clear Y task index
+    y_index_path = DATA_DIR / "y_tasks_index.json"
+    if y_index_path.exists():
+        try:
+            y_index_path.unlink()
+            print(f"   ✅ Deleted: {y_index_path.name}")
+        except Exception as e:
+            print(f"   ❌ Error deleting {y_index_path.name}: {e}")
+    
+    # Clear X task CSV files
+    x_task_files = list(DATA_DIR.glob("x_tasks_*.csv"))
+    for x_file in x_task_files:
+        try:
+            x_file.unlink()
+            print(f"   ✅ Deleted: {x_file.name}")
+        except Exception as e:
+            print(f"   ❌ Error deleting {x_file.name}: {e}")
+    
+    print(f"   📊 Cleared {len(y_task_files)} Y task files and {len(x_task_files)} X task files")
+    
+    # Cache functionality has been removed - no need to clear cache
+    print("\n🗑️  Cache functionality has been removed - all data is loaded directly from files")
+    
     # Verify the reset
     print("\n📊 Reset Summary:")
     print(f"   - Workers processed: {reset_count}")
@@ -74,6 +106,9 @@ def reset_all_worker_data():
     print(f"   - Closing history: CLEARED")
     print(f"   - Scores: RESET TO 0")
     print(f"   - Task counts: RESET TO 0")
+    print(f"   - Y task CSV files: CLEARED")
+    print(f"   - Y task index: CLEARED")
+    print(f"   - X task CSV files: CLEARED")
     
     # Verify the data was actually reset
     verify_reset(workers_data)
@@ -167,6 +202,9 @@ if __name__ == "__main__":
     print("   - All Y tasks will be cleared")
     print("   - All closing history will be cleared")
     print("   - All scores will be reset to 0")
+    print("   - All Y task CSV files will be deleted")
+    print("   - All X task CSV files will be deleted")
+    print("   - Y task index will be cleared")
     
     response = input("\n❓ Do you want to continue? (y/N): ").strip().lower()
     
