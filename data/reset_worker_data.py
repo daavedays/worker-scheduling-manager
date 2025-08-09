@@ -38,18 +38,26 @@ def reset_all_worker_data():
     # Reset each worker
     reset_count = 0
     for worker in workers_data:
-        # Reset all assignments
-        # Reset scores
+        # Reset all assignments - ALWAYS reset these fields
         worker['score'] = 0
-        
-        # Reset task counts (if they exist)
-        if 'x_task_count' in worker:
-            worker['x_task_count'] = 0
-        if 'y_task_count' in worker:
-            worker['y_task_count'] = 0
-        if 'closing_delta' in worker:
-            worker['closing_delta'] = 0
-        
+        worker['y_task_count'] = 0
+        worker['x_task_count'] = 0
+        worker['closing_delta'] = 0
+        worker['required_closing_dates'] = []
+        worker['optimal_closing_dates'] = []
+        worker['weekends_home_owed'] = 0
+        worker['home_weeks_owed'] = 0
+        worker['closing_history'] = []
+        worker['y_tasks'] = {}
+        worker['x_tasks'] = {}
+        worker['y_task_counts'] = {
+            "Supervisor": 0,
+            "C&N Driver": 0,
+            "C&N Escort": 0,
+            "Southern Driver": 0,
+            "Southern Escort": 0
+        }
+
         reset_count += 1
         print(f"   ✅ Reset {worker['name']} (ID: {worker['id']})")
     
@@ -109,6 +117,8 @@ def reset_all_worker_data():
     print(f"   - Y task CSV files: CLEARED")
     print(f"   - Y task index: CLEARED")
     print(f"   - X task CSV files: CLEARED")
+    print(f"   - Y task counts: RESET TO 0")
+
     
     # Verify the data was actually reset
     verify_reset(workers_data)
