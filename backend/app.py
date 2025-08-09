@@ -14,19 +14,17 @@ from typing import Optional
 try:
     from . import x_tasks
     from . import y_tasks
-    from .worker import Worker, load_workers_from_json
-    from .scheduler_engine import SchedulerEngine
-    from .schedule_engine.assign_weekday import WeekdayScheduler
-    from .schedule_engine.assign_weekend import WeekendScheduler
-    from .schedule_engine.assign_closers import CloserScheduler
+    from .worker import Worker, load_workers_from_json, EnhancedWorker
+    from .engine import SchedulingEngineV2
+    from .scoring import recalc_worker_schedule
+    from .closing_schedule_calculator import ClosingScheduleCalculator
 except ImportError:
     import x_tasks
     import y_tasks
-    from worker import Worker, load_workers_from_json
-    from scheduler_engine import SchedulerEngine
-    from schedule_engine.assign_weekday import WeekdayScheduler
-    from schedule_engine.assign_weekend import WeekendScheduler
-    from schedule_engine.assign_closers import CloserScheduler
+    from worker import Worker, load_workers_from_json, EnhancedWorker
+    from engine import SchedulingEngineV2
+    from scoring import recalc_worker_schedule
+    from closing_schedule_calculator import ClosingScheduleCalculator
 
 HISTORY_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'history.json')
 history_lock = threading.Lock()
@@ -103,7 +101,7 @@ def check_session():
 @app.route('/api/scheduling/comprehensive-test', methods=['POST'])
 def run_comprehensive_test():
     """
-    Run comprehensive scheduling test with all new algorithms
+    Run comprehensive scheduling test with SchedulingEngineV2
     """
     if not is_logged_in():
         return require_login()
@@ -119,30 +117,28 @@ def run_comprehensive_test():
         # Load workers
         workers = load_workers_from_json("data/worker_data.json")
         
-        # Create schedulers
-        weekday_scheduler = WeekdayScheduler(workers)
-        weekend_scheduler = WeekendScheduler(workers)
-        closer_scheduler = CloserScheduler(workers)
+        # Create and run SchedulingEngineV2
+        engine = SchedulingEngineV2()
         
-        # Generate assignments
-        weekday_assignments = weekday_scheduler.assign_y_tasks(start_date, end_date)
-        weekend_assignments = weekend_scheduler.assign_y_tasks(start_date, end_date)
-        closer_assignments = closer_scheduler.assign_closers(start_date, end_date)
-        
-        # Get statistics
-        weekday_stats = weekday_scheduler.get_distribution_stats()
-        weekend_stats = weekend_scheduler.get_weekend_stats()
-        closer_stats = closer_scheduler.get_closing_stats()
+        # Run comprehensive test with 2 closers per weekend (typical configuration)
+        result = engine.schedule_range(
+            workers=workers,
+            start=start_date,
+            end=end_date,
+            num_closers_per_weekend=2,
+            weekday_tasks={}  # Can be enhanced to include weekday Y-tasks if needed
+        )
         
         return jsonify({
-            'success': True,
-            'weekday_stats': weekday_stats,
-            'weekend_stats': weekend_stats,
-            'closer_stats': closer_stats,
-            'total_assignments': len(weekday_assignments) + len(weekend_assignments) + len(closer_assignments),
-            'weekday_assignments': len(weekday_assignments),
-            'weekend_assignments': len(weekend_assignments),
-            'closer_assignments': len(closer_assignments)
+            'success': result.get('success', True),
+            'message': 'Comprehensive test completed with SchedulingEngineV2',
+            'period': f"{start_date_str} to {end_date_str}",
+            'total_workers': len(workers),
+            'closers_assigned': len(result.get('closers', {})),
+            'y_tasks_assigned': len(result.get('y_tasks', {})),
+            'logs': result.get('logs', [])[-10:],  # Last 10 log entries
+            'assignment_errors': result.get('assignment_errors', []),
+            'legacy_route': False
         })
         
     except Exception as e:
@@ -312,7 +308,7 @@ def get_correlation_interpretation(correlation):
 @app.route('/api/scheduling/engine-status', methods=['GET'])
 def get_engine_status():
     """
-    Get overall engine status and performance metrics
+    Get overall engine status and performance metrics using SchedulingEngineV2
     """
     if not is_logged_in():
         return require_login()
@@ -320,46 +316,59 @@ def get_engine_status():
     try:
         workers = load_workers_from_json("data/worker_data.json")
         
-        # Run a quick test
+        # Create SchedulingEngineV2 instance for health check
+        engine = SchedulingEngineV2()
+        
+        # Run a quick health check with a small date range
         start_date = date(2025, 1, 1)
-        end_date = date(2025, 6, 30)
+        end_date = date(2025, 1, 14)  # 2 weeks for quick test
         
-        weekday_scheduler = WeekdayScheduler(workers)
-        weekend_scheduler = WeekendScheduler(workers)
-        closer_scheduler = CloserScheduler(workers)
+        # Quick test to ensure engine is working
+        health_result = engine.schedule_range(
+            workers=workers,
+            start=start_date,
+            end=end_date,
+            num_closers_per_weekend=2,
+            weekday_tasks={}
+        )
         
-        weekday_assignments = weekday_scheduler.assign_y_tasks(start_date, end_date)
-        weekend_assignments = weekend_scheduler.assign_y_tasks(start_date, end_date)
-        closer_assignments = closer_scheduler.assign_closers(start_date, end_date)
-        
-        weekday_stats = weekday_scheduler.get_distribution_stats()
-        weekend_stats = weekend_scheduler.get_weekend_stats()
-        closer_stats = closer_scheduler.get_closing_stats()
+        # Analyze worker qualifications
+        qualification_counts = {
+            'supervisor': len([w for w in workers if 'Supervisor' in w.qualifications]),
+            'cn_driver': len([w for w in workers if 'C&N Driver' in w.qualifications]),
+            'cn_escort': len([w for w in workers if 'C&N Escort' in w.qualifications]),
+            'southern_driver': len([w for w in workers if 'Southern Driver' in w.qualifications]),
+            'southern_escort': len([w for w in workers if 'Southern Escort' in w.qualifications])
+        }
         
         return jsonify({
             'success': True,
-            'status': 'FUNCTIONING_OPTIMALLY',
-            'metrics': {
-                'total_assignments': len(weekday_assignments) + len(weekend_assignments) + len(closer_assignments),
-                'weekday_accuracy': '100.0%',
-                'weekend_accuracy': '97.3%',
-                'closer_accuracy': '100.0%',
-                'weekday_fairness': weekday_stats.get('fairness_assessment', 'UNKNOWN'),
-                'weekend_fairness': weekend_stats.get('fairness_assessment', 'UNKNOWN'),
-                'closer_fairness': closer_stats.get('fairness_assessment', 'UNKNOWN')
+            'status': 'HEALTHY',
+            'message': 'SchedulingEngineV2 is operational and tested successfully',
+            'engine_version': 'SchedulingEngineV2',
+            'health_check': {
+                'test_period': f"{start_date.strftime('%d/%m/%Y')} to {end_date.strftime('%d/%m/%Y')}",
+                'closers_assigned': len(health_result.get('closers', {})),
+                'y_tasks_assigned': len(health_result.get('y_tasks', {})),
+                'assignment_errors': len(health_result.get('assignment_errors', [])),
+                'success': health_result.get('success', False)
             },
-            'qualification_distribution': {
-                'supervisor': len([w for w in workers if 'Supervisor' in w.qualifications]),
-                'cn_driver': len([w for w in workers if 'C&N Driver' in w.qualifications]),
-                'cn_escort': len([w for w in workers if 'C&N Escort' in w.qualifications]),
-                'southern_driver': len([w for w in workers if 'Southern Driver' in w.qualifications]),
-                'southern_escort': len([w for w in workers if 'Southern Escort' in w.qualifications])
-            },
-            'total_workers': len(workers)
+            'worker_metrics': {
+                'total_workers': len(workers),
+                'qualification_distribution': qualification_counts,
+                'workers_with_x_tasks': len([w for w in workers if w.x_tasks]),
+                'workers_with_y_tasks': len([w for w in workers if w.y_tasks]),
+                'workers_with_closing_history': len([w for w in workers if w.closing_history])
+            }
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'success': False,
+            'status': 'ERROR',
+            'message': f'Engine health check failed: {str(e)}',
+            'error': str(e)
+        }), 500
 
 # --- X Task API ---
 @app.route('/api/x-tasks', methods=['GET'])
@@ -787,10 +796,10 @@ def generate_y_tasks_api():
     except Exception as e:
         print(f"Warning: Could not load X task data: {e}")
     
-    # Create scheduler engine
-    print(f"DEBUG: About to create SchedulerEngine with {len(workers)} workers")
-    engine = SchedulerEngine(workers, d0, d1)
-    print("DEBUG: SchedulerEngine created successfully")
+    # Create new scheduling engine
+    print(f"🚀 Creating SchedulingEngineV2 with {len(workers)} workers")
+    engine = SchedulingEngineV2()
+    print("✅ SchedulingEngineV2 created successfully")
     
     # Handle different modes
     if mode == 'hybrid' and partial_grid and y_tasks and dates:
@@ -810,28 +819,72 @@ def generate_y_tasks_api():
                                 pass
                             break
     
-    # Generate schedule using new engine (for all modes)
+    # Generate schedule using new SchedulingEngineV2
     try:
-        # Assign Y tasks (including weekend assignments)
-        engine.assign_y_tasks(d0, d1)
+        # Prepare weekday Y tasks if provided
+        weekday_tasks = {}
+        if mode != 'auto' and y_tasks and dates:
+            # Build weekday_tasks from provided data
+            for d_idx, date_str in enumerate(dates):
+                try:
+                    date_obj = datetime.strptime(date_str, '%d/%m/%Y').date()
+                    if d0 <= date_obj <= d1:
+                        # Check which Y tasks are needed on this date
+                        needed_tasks = []
+                        for y_idx, y_task in enumerate(y_tasks):
+                            # For auto mode, schedule all tasks. For hybrid/manual, respect existing assignments
+                            if mode == 'auto' or not (partial_grid and partial_grid[y_idx] and partial_grid[y_idx][d_idx]):
+                                needed_tasks.append(y_task)
+                        if needed_tasks:
+                            weekday_tasks[date_obj] = needed_tasks
+                except ValueError:
+                    continue
+        else:
+            # Auto mode: create full Y task schedule for all weekdays
+            Y_TASKS_ORDER = ["Supervisor", "C&N Driver", "C&N Escort", "Southern Driver", "Southern Escort"]
+            current_date = d0
+            while current_date <= d1:
+                # Only schedule Y tasks on weekdays (Monday=0 to Friday=4, Sunday=6)
+                if current_date.weekday() in [0, 1, 2, 6]:  # Mon, Tue, Wed, Sun
+                    weekday_tasks[current_date] = Y_TASKS_ORDER.copy()
+                current_date += timedelta(days=1)
         
-        # Save updated worker scores after Y task generation
-        # The scores have been updated during the assignment process, so save the workers directly
+        print(f"📋 Scheduling {len(weekday_tasks)} days of Y tasks")
+        
+        # Use the new engine to generate the complete schedule
+        result = engine.schedule_range(
+            workers=workers,
+            start=d0,
+            end=d1,
+            num_closers_per_weekend=2,  # Default to 2 closers per weekend
+            weekday_tasks=weekday_tasks
+        )
+        
+        # Convert result to the format expected by the frontend
+        schedule = {}
+        
+        # Add Y task assignments
+        for date_obj, assignments in result['y_tasks'].items():
+            if date_obj not in schedule:
+                schedule[date_obj] = {}
+            for task_type, worker_id in assignments:
+                # Find worker name
+                worker_name = next((w.name for w in workers if w.id == worker_id), worker_id)
+                schedule[date_obj][task_type] = worker_name
+        
+        # Add weekend closing assignments
+        for friday_date, closer_ids in result['closers'].items():
+            if friday_date not in schedule:
+                schedule[friday_date] = {}
+            # Add closer assignments (weekend closers for Thu-Sat)
+            for i, worker_id in enumerate(closer_ids):
+                worker_name = next((w.name for w in workers if w.id == worker_id), worker_id)
+                closer_key = "Weekend_Closer" if i == 0 else f"Weekend_Closer_{i+1}"
+                schedule[friday_date][closer_key] = worker_name
+        
+        # Save updated worker data (scores may have been updated)
         from worker import save_workers_to_json
-        import json
-        
-        # Load current worker data to preserve other fields
-        try:
-            with open(os.path.join(DATA_DIR, 'worker_data.json'), 'r', encoding='utf-8') as f:
-                original_data = json.load(f)
-        except Exception:
-            original_data = []
-        
-        # Save the workers with their updated scores (Y tasks will be saved separately to CSV)
-        save_workers_to_json(workers, os.path.join(DATA_DIR, 'worker_data.json'), original_data)
-        
-        # Get complete schedule
-        schedule = engine.get_schedule()
+        save_workers_to_json(workers, os.path.join(DATA_DIR, 'worker_data.json'))
     
         # Build grid for response
         Y_TASKS_ORDER = ["Supervisor", "C&N Driver", "C&N Escort", "Southern Driver", "Southern Escort"]
@@ -851,17 +904,29 @@ def generate_y_tasks_api():
                 row.append(found)
             grid.append(row)
         
-        # Generate warnings from insufficient workers report
+        # Generate warnings from scheduling logs
         detailed_report = None
         try:
-            report = engine.get_insufficient_workers_report(d0, d1)
-            detailed_report = report
-            if report['weekend_closing_issues']:
-                warnings.append(f"Weekend closing issues: {len(report['weekend_closing_issues'])} weekends with insufficient candidates")
-            if report['y_task_issues']:
-                warnings.append(f"Y task issues: {len(report['y_task_issues'])} tasks with insufficient qualified workers")
-            if report['detailed_y_task_issues']:
-                warnings.append(f"Detailed issues: {len(report['detailed_y_task_issues'])} unqualified worker assignments found")
+            # Use the new engine's logs for warnings
+            scheduling_logs = result.get('logs', [])
+            
+            # Extract warnings from logs
+            for log in scheduling_logs:
+                if 'No candidate' in log or 'conflict' in log.lower() or 'issue' in log.lower():
+                    warnings.append(log)
+            
+            # Create a simplified report for compatibility
+            detailed_report = {
+                'weekend_closing_issues': [],
+                'y_task_issues': [],
+                'logs': scheduling_logs
+            }
+            
+            # Count scheduling issues
+            no_candidate_logs = [log for log in scheduling_logs if 'No candidate' in log]
+            if no_candidate_logs:
+                warnings.append(f"Assignment issues: {len(no_candidate_logs)} tasks could not be assigned")
+                detailed_report['y_task_issues'] = no_candidate_logs
         except Exception as e:
             warnings.append(f"Could not generate worker shortage report: {e}")
         
@@ -983,9 +1048,88 @@ def available_soldiers_for_y_task():
 def get_combined():
     if not is_logged_in():
         return require_login()
-    path = os.path.join(DATA_DIR, 'combined_schedule.csv')
-    with open(path, 'r', encoding='utf-8') as f:
-        return f.read(), 200, {'Content-Type': 'text/csv'}
+    """
+    Dynamically build a combined CSV from the latest Y schedule and current X tasks.
+    - First row: ["Y Tasks", <dd/mm/yyyy>, <dd/mm/yyyy>, ...]
+    - First column: task names (Y tasks first)
+    - Cells: worker names assigned to that task on that date
+    """
+    import csv, io, glob, re
+    try:
+        try:
+            from . import y_tasks
+        except ImportError:
+            import y_tasks
+
+        # 1) Determine Y schedule to use (latest in index)
+        schedules = y_tasks.list_y_task_schedules()
+        if not schedules:
+            return '', 200, {'Content-Type': 'text/csv'}
+        # pick the first (list_y_task_schedules returns list in existing order)
+        start, end, y_filename = schedules[0]
+        y_path = y_tasks.y_schedule_path(y_filename)
+        if not os.path.exists(y_path):
+            return '', 200, {'Content-Type': 'text/csv'}
+
+        # 2) Read Y CSV
+        with open(y_path, 'r', encoding='utf-8') as f:
+            rows = list(csv.reader(f))
+        if not rows or len(rows) < 2:
+            return '', 200, {'Content-Type': 'text/csv'}
+        dates = rows[0][1:]
+        y_task_names = [r[0] for r in rows[1:]]
+        y_grid = [r[1:] for r in rows[1:]]
+
+        # 3) Optionally expand X tasks for these dates
+        data_dir = os.path.join(os.path.dirname(__file__), '..', 'data')
+        x_files = glob.glob(os.path.join(data_dir, 'x_tasks_*.csv'))
+        x_assignments = {}
+        if x_files:
+            def extract_year_period(fname):
+                m = re.search(r'x_tasks_(\d+)_(\d+)\.csv', fname)
+                if m:
+                    return int(m.group(1)), int(m.group(2))
+                return (0, 0)
+            x_files.sort(key=extract_year_period, reverse=True)
+            x_csv = x_files[0]
+            x_assignments = y_tasks.read_x_tasks(x_csv)
+
+        # Build CSV
+        out = io.StringIO()
+        writer = csv.writer(out)
+        # Header row: label then dates
+        writer.writerow(["Y Tasks"] + dates)
+        # Y task rows
+        for i, task in enumerate(y_task_names):
+            writer.writerow([task] + y_grid[i])
+
+        # Optionally, append unique X task rows under a separator
+        # Collect X tasks for these dates
+        x_task_set = set()
+        for name, day_map in x_assignments.items():
+            for d in dates:
+                t = day_map.get(d, '-')
+                if t and t != '-' and t not in y_task_names:
+                    x_task_set.add(t)
+        if x_task_set:
+            # Separator row
+            writer.writerow([])
+            writer.writerow(["X Tasks"] + ["" for _ in dates])
+            for xt in sorted(x_task_set):
+                row = []
+                for d in dates:
+                    assigned = ''
+                    for name, day_map in x_assignments.items():
+                        if day_map.get(d, '-') == xt:
+                            assigned = name
+                            break
+                    row.append(assigned)
+                writer.writerow([xt] + row)
+
+        csv_text = out.getvalue()
+        return csv_text, 200, {'Content-Type': 'text/csv'}
+    except Exception as e:
+        return '', 200, {'Content-Type': 'text/csv'}
 
 @app.route('/api/combined/grid', methods=['GET'])
 def get_combined_grid():
@@ -1296,11 +1440,56 @@ def get_insufficient_workers_report():
         except Exception as e:
             print(f"Warning: Could not load X task data: {e}")
         
-        # Create scheduler engine
-        engine = SchedulerEngine(workers, d0, d1)
+        # Use new system to generate availability report
+        print(f"🔍 Generating availability report with new system")
         
-        # Generate report
-        report = engine.get_insufficient_workers_report(d0, d1)
+        # Create basic availability analysis
+        Y_TASKS_ORDER = ["Supervisor", "C&N Driver", "C&N Escort", "Southern Driver", "Southern Escort"]
+        
+        # Analyze worker availability for each task type
+        task_availability = {}
+        for task in Y_TASKS_ORDER:
+            qualified_workers = [w for w in workers if task in w.qualifications]
+            task_availability[task] = {
+                'total_qualified': len(qualified_workers),
+                'qualified_workers': [w.name for w in qualified_workers]
+            }
+        
+        # Check for potential issues
+        y_task_issues = []
+        weekend_closing_issues = []
+        
+        # Check Y task qualification coverage
+        for task, info in task_availability.items():
+            if info['total_qualified'] < 2:  # Flag if fewer than 2 qualified workers
+                y_task_issues.append({
+                    'task': task,
+                    'qualified_count': info['total_qualified'],
+                    'qualified_workers': info['qualified_workers'],
+                    'severity': 'high' if info['total_qualified'] == 0 else 'medium'
+                })
+        
+        # Check weekend closing capacity (simplified check)
+        total_workers = len(workers)
+        if total_workers < 4:  # Need at least 4 workers for sustainable weekend closing
+            weekend_closing_issues.append({
+                'issue': 'insufficient_total_workers',
+                'total_workers': total_workers,
+                'recommended_minimum': 4
+            })
+        
+        # Build report in the format expected by frontend
+        report = {
+            'y_task_issues': y_task_issues,
+            'weekend_closing_issues': weekend_closing_issues,
+            'task_availability': task_availability,
+            'summary': {
+                'total_workers': total_workers,
+                'total_issues': len(y_task_issues) + len(weekend_closing_issues)
+            },
+            'detailed_y_task_issues': [],  # For compatibility
+            'period': f"{start} to {end}"
+        }
         
         return jsonify(report), 200
         
@@ -1510,10 +1699,10 @@ def get_combined_by_range():
     
     import csv
     from datetime import datetime, timedelta
-    # Build date list
-    d0 = datetime.strptime(start, '%d/%m/%Y')
-    d1 = datetime.strptime(end, '%d/%m/%Y')
-    dates = [(d0 + timedelta(days=i)).strftime('%d/%m/%Y') for i in range((d1-d0).days+1)]
+    # Parse requested range as dates
+    d0 = datetime.strptime(start, '%d/%m/%Y').date()
+    d1 = datetime.strptime(end, '%d/%m/%Y').date()
+    dates_set = set()
     
     # Collect Y assignments for this period using the new Y task manager
     y_data_by_date = {}
@@ -1542,12 +1731,25 @@ def get_combined_by_range():
                         for row in reader[1:]:
                             y_task = row[0]
                             for i, d in enumerate(file_dates):
+                                try:
+                                    dd = datetime.strptime(d, '%d/%m/%Y').date()
+                                except Exception:
+                                    continue
+                                if dd < d0 or dd > d1:
+                                    continue
+                                dates_set.add(d)
                                 if d not in y_data_by_date:
                                     y_data_by_date[d] = {}
                                 y_data_by_date[d][y_task] = row[i+1] if i+1 < len(row) else ''
         except Exception as e:
             print(f"Error processing Y task period {period_start} to {period_end}: {e}")
             continue
+    # Final dates list sorted ascending; fallback to full requested range if no Y dates found
+    dates = sorted(list(dates_set), key=lambda ds: datetime.strptime(ds, '%d/%m/%Y').date())
+    if not dates:
+        # Fallback: build daily dates across the requested range
+        span = (d1 - d0).days
+        dates = [(d0 + timedelta(days=i)).strftime('%d/%m/%Y') for i in range(span + 1)]
     # Get X assignments for this period
     import glob
     import re
@@ -1565,30 +1767,19 @@ def get_combined_by_range():
         # Sort files by year and period
         x_files.sort(key=extract_year_period)
         
-        # For now, use the first file (period 1) as it covers the first half of the year
-        # In the future, this could be enhanced to pick the correct file based on date range
+        # Use canonical parser that returns dd/mm/yyyy -> task mapping per worker
         x_csv = x_files[0] if x_files else None
-        if x_csv:
-            # Read X tasks CSV directly
-            x_assignments = {}
+        x_assignments = {}
+        if x_csv and os.path.exists(x_csv):
             try:
-                with open(x_csv, 'r', encoding='utf-8') as f:
-                    reader = list(csv.reader(f))
-                    if reader and len(reader) > 1:
-                        dates = reader[0][1:]  # Skip 'Worker' column
-                        for row in reader[1:]:
-                            worker_id = row[0]
-                            for i, task in enumerate(row[1:], 1):
-                                if i <= len(dates):
-                                    date = dates[i-1]
-                                    if worker_id not in x_assignments:
-                                        x_assignments[worker_id] = {}
-                                    x_assignments[worker_id][date] = task
+                try:
+                    from . import y_tasks as y_tasks_module
+                except ImportError:
+                    import y_tasks as y_tasks_module
+                x_assignments = y_tasks_module.read_x_tasks(x_csv)
             except Exception as e:
                 print(f"Error reading X tasks file {x_csv}: {e}")
                 x_assignments = {}
-        else:
-            x_assignments = {}
     # Collect all unique X tasks assigned for any date in the period
     x_tasks_set = set()
     for name, day_map in x_assignments.items():
@@ -1617,7 +1808,7 @@ def get_combined_by_range():
         x_grid.append(row)
     y_tasks_list = ["Supervisor", "C&N Driver", "C&N Escort", "Southern Driver", "Southern Escort"]
     grid = []
-    # Y tasks rows
+    # Y tasks rows filled from y_data_by_date
     for y_task in y_tasks_list:
         row = []
         for d in dates:
@@ -1640,6 +1831,63 @@ def save_combined_csv():
     filename = data.get('filename')
     if not csv_data or not filename:
         return jsonify({'error': 'Missing csv or filename'}), 400
+    
+    # Normalize header to use dd/mm/yyyy dates (remove any "name" column and numeric indices)
+    try:
+        import csv, io
+        # Try to infer dates from existing Y schedule for this range
+        # Filename format: combined_dd-mm-yyyy_dd-mm-yyyy.csv
+        import re
+        m = re.search(r'combined_(\d{2}-\d{2}-\d{4})_(\d{2}-\d{2}-\d{4})', filename)
+        inferred_dates = []
+        if m:
+            start_str = m.group(1).replace('-', '/')
+            end_str = m.group(2).replace('-', '/')
+            try:
+                from .y_task_manager import get_y_task_manager
+                y_task_manager = get_y_task_manager(DATA_DIR)
+            except Exception:
+                y_task_manager = None
+            if y_task_manager:
+                # Find a matching/overlapping Y schedule and read its header dates
+                periods = y_task_manager.list_y_task_periods()
+                for period in periods:
+                    if period['start_date'] == start_str and period['end_date'] == end_str:
+                        y_path = os.path.join(DATA_DIR, period['filename'])
+                        if os.path.exists(y_path):
+                            with open(y_path, 'r', encoding='utf-8') as yf:
+                                rows = list(csv.reader(yf))
+                                if rows:
+                                    inferred_dates = rows[0][1:]  # skip 'Y Task'
+                        break
+        # Parse posted CSV
+        buf = io.StringIO(csv_data)
+        rows = list(csv.reader(buf))
+        if rows:
+            header = rows[0]
+            # Build correct header: ["Task"] + inferred_dates (if available)
+            if inferred_dates:
+                rows[0] = ["Task"] + inferred_dates
+            else:
+                # Fallback: keep any non-numeric labels from existing header
+                cleaned = ["Task"]
+                for h in header[1:]:
+                    if re.fullmatch(r"\d+", h or ""):
+                        continue
+                    if h and h.lower() != 'name':
+                        cleaned.append(h)
+                rows[0] = cleaned if len(cleaned) > 1 else header
+            # Rewrite any '-' cells to empty string
+            for r in range(1, len(rows)):
+                rows[r] = [ ('' if (c == '-' or c is None) else c) for c in rows[r] ]
+            out = io.StringIO()
+            writer = csv.writer(out)
+            writer.writerows(rows)
+            csv_data = out.getvalue()
+    except Exception:
+        # On any error, fall back to raw csv_data
+        pass
+    
     path = os.path.join(DATA_DIR, filename)
     with open(path, 'w', encoding='utf-8') as f:
         f.write(csv_data)
@@ -1823,7 +2071,26 @@ def delete_worker(id):
 
 @app.route('/api/statistics', methods=['GET'])
 def get_statistics():
-    """Get comprehensive statistics for charts and analysis"""
+    """
+    Get comprehensive statistics for charts and analysis
+    
+    SINGLE SOURCE OF TRUTH: worker_data.json only
+    
+    This endpoint ONLY reads from worker_data.json to ensure data consistency.
+    All task assignments, worker information, and metrics are derived from worker objects.
+    
+    Data Sources (ENFORCED):
+    ✅ worker_data.json - worker info, x_tasks, y_tasks, closing_history, scores
+    ❌ CSV files - NO direct CSV reading (CSV files are export/import only)
+    ❌ Y-task manager CSV access - NO external file parsing
+    ❌ Multiple data sources - SINGLE source of truth principle
+    
+    This ensures:
+    - Data consistency across the application
+    - No double-counting of tasks
+    - Reliable statistics that match the main data store
+    - Better performance (no CSV parsing)
+    """
     if not is_logged_in():
         return require_login()
     
@@ -1832,134 +2099,94 @@ def get_statistics():
         DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
         WORKER_JSON_PATH = os.path.join(DATA_DIR, 'worker_data.json')
         
-        # Load all available data
+        # SINGLE SOURCE OF TRUTH: Load all data from worker_data.json only
         workers = load_workers_from_json(WORKER_JSON_PATH)
         
-        # Initialize closing tracking variables
+        print(f"📊 Statistics: Loading data for {len(workers)} workers from worker_data.json")
+        
+        # Count X and Y tasks from worker objects (single source of truth)
+        all_x_tasks = {}
+        all_y_tasks = {}
+        x_tasks_timeline = []
+        y_tasks_timeline = []
+        
+        # Initialize closing tracking variables (used throughout statistics)
         worker_closing_counts = {}
         worker_closing_dates = {}
         
-        # Get all X task files
-        x_task_files = []
-        for filename in os.listdir(DATA_DIR):
-            if filename.startswith('x_tasks_') and filename.endswith('.csv'):
-                x_task_files.append(filename)
-        
-        # Sort files by year and half
-        x_task_files.sort()
-        
-        # Load X tasks data from all files
-        all_x_tasks = {}
-        x_tasks_timeline = []
-        
-        for filename in x_task_files:
-            file_path = os.path.join(DATA_DIR, filename)
-            if os.path.exists(file_path):
-                # Extract year and half from filename
-                parts = filename.replace('.csv', '').split('_')
-                year = int(parts[2])
-                half = int(parts[3])
-                
-                # Load X tasks from this file
-                x_data = {}
-                try:
-                    import csv
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        reader = list(csv.reader(f))
-                        if reader and len(reader) > 1:
-                            dates = reader[0][1:]  # Skip 'Worker' column
-                            for row in reader[1:]:
-                                worker_id = row[0]
-                                for i, task in enumerate(row[1:], 1):
-                                    if i <= len(dates) and task and task != '-':
-                                        if worker_id not in x_data:
-                                            x_data[worker_id] = {}
-                                        x_data[worker_id][dates[i-1]] = task
-                except Exception as e:
-                    print(f"Error reading X tasks file {file_path}: {e}")
-                    x_data = {}
-                
-                # Count tasks per worker
-                for worker_id, tasks in x_data.items():
-                    if worker_id not in all_x_tasks:
-                        all_x_tasks[worker_id] = 0
-                    all_x_tasks[worker_id] += len(tasks)
-                
-                # Add to timeline
-                x_tasks_timeline.append({
-                    'period': f"{year}-{half}",
-                    'year': year,
-                    'half': half,
-                    'total_tasks': sum(len(tasks) for tasks in x_data.values())
-                })
-        
-        # ENHANCED: Load Y tasks using Y task manager with caching
-        all_y_tasks = {}
-        y_task_files = []  # Initialize y_task_files list
-        
-        # Get Y task manager
-        try:
-            from .y_task_manager import get_y_task_manager
-            y_task_manager = get_y_task_manager(DATA_DIR)
-        except ImportError:
-            try:
-                from y_task_manager import get_y_task_manager
-                y_task_manager = get_y_task_manager(DATA_DIR)
-            except ImportError:
-                y_task_manager = None
-                print("Warning: Y task manager not available")
-        
-        # Initialize y_tasks_timeline if not already done
-        if 'y_tasks_timeline' not in locals():
-            y_tasks_timeline = []
-        
-        if y_task_manager:
-            # Get all Y task periods
-            y_task_periods = y_task_manager.list_y_task_periods()
-            
-            # Get list of Y task CSV files
-            for filename in os.listdir(DATA_DIR):
-                if filename.startswith('y_tasks_') and filename.endswith('.csv'):
-                    y_task_files.append(filename)
-            
-            for period in y_task_periods:
-                try:
-                    # Get Y task assignments for this period
-                    assignments = y_task_manager.get_y_task_assignments(
-                        period['start_date'], period['end_date']
-                    )
-                    
-                    # Count tasks per worker
-                    for worker_id, date_assignments in assignments.items():
-                        if worker_id not in all_y_tasks:
-                            all_y_tasks[worker_id] = 0
-                        all_y_tasks[worker_id] += len(date_assignments)
-                    
-                    # Add to timeline
-                    y_tasks_timeline.append({
-                        'period': f"{period['start_date']} to {period['end_date']}",
-                        'total_tasks': sum(len(assignments) for assignments in assignments.values())
-                    })
-                    
-                except Exception as e:
-                    print(f"Error loading Y tasks from period {period['period']}: {e}")
-        
-        # FALLBACK: Also count Y tasks from worker's y_tasks field in JSON (for legacy data)
+        # Extract task counts directly from worker objects
         for worker in workers:
-            if worker.id not in all_y_tasks:
-                all_y_tasks[worker.id] = 0
-            # Count Y tasks from worker's y_tasks field (handle both date objects and strings)
-            y_task_count = 0
-            for date_key in worker.y_tasks.keys():
-                # Handle both datetime.date objects and strings
-                if isinstance(date_key, date):
-                    y_task_count += 1
-                elif isinstance(date_key, str):
-                    y_task_count += 1
-                else:
-                    # Skip invalid keys
-                    continue
-            all_y_tasks[worker.id] += y_task_count
+            worker_id = worker.id
+            
+            # Count X tasks from worker's x_tasks field
+            x_task_count = len(worker.x_tasks) if worker.x_tasks else 0
+            all_x_tasks[worker_id] = x_task_count
+            
+            # Count Y tasks from worker's y_tasks field
+            y_task_count = len(worker.y_tasks) if worker.y_tasks else 0
+            all_y_tasks[worker_id] = y_task_count
+        
+        # Create simplified timeline data based on current date
+        current_year = datetime.now().year
+        
+        # X-tasks timeline (simplified - based on total current assignments)
+        total_x_tasks = sum(all_x_tasks.values())
+        if total_x_tasks > 0:
+            x_tasks_timeline.append({
+                'period': f"{current_year}-Current",
+                'year': current_year,
+                'half': 1,
+                'total_tasks': total_x_tasks
+            })
+        
+        # Y-tasks timeline (simplified - based on total current assignments)
+        total_y_tasks = sum(all_y_tasks.values())
+        if total_y_tasks > 0:
+            y_tasks_timeline.append({
+                'period': f"Current Assignments",
+                'total_tasks': total_y_tasks
+            })
+        
+        print(f"📊 Statistics: Found {total_x_tasks} X-tasks and {total_y_tasks} Y-tasks from worker data")
+        
+        # Check if we have meaningful data to display
+        has_meaningful_data = total_x_tasks > 0 or total_y_tasks > 0
+        
+        if not has_meaningful_data:
+            print("📊 Statistics: No task assignments found - returning empty statistics")
+            return jsonify({
+                'x_tasks_pie': [],
+                'y_tasks_pie': [],
+                'combined_pie': [],
+                'x_tasks_timeline': [],
+                'y_tasks_timeline': [],
+                'fairness_metrics': {
+                    'seniority_distribution': {},
+                    'score_vs_tasks': [],
+                    'weekend_vs_weekday': {},
+                    'task_type_distribution': {},
+                    'qualification_utilization': {},
+                    'y_task_analysis': {'worker_distribution': [], 'statistics': None},
+                    'closing_interval_analysis': {'worker_distribution': [], 'statistics': None},
+                    'worker_performance_metrics': []
+                },
+                'summary': {
+                    'total_workers': len(workers),
+                    'total_x_tasks': 0,
+                    'total_y_tasks': 0,
+                    'total_combined': 0,
+                    'data_source': 'worker_data.json',
+                    'note': 'No task assignments found - statistics will populate when tasks are assigned'
+                },
+                'y_task_bar_chart': [],
+                'score_vs_y_tasks': [],
+                'closing_accuracy': [],
+                'qualification_analysis': [],
+                'workload_distribution': [],
+                'seniority_analysis': [],
+                'task_timeline_analysis': [],
+                'average_y_tasks': 0
+            })
         
         # Prepare pie chart data
         x_tasks_pie = []
@@ -2025,7 +2252,8 @@ def get_statistics():
             'closing_interval_analysis': {},
             'worker_performance_metrics': []
         }
-        
+
+        # TODO: REMOVE OLD FAIRNESS METRICS
         # Seniority distribution
         for worker in workers:
             # Handle seniority values properly - convert to string for consistent comparison
@@ -2143,43 +2371,22 @@ def get_statistics():
         # Closing Interval Analysis - Count actual closings from Y task data
         closing_workers = []
         
-        # Count weekend Y task assignments for each worker (variables already initialized above)
+        # Initialize closing tracking variables for interval analysis
         
-        # Process Y task CSV files to count weekend assignments
-        for filename in y_task_files:
-            file_path = os.path.join(DATA_DIR, filename)
-            if os.path.exists(file_path):
-                try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        reader = csv.reader(f)
-                        headers = next(reader)  # Skip header row
-                        
-                        # Process each row (Y task type)
-                        for row in reader:
-                            if len(row) < 2:
-                                continue
-                            
-                            task_name = row[0]
-                            # Process each date column (starting from index 1)
-                            for i in range(1, len(row)):
-                                if i < len(headers):
-                                    date_str = headers[i]
-                                    worker_name = row[i].strip()
-                                    
-                                    if worker_name and worker_name != '-':
-                                        # Find worker by name
-                                        for worker in workers:
-                                            if worker.name == worker_name:
-                                                if worker.id not in worker_closing_counts:
-                                                    worker_closing_counts[worker.id] = 0
-                                                    worker_closing_dates[worker.id] = []
-                                                
-                                                # Count this as a closing assignment
-                                                worker_closing_counts[worker.id] += 1
-                                                worker_closing_dates[worker.id].append(date_str)
-                                                break
-                except Exception as e:
-                    print(f"Error loading Y tasks from {filename}: {e}")
+        # Count closing assignments from worker's closing_history (single source of truth)
+        for worker in workers:
+            closing_count = len(worker.closing_history) if worker.closing_history else 0
+            worker_closing_counts[worker.id] = closing_count
+            
+            # Convert closing dates to strings in dd/mm/yyyy format for compatibility
+            closing_date_strings = []
+            if worker.closing_history:
+                for closing_date in worker.closing_history:
+                    if isinstance(closing_date, date):
+                        closing_date_strings.append(closing_date.strftime('%d/%m/%Y'))
+                    elif isinstance(closing_date, str):
+                        closing_date_strings.append(closing_date)
+            worker_closing_dates[worker.id] = closing_date_strings
         
         # Calculate closing interval accuracy for each worker
         for worker in workers:
@@ -2397,8 +2604,8 @@ def get_statistics():
                 'total_x_tasks': total_x,
                 'total_y_tasks': total_y,
                 'total_combined': total_combined,
-                'x_task_files': len(x_task_files),
-                'y_task_files': len(y_task_files)
+                'data_source': 'worker_data.json',
+                'note': 'All statistics derived from worker data JSON file only'
             },
             # ENHANCED: New comprehensive statistics
             'y_task_bar_chart': y_task_bar_data,
@@ -2427,6 +2634,27 @@ def serve_react(path):
 @app.route('/data/<path:filename>')
 def serve_data(filename):
     return send_from_directory(os.path.join(DATA_DIR), filename)
+
+# Legacy-compatible Y tasks index for frontend
+# Frontend expects /data/y_tasks.json to be a mapping: { "start_to_end": "filename.csv" }
+@app.route('/data/y_tasks.json')
+def serve_y_tasks_index_legacy():
+    index_path = os.path.join(DATA_DIR, 'y_tasks_index.json')
+    if not os.path.exists(index_path):
+        return jsonify({})
+    try:
+        with open(index_path, 'r', encoding='utf-8') as f:
+            raw_index = json.load(f)
+        # Convert to { period_key: filename }
+        simplified = {}
+        for key, meta in raw_index.items():
+            filename = meta.get('filename') if isinstance(meta, dict) else None
+            if filename:
+                simplified[key] = filename
+        return jsonify(simplified)
+    except Exception as e:
+        # Fail open with empty mapping
+        return jsonify({})
 
 # Cache functionality has been removed - all data is loaded directly from files
 

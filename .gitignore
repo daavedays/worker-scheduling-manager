@@ -1,0 +1,29 @@
+# Worker data files (should not be tracked by git)
+data/worker_data.json
+data/*.csv
+data/y_tasks_*.csv
+data/x_tasks_*.csv
+data/y_tasks_index.json
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node modules (if any)
+node_modules/
+
+# Logs
+*.log

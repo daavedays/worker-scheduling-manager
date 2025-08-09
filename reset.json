@@ -1,0 +1,758 @@
+[
+    {
+      "id": "9597864",
+      "name": "יעל ויינשטיין",
+      "start_date": null,
+      "qualifications": [
+        "Southern Driver",
+        "C&N Driver",
+        "C&N Escort"
+      ],
+      "closing_interval": 3,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {},
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "9168925",
+      "name": "דימה חלסטוב",
+      "start_date": null,
+      "qualifications": [
+        "Southern Driver",
+        "C&N Driver",
+        "C&N Escort",
+        "Southern Escort"
+      ],
+      "closing_interval": 3,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {
+      },
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "9356189",
+      "name": "אנגלינה פרידלין",
+      "start_date": null,
+      "qualifications": [
+        "Southern Driver",
+        "Southern Escort"
+      ],
+      "closing_interval": 3,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {
+      },
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "9051978",
+      "name": "ניקיטה סידורוביץ",
+      "start_date": null,
+      "qualifications": [
+        "C&N Driver",
+        "C&N Escort",
+        "Southern Escort",
+        "Southern Driver"
+      ],
+      "closing_interval": 4,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {
+      },
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "9631934",
+      "name": "אושר טייב",
+      "start_date": null,
+      "qualifications": [
+        "Southern Escort"
+      ],
+      "closing_interval": 0,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {},
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "8837802",
+      "name": "איילה אפריים",
+      "start_date": null,
+      "qualifications": [
+        "Southern Driver",
+        "C&N Driver",
+        "Southern Escort",
+        "C&N Escort"
+      ],
+      "closing_interval": 4,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {
+      },
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "9386605",
+      "name": "נועה דרעי",
+      "start_date": null,
+      "qualifications": [
+        "Southern Driver",
+        "Southern Escort",
+        "C&N Driver",
+        "C&N Escort"
+      ],
+      "closing_interval": 4,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {
+      },
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "9570530",
+      "name": "רואי כוכבי",
+      "start_date": null,
+      "qualifications": [
+        "Southern Driver",
+        "C&N Driver",
+        "C&N Escort",
+        "Southern Escort"
+      ],
+      "closing_interval": 4,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {
+      },
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "9241047",
+      "name": "נתנאל פרסבורגר",
+      "start_date": null,
+      "qualifications": [
+        "Southern Driver",
+        "Southern Escort",
+        "C&N Driver",
+        "C&N Escort"
+      ],
+      "closing_interval": 3,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {},
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "9150226",
+      "name": "קארינה פפרליצה",
+      "start_date": null,
+      "qualifications": [
+        "C&N Driver",
+        "Southern Escort",
+        "C&N Escort",
+        "Supervisor",
+        "Southern Driver"
+      ],
+      "closing_interval": 5,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {
+      },
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "9053378",
+      "name": "לינוי מונרדוס",
+      "start_date": null,
+      "qualifications": [
+        "Southern Driver",
+        "C&N Driver",
+        "Supervisor",
+        "C&N Escort",
+        "Southern Escort"
+      ],
+      "closing_interval": 5,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {
+      },
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "9617384",
+      "name": "אלין אלון",
+      "start_date": null,
+      "qualifications": [
+        "Southern Escort"
+      ],
+      "closing_interval": 2,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {
+      },
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "9434252",
+      "name": "דניאל פטקוב",
+      "start_date": null,
+      "qualifications": [
+        "Southern Driver",
+        "C&N Driver",
+        "Southern Escort",
+        "C&N Escort"
+      ],
+      "closing_interval": 4,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {},
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "9175557",
+      "name": "אייל נחושתן",
+      "start_date": null,
+      "qualifications": [
+        "Southern Driver",
+        "C&N Driver",
+        "C&N Escort",
+        "Southern Escort"
+      ],
+      "closing_interval": 4,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {
+      },
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "9053851",
+      "name": "חן אטדגי",
+      "start_date": null,
+      "qualifications": [
+        "C&N Escort",
+        "Southern Escort"
+      ],
+      "closing_interval": 3,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {
+      },
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "9127472",
+      "name": "רומן נפטלייב",
+      "start_date": null,
+      "qualifications": [
+        "C&N Escort",
+        "Southern Escort"
+      ],
+      "closing_interval": 3,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {},
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "9437517",
+      "name": "מליסה רופה",
+      "start_date": null,
+      "qualifications": [
+        "C&N Escort",
+        "Southern Escort"
+      ],
+      "closing_interval": 3,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {},
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "8837884",
+      "name": "לידר פנקר",
+      "start_date": null,
+      "qualifications": [
+        "Southern Driver",
+        "C&N Driver",
+        "Supervisor",
+        "C&N Escort",
+        "Southern Escort"
+      ],
+      "closing_interval": 5,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {},
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "9518772",
+      "name": "תהילה טרנר",
+      "start_date": null,
+      "qualifications": [
+        "Southern Escort"
+      ],
+      "closing_interval": 0,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {},
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "9517593",
+      "name": "רבקה ארבינצר",
+      "start_date": null,
+      "qualifications": [
+        "Southern Escort"
+      ],
+      "closing_interval": 0,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {},
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "8320845",
+      "name": "David",
+      "start_date": null,
+      "qualifications": [
+        "Supervisor",
+        "C&N Driver",
+        "C&N Escort",
+        "Southern Driver",
+        "Southern Escort"
+      ],
+      "closing_interval": 2,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {
+      },
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "1111111",
+      "name": "Vitalchik",
+      "start_date": null,
+      "qualifications": [
+        "Supervisor",
+        "C&N Driver",
+        "C&N Escort",
+        "Southern Driver",
+        "Southern Escort"
+      ],
+      "closing_interval": 2,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {},
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    },
+    {
+      "id": "2222222",
+      "name": "Shlomo",
+      "start_date": null,
+      "qualifications": [
+        "Supervisor",
+        "C&N Driver",
+        "C&N Escort",
+        "Southern Driver",
+        "Southern Escort"
+      ],
+      "closing_interval": 4,
+      "officer": false,
+      "seniority": null,
+      "score": 0,
+      "long_timer": false,
+      "x_tasks": {},
+      "y_tasks": {},
+      "closing_history": [],
+      "required_closing_dates": [],
+      "optimal_closing_dates": [],
+      "home_weeks_owed": 0,
+      "weekends_home_owed": 0,
+      "y_task_counts": {
+        "Supervisor": 0,
+        "C&N Driver": 0,
+        "C&N Escort": 0,
+        "Southern Driver": 0,
+        "Southern Escort": 0
+      },
+      "x_task_count": 0,
+      "y_task_count": 0,
+      "closing_delta": 0
+    }
+  ]

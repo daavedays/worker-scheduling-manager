@@ -4,11 +4,13 @@ import json
 from datetime import datetime, timedelta, date
 from typing import List, Dict, Optional, Tuple
 try:
-    from .worker import load_workers_from_json
-    from .scheduler_engine import SchedulerEngine
+    from .worker import load_workers_from_json, save_workers_to_json, EnhancedWorker
+    from .engine import SchedulingEngineV2
+    from .scoring import recalc_worker_schedule
 except ImportError:
-    from worker import load_workers_from_json
-    from scheduler_engine import SchedulerEngine
+    from worker import load_workers_from_json, save_workers_to_json, EnhancedWorker
+    from engine import SchedulingEngineV2
+    from scoring import recalc_worker_schedule
 import re
 
 # --- Y Task Definitions ---
@@ -245,7 +247,7 @@ def read_x_tasks(csv_path, year=None):
 # Remove all legacy assignment and scheduling logic below
 # Only keep file I/O and API glue code as needed
 
-# Example: New Y schedule generation using SchedulerEngine
+# NEW: Y schedule generation using SchedulingEngineV2 with pre-computed closing dates
 
 def generate_y_schedule(
         worker_json_path,
@@ -254,13 +256,100 @@ def generate_y_schedule(
         end_date: date,
         y_task_names_by_day: dict
 ):
+    """
+    Generate Y task schedule using the new simplified scheduling engine.
+    
+    This function implements the new workflow:
+    1. Load workers (with pre-computed optimal closing dates from X task updates)
+    2. Use SchedulingEngineV2 for simplified, fair assignment
+    3. Return schedule in the expected format for persistence
+    
+    Args:
+        worker_json_path: Path to worker data JSON
+        x_task_data: X task data (used for validation/conflict checking)
+        start_date: Start date of scheduling period
+        end_date: End date of scheduling period 
+        y_task_names_by_day: Dict mapping dates to lists of Y task types needed
+        
+    Returns:
+        Dict with date strings as keys and task assignments
+    """
+    # Load workers (they should already have optimal closing dates pre-computed)
     workers = load_workers_from_json(worker_json_path)
-    engine = SchedulerEngine(workers, start_date, end_date)
-    engine.assign_y_tasks(y_task_names_by_day)
-    engine.assign_weekend_closers(start_date, end_date)
-    # Convert schedule to string keys for file I/O
+    
+    print(f"🚀 Generating Y schedule with new engine for {len(workers)} workers")
+    print(f"📅 Period: {start_date.strftime('%d/%m/%Y')} to {end_date.strftime('%d/%m/%Y')}")
+    
+    # Create the new scheduling engine
+    engine = SchedulingEngineV2()
+    
+    # Convert y_task_names_by_day to the format expected by the new engine
+    # Input format: {date_string: [task_types]}
+    # Engine format: {date_object: [task_types]}
+    weekday_tasks = {}
+    for date_str, task_list in y_task_names_by_day.items():
+        try:
+            date_obj = datetime.strptime(date_str, '%d/%m/%Y').date()
+            if start_date <= date_obj <= end_date:
+                weekday_tasks[date_obj] = task_list
+        except ValueError:
+            print(f"⚠️  Skipping invalid date: {date_str}")
+    
+    print(f"📋 Scheduling {len(weekday_tasks)} days of Y tasks")
+    
+    # Use the new engine to generate the complete schedule
+    result = engine.schedule_range(
+        workers=workers,
+        start=start_date,
+        end=end_date,
+        num_closers_per_weekend=2,  # Default to 2 closers per weekend
+        weekday_tasks=weekday_tasks
+    )
+    
+    # Extract Y task assignments and convert to expected format
     schedule_str = {}
-    for d, tasks in engine.schedule.items():
-        d_str = d.strftime('%d/%m/%Y')
-        schedule_str[d_str] = tasks
+    
+    # Add Y task assignments
+    for date_obj, assignments in result['y_tasks'].items():
+        date_str = date_obj.strftime('%d/%m/%Y')
+        if date_str not in schedule_str:
+            schedule_str[date_str] = {}
+        
+        for task_type, worker_id in assignments:
+            # Find worker name for the assignment
+            worker_name = next((w.name for w in workers if w.id == worker_id), worker_id)
+            schedule_str[date_str][task_type] = worker_name
+    
+    # Add weekend closing assignments 
+    for friday_date, closer_ids in result['closers'].items():
+        date_str = friday_date.strftime('%d/%m/%Y')
+        if date_str not in schedule_str:
+            schedule_str[date_str] = {}
+        
+        # Add closer assignments (can be multiple closers per weekend)
+        for i, worker_id in enumerate(closer_ids):
+            worker_name = next((w.name for w in workers if w.id == worker_id), worker_id)
+            closer_key = "Weekend_Closer" if i == 0 else f"Weekend_Closer_{i+1}"
+            schedule_str[date_str][closer_key] = worker_name
+    
+    # Save updated worker data (scores may have been updated)
+    save_workers_to_json(workers, worker_json_path)
+    
+    # Print summary
+    total_y_assignments = sum(len([k for k in tasks.keys() if not k.startswith("Weekend_Closer")]) 
+                             for tasks in schedule_str.values())
+    total_closers = sum(len([k for k in tasks.keys() if k.startswith("Weekend_Closer")]) 
+                       for tasks in schedule_str.values())
+    
+    print(f"✅ Schedule generated successfully:")
+    print(f"  📋 Y task assignments: {total_y_assignments}")
+    print(f"  🏠 Weekend closers: {total_closers}")
+    print(f"  📝 Logs: {len(result['logs'])} entries")
+    
+    # Show any important logs
+    for log in result['logs'][:5]:  # Show first 5 log entries
+        print(f"    • {log}")
+    if len(result['logs']) > 5:
+        print(f"    ... and {len(result['logs']) - 5} more")
+    
     return schedule_str
